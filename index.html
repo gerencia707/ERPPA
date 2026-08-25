@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -139,7 +140,7 @@
 </div>
 
 <div class="layout">
-  <div class="sidebar">
+  <div class="sidebar" id="sidebarWrap">
     <div class="setor-titulo" id="setorTitulo">Gerência</div>
     <div id="sidebarMenu"></div>
   </div>
@@ -248,15 +249,19 @@ function renderTopNav(){
 // ============================================================
 function renderSidebar(){
   const s = SETORES[setorAtual];
-  document.getElementById('setorTitulo').textContent = s.nome;
-  const el = document.getElementById('sidebarMenu');
+  const sidebarWrap = document.getElementById('sidebarWrap');
 
-  // Setores com sistema real encaixado (url) não precisam de submenu na
-  // nossa casca — o sistema de dentro já tem a navegação dele mesmo.
-  if(s.url){
-    el.innerHTML = `<div style="padding:10px 12px;color:var(--texto-suave);font-size:12.5px;">Sistema completo carregado ao lado.</div>`;
+  // A barra lateral só faz sentido na Gerência (Usuários e Permissões, etc).
+  // Nos outros setores, o sistema encaixado já tem a navegação dele mesmo —
+  // manter a barra aqui só sobraria espaço vazio.
+  if(setorAtual !== 'gerencia'){
+    sidebarWrap.style.display = 'none';
     return;
   }
+  sidebarWrap.style.display = '';
+
+  document.getElementById('setorTitulo').textContent = s.nome;
+  const el = document.getElementById('sidebarMenu');
 
   el.innerHTML = s.submenus.map(sm=>`
     <button data-sub="${sm.id}" class="${sm.id===submenuAtual?'active':''}" ${!sm.ativo?'disabled':''}>
