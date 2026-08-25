@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voucher LGM · Contagem por Scan</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+  :root{
+    --verde-escuro:#0A2A22;
+    --verde-claro:#C7F1C5;
+    --sage:#A1E19C;
+    --verde-mid:#123B30;
+    --bg:#F5F7F4;
+    --card:#FFFFFF;
+    --texto:#152119;
+    --texto-suave:#5B6B62;
+    --borda:#E1E8E2;
+    --erro:#B3432B;
+    --erro-bg:#FBEAE4;
+    --ok-bg:#EAF7E7;
+    --alerta-bg:#FDF3E3;
+    --alerta:#8A5A15;
+    --radius:10px;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    --sidebar-w:212px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--texto);}
+  .app{display:flex;min-height:100vh;}
+  .sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--verde-escuro);color:var(--verde-claro);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+  .sidebar .brand{display:flex;align-items:center;gap:10px;padding:20px 18px;border-bottom:1px solid rgba(255,255,255,.08);}
+  .sidebar .brand .mark{width:34px;height:34px;border-radius:8px;background:var(--sage);display:flex;align-items:center;justify-content:center;color:var(--verde-escuro);font-weight:700;font-size:14px;flex-shrink:0;}
+  .sidebar .brand h1{font-size:14.5px;margin:0;font-weight:600;color:#fff;}
+  .sidebar .brand .sub{font-size:11px;color:var(--sage);margin-top:1px;}
+  .sidebar nav{flex:1;padding:14px 10px;}
+  .sidebar nav button{width:100%;display:flex;align-items:center;gap:10px;background:transparent;border:none;color:var(--verde-claro);padding:11px 12px;font-size:13.5px;cursor:pointer;border-radius:8px;text-align:left;opacity:.75;margin-bottom:2px;transition:opacity .15s, background .15s;}
+  .sidebar nav button .ic{font-size:15px;width:18px;text-align:center;}
+  .sidebar nav button.active{opacity:1;background:var(--verde-mid);font-weight:600;}
+  .sidebar nav button:hover{opacity:1;background:rgba(255,255,255,.06);}
+  .sidebar .conn-status{padding:14px 18px;font-size:11.5px;color:var(--sage);border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;}
+  .conn-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;flex-shrink:0;}
+  .conn-dot.on{background:#5FBF6B;} .conn-dot.off{background:#C9463A;} .conn-dot.test{background:#E8B93F;}
+  main{flex:1;padding:28px 32px 60px;max-width:1180px;}
+  .view{display:none;} .view.active{display:block;}
+  .view-header{margin-bottom:20px;}
+  .view-header h2{font-size:19px;margin:0 0 3px;color:var(--verde-escuro);}
+  .view-header .desc{font-size:13px;color:var(--texto-suave);}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;}
+  @media (max-width:960px){.grid{grid-template-columns:1fr;}}
+  .card{background:var(--card);border:1px solid var(--borda);border-radius:var(--radius);padding:20px 22px;margin-bottom:20px;}
+  .card h3{font-size:13px;margin:0 0 16px;color:var(--verde-escuro);text-transform:uppercase;letter-spacing:.04em;}
+  label{display:block;font-size:12.5px;color:var(--texto-suave);margin-bottom:5px;margin-top:14px;}
+  label:first-of-type{margin-top:0;}
+  input[type=text], input[type=date], input[type=url], input[type=number], input[type=file], input[type=month], select, textarea{
+    width:100%;padding:9px 11px;border:1px solid var(--borda);border-radius:7px;font-size:14px;background:#fcfdfc;color:var(--texto);font-family:inherit;
+  }
+  textarea{resize:vertical;min-height:60px;}
+  input:focus, select:focus, textarea:focus{outline:none;border-color:var(--verde-mid);box-shadow:0 0 0 3px rgba(18,59,48,.10);}
+  .btn-primary{padding:11px 18px;background:var(--verde-escuro);color:var(--verde-claro);border:none;border-radius:7px;font-size:13.5px;font-weight:600;cursor:pointer;}
+  .btn-primary.full{width:100%;margin-top:20px;}
+  .btn-primary:hover{background:var(--verde-mid);}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-secondary{padding:9px 14px;background:#fff;color:var(--verde-escuro);border:1px solid var(--verde-escuro);border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-secondary:hover{background:var(--verde-claro);}
+  .btn-secondary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-secondary.selected{background:var(--verde-escuro);color:var(--verde-claro);}
+  .msg{margin-top:14px;padding:10px 12px;border-radius:7px;font-size:13px;display:none;}
+  .msg.erro{background:var(--erro-bg);color:var(--erro);display:block;}
+  .msg.ok{background:var(--ok-bg);color:var(--verde-mid);display:block;}
+  .msg.alerta{background:var(--alerta-bg);color:var(--alerta);display:block;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--texto-suave);padding:8px 10px;border-bottom:1px solid var(--borda);}
+  td{padding:10px;border-bottom:1px solid var(--borda);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr.total-row td{font-weight:700;background:var(--verde-escuro);color:var(--verde-claro);}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;}
+  .badge.bate{background:var(--ok-bg);color:var(--verde-mid);}
+  .badge.naobate{background:var(--erro-bg);color:var(--erro);}
+  .badge.info{background:#EFF4EF;color:var(--texto-suave);}
+  .linkscan{color:var(--verde-mid);font-size:12.5px;text-decoration:none;}
+  .linkscan:hover{text-decoration:underline;}
+  .stat-row{display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+  .stat{background:var(--card);border:1px solid var(--borda);border-radius:var(--radius);padding:14px 18px;flex:1;min-width:130px;}
+  .stat .num{font-size:22px;font-weight:700;color:var(--verde-escuro);}
+  .stat .lbl{font-size:11.5px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
+  .empty{text-align:center;padding:40px 20px;color:var(--texto-suave);font-size:13.5px;}
+  .config-note{font-size:12px;color:var(--texto-suave);background:#F2F5F2;border-radius:7px;padding:10px 12px;margin-top:16px;line-height:1.5;}
+  .divider{height:1px;background:var(--borda);margin:20px 0;}
+  .danger-zone{border:1px solid var(--erro-bg);background:#FFF9F7;border-radius:var(--radius);padding:16px 18px;margin-top:20px;}
+  .danger-zone h3{font-size:13px;color:var(--erro);margin:0 0 8px;}
+  .period-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+  .period-buttons button{padding:8px 14px;border:1px solid var(--borda);background:#fcfdfc;border-radius:20px;font-size:13px;cursor:pointer;color:var(--texto);}
+  .period-buttons button.selected{background:var(--verde-escuro);color:var(--verde-claro);border-color:var(--verde-escuro);font-weight:600;}
+  .conf-grande{display:flex;align-items:center;justify-content:center;gap:24px;padding:22px 20px;border-radius:var(--radius);border:1px solid var(--borda);background:#fcfdfc;margin-bottom:14px;flex-wrap:wrap;}
+  .conf-grande .item{text-align:center;}
+  .conf-grande .num{font-size:30px;font-weight:800;color:var(--verde-escuro);line-height:1;}
+  .conf-grande .lbl{font-size:11.5px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.03em;margin-top:4px;}
+  .ocr-progress{font-size:12.5px;color:var(--texto-suave);margin-top:10px;}
+  .ocr-bar{height:6px;background:var(--borda);border-radius:4px;overflow:hidden;margin-top:6px;}
+  .ocr-bar .fill{height:100%;background:var(--verde-mid);width:0%;transition:width .2s;}
+  .cnpj-row{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--borda);}
+  .cnpj-row:last-child{border-bottom:none;}
+  .cnpj-row .info{flex:1;}
+  .cnpj-row .info .nome{font-weight:600;font-size:13.5px;}
+  .cnpj-row .info .doc{font-size:12px;color:var(--texto-suave);font-family:var(--mono);}
+  .add-cnpj-form{display:flex;gap:8px;margin-top:14px;}
+  .add-cnpj-form input{flex:1;}
+  .action-link{background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:12px;text-decoration:underline;padding:0;}
+  .action-link.danger{color:var(--erro);}
+  .danfe-pct-sum{font-size:12.5px;margin-top:10px;padding:8px 10px;border-radius:6px;}
+  .danfe-pct-sum.ok{background:var(--ok-bg);color:var(--verde-mid);}
+  .danfe-pct-sum.erro{background:var(--erro-bg);color:var(--erro);}
+  .danfe-input{width:80px;padding:6px 8px;font-size:13px;text-align:right;}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="mark">LGM</div>
+      <div><h1>Voucher LGM</h1><div class="sub">Contagem por Scan</div></div>
+    </div>
+    <nav>
+      <button data-view="fechamento" class="active"><span class="ic">✓</span>Fechamento do Dia</button>
+      <button data-view="relatorio"><span class="ic">▤</span>Relatório</button>
+      <button data-view="danfe"><span class="ic">⎘</span>Emissão de DANFE</button>
+      <button data-view="config"><span class="ic">⚙</span>Configuração</button>
+    </nav>
+    <div class="conn-status"><span class="conn-dot off" id="connDot"></span><span id="connText">Não conectado</span></div>
+  </div>
+
+  <main>
+
+    <!-- ===================== FECHAMENTO DO DIA ===================== -->
+    <section class="view active" id="view-fechamento">
+      <div class="view-header">
+        <h2>Fechamento do Dia</h2>
+        <div class="desc">Sem lançamento manual — o scan conta os vouchers por tipo, e você confere com o caixa do hotel.</div>
+      </div>
+
+      <div class="card">
+        <h3>1. Leitura do scan</h3>
+        <label style="margin-top:0;">Data do fechamento</label>
+        <input type="date" id="fechData">
+
+        <label>Arquivo PDF do scan de hoje</label>
+        <input type="file" id="fechPdfFile" accept="application/pdf">
+
+        <div style="display:flex;gap:10px;margin-top:14px;">
+          <button class="btn-primary" id="btnLerContar">Ler PDF e contar vouchers</button>
+          <button class="btn-secondary" id="btnPararOcr" style="display:none;color:var(--erro);border-color:var(--erro);">Parar leitura</button>
+        </div>
+        <div class="ocr-progress" id="ocrProgressTxt" style="display:none;"></div>
+        <div class="ocr-bar" id="ocrBarWrap" style="display:none;"><div class="fill" id="ocrBarFill"></div></div>
+        <div class="msg" id="ocrMsg"></div>
+
+        <div id="ocrResultado" style="margin-top:16px;"></div>
+      </div>
+
+      <div class="card" id="cardConferencia" style="display:none;">
+        <h3>2. Conferência com o caixa do hotel</h3>
+        <div class="conf-grande">
+          <div class="item"><div class="num" id="confRodizioOcr">–</div><div class="lbl">Rodízio (scan)</div></div>
+          <div class="item"><div class="num" id="confFondueOcr">–</div><div class="lbl">Rodízio+Fondue (scan)</div></div>
+          <div class="item"><div class="num" id="confNaoIdent">–</div><div class="lbl">Não identificados</div></div>
+        </div>
+
+        <label style="margin-top:0;">Quantos vouchers de Rodízio foram lançados no caixa do hotel?</label>
+        <input type="number" min="0" id="caixaRodizio" placeholder="0">
+
+        <label>Quantos vouchers de Rodízio + Fondue foram lançados no caixa do hotel?</label>
+        <input type="number" min="0" id="caixaFondue" placeholder="0">
+
+        <button class="btn-secondary" id="btnConferir" style="margin-top:14px;">Conferir</button>
+        <div class="msg" id="confMsg"></div>
+
+        <div class="divider"></div>
+
+        <label style="margin-top:0;">Link do Drive (scan do dia)</label>
+        <input type="url" id="fechLink" placeholder="https://drive.google.com/...">
+
+        <label>Observação (opcional)</label>
+        <textarea id="fechObs" placeholder="Ex: 2 vouchers rasurados, contados manualmente"></textarea>
+
+        <button class="btn-primary full" id="btnSalvarFechamento">Salvar fechamento do dia</button>
+        <div class="msg" id="salvarMsg"></div>
+      </div>
+
+      <div class="card">
+        <h3>Histórico de fechamentos</h3>
+        <div id="tabelaFechamentos"></div>
+      </div>
+    </section>
+
+    <!-- ===================== RELATÓRIO ===================== -->
+    <section class="view" id="view-relatorio">
+      <div class="view-header">
+        <h2>Relatório</h2>
+        <div class="desc">Consulta dos fechamentos por período.</div>
+      </div>
+
+      <div class="card">
+        <h3>Período</h3>
+        <div class="period-buttons" id="periodoRapido">
+          <button type="button" data-p="hoje">Hoje</button>
+          <button type="button" data-p="7dias">Últimos 7 dias</button>
+          <button type="button" data-p="mes" class="selected">Este mês</button>
+          <button type="button" data-p="q1">1ª quinzena</button>
+          <button type="button" data-p="q2">2ª quinzena</button>
+          <button type="button" data-p="personalizado">Personalizado</button>
+        </div>
+        <div id="periodoPersonalizado" style="display:none;margin-top:14px;">
+          <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;">
+            <div><label style="margin-top:0;">De</label><input type="date" id="relDe"></div>
+            <div><label style="margin-top:0;">Até</label><input type="date" id="relAte"></div>
+          </div>
+        </div>
+        <label style="margin-top:14px;">Status</label>
+        <select id="relStatus">
+          <option value="">Todos</option>
+          <option value="bateu">Bateu</option>
+          <option value="nao_bateu">Não bateu</option>
+        </select>
+        <button class="btn-primary full" id="btnAplicarRelatorio">Aplicar</button>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="statDias">–</div><div class="lbl">Dias no período</div></div>
+        <div class="stat"><div class="num" id="statRodizioTotal">–</div><div class="lbl">Rodízio (total)</div></div>
+        <div class="stat"><div class="num" id="statFondueTotal">–</div><div class="lbl">Rodízio+Fondue (total)</div></div>
+        <div class="stat"><div class="num" id="statValorTotal">–</div><div class="lbl">Valor total (R$)</div></div>
+        <div class="stat"><div class="num" id="statBateram">–</div><div class="lbl">Dias que bateram</div></div>
+      </div>
+
+      <div class="card">
+        <h3>Fechamentos do período</h3>
+        <div id="tabelaRelatorio"></div>
+      </div>
+    </section>
+
+    <!-- ===================== DANFE ===================== -->
+    <section class="view" id="view-danfe">
+      <div class="view-header">
+        <h2>Emissão de DANFE</h2>
+        <div class="desc">Divide o valor de vouchers da quinzena entre os CNPJs cadastrados.</div>
+      </div>
+
+      <div class="card">
+        <h3>Período</h3>
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px;">
+          <div><label style="margin-top:0;">Mês</label><input type="month" id="danfeMesRapido"></div>
+          <div><label style="margin-top:0;">Quinzena</label>
+            <select id="danfeQuinzenaRapida">
+              <option value="q1">1ª quinzena (1–15)</option>
+              <option value="q2">2ª quinzena (16–fim)</option>
+              <option value="mes">Mês inteiro</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-secondary" id="btnCalcularDanfe" style="margin-top:14px;">Calcular total do período</button>
+
+        <div class="stat-row" style="margin-top:18px;">
+          <div class="stat"><div class="num" id="danfeQtdTotal">–</div><div class="lbl">Vouchers no período</div></div>
+          <div class="stat"><div class="num" id="danfeValorTotal">–</div><div class="lbl">Valor total (R$)</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Distribuição por CNPJ</h3>
+        <div class="config-note" style="margin-top:0;">Só a % de cada CNPJ precisa ser preenchida — o valor é calculado automaticamente.</div>
+        <div id="danfeTabelaWrap" style="margin-top:14px;"></div>
+        <div class="danfe-pct-sum" id="danfePctSum" style="display:none;"></div>
+        <button class="btn-primary" id="btnSalvarDanfe" style="margin-top:16px;">Salvar emissão desta quinzena</button>
+        <div class="msg" id="danfeMsg"></div>
+      </div>
+
+      <div class="card">
+        <h3>Emissões salvas</h3>
+        <div id="tabelaDanfeHistorico"></div>
+      </div>
+    </section>
+
+    <!-- ===================== CONFIGURAÇÃO ===================== -->
+    <section class="view" id="view-config">
+      <div class="view-header">
+        <h2>Configuração</h2>
+        <div class="desc">Conexão, valores, CNPJs e parâmetros de leitura.</div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3>Conexão Supabase</h3>
+          <label style="margin-top:0;">URL do projeto</label>
+          <input type="text" id="cfgUrl" placeholder="https://xxxxx.supabase.co">
+          <label>Chave anon (public)</label>
+          <input type="text" id="cfgKey" placeholder="eyJhbGciOi...">
+          <label>Tabela de fechamentos</label>
+          <input type="text" id="cfgTabelaFechamentos" placeholder="fechamentos_sem_lancamento">
+          <label>Tabela de emissões DANFE</label>
+          <input type="text" id="cfgTabelaDanfe" placeholder="danfe_emissoes">
+          <div class="config-note">
+            Sem conexão configurada, o sistema funciona em <b>modo teste</b>: os dados ficam salvos só neste navegador.
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Identificação e valores</h3>
+          <label style="margin-top:0;">Nome do Controlista</label>
+          <input type="text" id="cfgControlista" placeholder="Ex: Maria Souza">
+          <label>Valor do voucher Rodízio (R$)</label>
+          <input type="number" step="0.01" id="cfgValorRodizio" placeholder="70">
+          <label>Valor do voucher Rodízio + Fondue (R$)</label>
+          <input type="number" step="0.01" id="cfgValorFondue" placeholder="80">
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Leitura do scan</h3>
+        <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:16px;">
+          <div>
+            <label style="margin-top:0;">Cabeçalho — altura do recorte (%)</label>
+            <input type="number" min="1" max="100" id="cfgCropCabecalhoAltura" placeholder="35">
+          </div>
+          <div>
+            <label style="margin-top:0;">NÚMERO — início horizontal (%)</label>
+            <input type="number" min="0" max="95" id="cfgCropNumeroX" placeholder="65">
+          </div>
+          <div>
+            <label style="margin-top:0;">NÚMERO — altura do recorte (%)</label>
+            <input type="number" min="1" max="100" id="cfgCropNumeroAltura" placeholder="20">
+          </div>
+        </div>
+        <div class="config-note">
+          Só é lido o topo da página (número + brinde + data) — o corpo de especificação do voucher é ignorado, o que deixa a leitura mais rápida.
+        </div>
+
+        <label>Código — quantidade exata de dígitos</label>
+        <input type="number" min="1" max="12" id="cfgCodigoDigitos" placeholder="6">
+
+        <div class="divider"></div>
+
+        <label style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="cfgApenasAnguloZero" style="width:auto;">
+          Processar só no ângulo 0° (arquivo já vem com a rotação corrigida)
+        </label>
+        <div class="config-note" style="margin-top:8px;">
+          Ligado (padrão), pressupõe que cada página do PDF já chega em pé. Desmarque se algum lote vier com página de lado ou de cabeça pra baixo.
+        </div>
+
+        <label style="display:flex;align-items:center;gap:8px;margin-top:16px;">
+          <input type="checkbox" id="cfgInclinacaoFina" style="width:auto;">
+          Tentar corrigir inclinação fina em páginas difíceis (mais lento)
+        </label>
+
+        <button class="btn-primary full" id="btnSalvarConfig">Salvar configuração</button>
+        <div class="msg" id="configMsg"></div>
+      </div>
+
+      <div class="card">
+        <h3>CNPJs para emissão de DANFE</h3>
+        <div id="listaCnpjs"></div>
+        <div class="add-cnpj-form">
+          <input type="text" id="novoCnpjEmpresa" placeholder="Nome da empresa">
+          <input type="text" id="novoCnpjNumero" placeholder="00.000.000/0000-00">
+          <button class="btn-secondary" id="btnAddCnpj">Adicionar</button>
+        </div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn-secondary" id="btnRestaurarCnpjs">Restaurar lista padrão</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="danger-zone">
+          <h3>Zona de risco</h3>
+          <button class="btn-secondary" id="btnLimparDadosTeste">Limpar fechamentos e DANFEs do modo teste</button>
+          <div style="height:10px;"></div>
+          <button class="btn-secondary" id="btnLimparConfig">Limpar toda a configuração salva neste navegador</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURAÇÃO E ESTADO
+// ============================================================
+const CONFIG_KEY = 'voucherLGM_semLancamento_config_v1';
+let supabaseClient = null;
+let config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+if(!Array.isArray(config.cnpjs)) config.cnpjs = config.cnpjs || [];
+
+const CNPJS_PADRAO = [
+  {nome:'Riserva', cnpj:'34.028.040/0003-25'},
+  {nome:'Altos', cnpj:'40.024.035/0001-85'},
+  {nome:'LGM Filial 23', cnpj:'48.896.217/0024-44'},
+  {nome:'LGM Filial 3 Terreneiro', cnpj:'48.896.217/0004-09'},
+  {nome:'Athivabrasil', cnpj:'08.705.893/0001-82'},
+  {nome:'LGM Filial 3', cnpj:'48.896.217/0004-09'},
+  {nome:'Asa Delta', cnpj:'30.182.622/0004-91'},
+  {nome:'Canela', cnpj:'30.145.972/0002-16'},
+  {nome:'GVP', cnpj:'17.991.041/0001-90'}
+];
+if(!config._cnpjsPreenchidos){
+  config.cnpjs = CNPJS_PADRAO.slice();
+  config._cnpjsPreenchidos = true;
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+}
+if(!config._valoresPreenchidos){
+  if(!config.valor_rodizio) config.valor_rodizio = '70';
+  if(!config.valor_fondue) config.valor_fondue = '80';
+  if(config.crop_cabecalho_altura === undefined) config.crop_cabecalho_altura = 35;
+  if(config.crop_numero_x === undefined) config.crop_numero_x = 65;
+  if(config.crop_numero_altura === undefined) config.crop_numero_altura = 20;
+  if(config.codigo_digitos === undefined) config.codigo_digitos = 6;
+  if(config.apenas_angulo_zero === undefined) config.apenas_angulo_zero = true;
+  config._valoresPreenchidos = true;
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+}
+
+function hoje(){
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - off*60000);
+  return local.toISOString().slice(0,10);
+}
+function fmtMoeda(v){ return (v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function valorVoucher(tipo){
+  if(tipo === 'rodizio_fondue') return parseFloat(config.valor_fondue || 0);
+  return parseFloat(config.valor_rodizio || 0);
+}
+function nomeTipoConsumo(t){ return t==='rodizio_fondue' ? 'Rodízio + Fondue' : 'Rodízio'; }
+
+function initConnection(){
+  const dot = document.getElementById('connDot');
+  const text = document.getElementById('connText');
+  if(config.url && config.key){
+    try{
+      supabaseClient = supabase.createClient(config.url, config.key);
+      dot.className = 'conn-dot on'; text.textContent = 'Conectado';
+    }catch(e){
+      supabaseClient = null; dot.className = 'conn-dot off'; text.textContent = 'Erro na conexão';
+    }
+  } else {
+    supabaseClient = null; dot.className = 'conn-dot test'; text.textContent = 'Modo teste (dados locais)';
+  }
+}
+function modoTeste(){ return !supabaseClient; }
+function tabelaFechamentos(){ return config.tabela_fechamentos || 'fechamentos_sem_lancamento'; }
+function tabelaDanfe(){ return config.tabela_danfe || 'danfe_emissoes'; }
+
+// ---- banco local (modo teste) ----
+const LOCAL_KEYS = { fechamentos: 'voucherLGM_sl_fechamentos', danfe: 'voucherLGM_sl_danfe' };
+function localLoad(key){ return JSON.parse(localStorage.getItem(key) || '[]'); }
+function localSave(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
+function novoId(){ return (crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now()+'-'+Math.random().toString(16).slice(2)); }
+
+const localDB = {
+  fechamentos: {
+    all(){ return localLoad(LOCAL_KEYS.fechamentos); },
+    upsertByData(reg){
+      const arr = localLoad(LOCAL_KEYS.fechamentos);
+      const idx = arr.findIndex(f=>f.data===reg.data);
+      if(idx>=0){ arr[idx] = {...arr[idx], ...reg}; }
+      else { arr.push({...reg, id: novoId(), created_at: new Date().toISOString()}); }
+      localSave(LOCAL_KEYS.fechamentos, arr);
+    }
+  },
+  danfe: {
+    all(){ return localLoad(LOCAL_KEYS.danfe); },
+    insertMany(regs){
+      const arr = localLoad(LOCAL_KEYS.danfe);
+      regs.forEach(r=> arr.push({...r, id: novoId(), created_at: new Date().toISOString()}));
+      localSave(LOCAL_KEYS.danfe, arr);
+    }
+  }
+};
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+document.querySelectorAll('.sidebar nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.sidebar nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    if(btn.dataset.view === 'fechamento') carregarHistoricoFechamentos();
+    if(btn.dataset.view === 'relatorio') carregarRelatorio();
+    if(btn.dataset.view === 'danfe') { renderTabelaDanfe(); carregarHistoricoDanfe(); }
+    if(btn.dataset.view === 'config') renderListaCnpjs();
+  });
+});
+
+// ============================================================
+// FECHAMENTO DO DIA — OCR (contagem por tipo, sem número/código)
+// ============================================================
+document.getElementById('fechData').value = hoje();
+let ultimoResultadoOcr = null; // {rodizio, fondue, naoIdentificados, totalPaginas, paginas:[...]}
+
+function preprocessarCanvas(canvas){
+  function limiarOtsu(cinza){
+    const hist = new Array(256).fill(0);
+    for(let i=0;i<cinza.length;i++) hist[cinza[i]]++;
+    const total = cinza.length;
+    let soma = 0;
+    for(let t=0;t<256;t++) soma += t*hist[t];
+    let somaB=0, wB=0, maxVar=0, limiar=127;
+    for(let t=0;t<256;t++){
+      wB += hist[t];
+      if(wB===0) continue;
+      const wF = total - wB;
+      if(wF===0) break;
+      somaB += t*hist[t];
+      const mB = somaB/wB;
+      const mF = (soma-somaB)/wF;
+      const varEntre = wB*wF*(mB-mF)*(mB-mF);
+      if(varEntre > maxVar){ maxVar = varEntre; limiar = t; }
+    }
+    return limiar;
+  }
+  const w = canvas.width, h = canvas.height;
+  const saida = document.createElement('canvas');
+  saida.width = w; saida.height = h;
+  const ctxOut = saida.getContext('2d');
+  ctxOut.drawImage(canvas, 0, 0);
+  const imgData = ctxOut.getImageData(0,0,w,h);
+  const d = imgData.data;
+  const cinza = new Uint8ClampedArray(d.length/4);
+  for(let i=0, j=0; i<d.length; i+=4, j++){
+    cinza[j] = Math.round(0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2]);
+  }
+  const limiar = limiarOtsu(cinza);
+  for(let i=0, j=0; i<d.length; i+=4, j++){
+    const valor = cinza[j] > limiar ? 255 : 0;
+    d[i]=d[i+1]=d[i+2]=valor;
+  }
+  ctxOut.putImageData(imgData,0,0);
+  return saida;
+}
+
+function canvasRotacionado(origCanvas, graus){
+  if(graus === 0) return origCanvas;
+  const rad = graus * Math.PI/180;
+  const w = origCanvas.width, h = origCanvas.height;
+  const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
+  const novo = document.createElement('canvas');
+  novo.width = Math.ceil(w*cos + h*sin);
+  novo.height = Math.ceil(w*sin + h*cos);
+  const ctx = novo.getContext('2d');
+  ctx.save();
+  ctx.translate(novo.width/2, novo.height/2);
+  ctx.rotate(rad);
+  ctx.drawImage(origCanvas, -w/2, -h/2);
+  ctx.restore();
+  return novo;
+}
+
+function recortarCabecalho(canvas){
+  const w = canvas.width, h = canvas.height;
+  const pctAltura = (config.crop_cabecalho_altura ?? 35) / 100;
+  const alturaRecorte = Math.round(h*pctAltura);
+  const recorte = document.createElement('canvas');
+  recorte.width = w; recorte.height = alturaRecorte;
+  const ctx = recorte.getContext('2d');
+  ctx.drawImage(canvas, 0, 0, w, alturaRecorte, 0, 0, w, alturaRecorte);
+  return recorte;
+}
+
+function recortarRegiaoNumero(canvas, fatorAmpliacao, alturaPctOverride){
+  const w = canvas.width, h = canvas.height;
+  const pctX = (config.crop_numero_x ?? 65) / 100;
+  const pctAltura = (alturaPctOverride ?? (config.crop_numero_altura ?? 20)) / 100;
+  const x0 = Math.round(w*pctX);
+  const larguraRecorte = w - x0;
+  const alturaRecorte = Math.round(h*pctAltura);
+  const fator = fatorAmpliacao || 2;
+  const recorte = document.createElement('canvas');
+  recorte.width = larguraRecorte * fator;
+  recorte.height = alturaRecorte * fator;
+  const ctx = recorte.getContext('2d');
+  ctx.drawImage(canvas, x0, 0, larguraRecorte, alturaRecorte, 0, 0, recorte.width, recorte.height);
+  return recorte;
+}
+
+// Tenta ler o número com o recorte JUSTO primeiro (mais limpo, sem pegar
+// a linha do brinde nem o carimbo abaixo). Só se não achar nada, tenta de
+// novo com um recorte um pouco mais alto — reforço pras vezes em que a
+// caixa do número está um pouco mais baixa do que o esperado.
+async function lerNumeroComReforco(canvasTeste, fatorAmpliacao){
+  const qtdDigitos = config.codigo_digitos ?? 6;
+  const regexDigitos = new RegExp('(?<!\\d)\\d{'+qtdDigitos+'}(?!\\d)', 'g');
+  const alturaJusta = config.crop_numero_altura ?? 20;
+
+  const canvasJusto = recortarRegiaoNumero(canvasTeste, fatorAmpliacao, alturaJusta);
+  const textoJusto = await ocrNumero(canvasJusto);
+  const digitosJusto = textoJusto.match(regexDigitos) || [];
+  if(digitosJusto.length > 0){
+    return {texto: textoJusto, digitos: digitosJusto, imagem: canvasJusto};
+  }
+
+  const canvasReforco = recortarRegiaoNumero(canvasTeste, fatorAmpliacao, alturaJusta + 10);
+  const textoReforco = await ocrNumero(canvasReforco);
+  const digitosReforco = textoReforco.match(regexDigitos) || [];
+  return {texto: textoReforco, digitos: digitosReforco, imagem: canvasReforco};
+}
+
+// Reconhecimento tolerante a erros comuns de OCR nessa linha do brinde:
+// - "RODIZIO" às vezes perde/ganha 1-4 letras no meio (ex: "RODiIO")
+// - "FONDUE" é a palavra que mais falha na leitura — mas "CHOCOLATE" (que
+//   só aparece na versão COM fondue do brinde) costuma sobreviver melhor,
+//   então um fragmento "CHOC" já é um bom sinal de Rodízio + Fondue mesmo
+//   sem conseguir ler "FONDUE" certinho.
+function temRodizioReconhecivel(texto){
+  return /ROD.{0,4}IO/i.test(texto);
+}
+function temFondueReconhecivel(texto){
+  return /FONDUE/i.test(texto) || /CHOC/i.test(texto);
+}
+function temBrindeReconhecivel(texto){
+  return temRodizioReconhecivel(texto) || temFondueReconhecivel(texto);
+}
+function tipoDoTexto(texto){
+  if(temFondueReconhecivel(texto)) return 'rodizio_fondue';
+  if(temRodizioReconhecivel(texto)) return 'rodizio';
+  return null;
+}
+
+// Confirma o número por QUALQUER um dos dois caminhos: o recorte dedicado
+// (mais direto) OU achar "MERO" perto de dígitos no texto do cabeçalho
+// (funciona quando o Tesseract não embaralha as colunas do cabeçalho).
+function temNumeroConfirmado(textoCabecalho, digitosRecorte){
+  if(digitosRecorte && digitosRecorte.length > 0) return true;
+  const qtd = config.codigo_digitos ?? 6;
+  const regexMero = new RegExp('MERO[^0-9]{0,45}(?<!\\d)\\d{'+qtd+'}(?!\\d)', 'i');
+  return regexMero.test(textoCabecalho);
+}
+function extrairCodigo(textoCabecalho, digitosRecorte){
+  if(digitosRecorte && digitosRecorte.length > 0) return digitosRecorte[0];
+  const qtd = config.codigo_digitos ?? 6;
+  const m = textoCabecalho.match(new RegExp('MERO[^0-9]{0,45}((?<!\\d)\\d{'+qtd+'}(?!\\d))', 'i'));
+  return m ? m[1] : null;
+}
+
+async function ocrCabecalho(canvas){
+  const preparado = preprocessarCanvas(canvas);
+  const worker = await Tesseract.createWorker('por');
+  try{
+    const {data:{text}} = await worker.recognize(preparado);
+    return text;
+  } finally {
+    await worker.terminate();
+  }
+}
+
+async function ocrNumero(canvas){
+  const preparado = preprocessarCanvas(canvas);
+  const worker = await Tesseract.createWorker('por');
+  try{
+    const {data:{text}} = await worker.recognize(preparado);
+    return text;
+  } finally {
+    await worker.terminate();
+  }
+}
+
+// Tentativa extra, só pro número: modo restrito a dígitos + "linha única",
+// mais lento mas mais preciso pra números isolados. Só roda depois que o
+// tipo já foi determinado (não afeta a contagem), como um bônus pra tentar
+// recuperar o código quando a leitura padrão não achou.
+async function ocrNumeroRobusto(canvas){
+  const preparado = preprocessarCanvas(canvas);
+  const worker = await Tesseract.createWorker('por');
+  try{
+    const psmLinhaUnica = (typeof Tesseract !== 'undefined' && Tesseract.PSM && Tesseract.PSM.SINGLE_LINE) ? Tesseract.PSM.SINGLE_LINE : '7';
+    await worker.setParameters({ tessedit_char_whitelist: '0123456789', tessedit_pageseg_mode: psmLinhaUnica });
+    const {data:{text}} = await worker.recognize(preparado);
+    return text;
+  } finally {
+    await worker.terminate();
+  }
+}
+
+let ocrCancelado = false;
+document.getElementById('btnPararOcr').addEventListener('click', ()=>{
+  ocrCancelado = true;
+  document.getElementById('ocrProgressTxt').textContent = 'Parando após a página atual...';
+});
+
+document.getElementById('btnLerContar').addEventListener('click', async ()=>{
+  const fileInput = document.getElementById('fechPdfFile');
+  const resultEl = document.getElementById('ocrResultado');
+  const progressTxt = document.getElementById('ocrProgressTxt');
+  const barWrap = document.getElementById('ocrBarWrap');
+  const barFill = document.getElementById('ocrBarFill');
+  const msgEl = 'ocrMsg';
+
+  if(!fileInput.files || fileInput.files.length===0){
+    showMsg(msgEl, 'Selecione o arquivo PDF do scan antes de rodar a leitura.', 'erro');
+    return;
+  }
+
+  ocrCancelado = false;
+  const btn = document.getElementById('btnLerContar');
+  const btnParar = document.getElementById('btnPararOcr');
+  btn.disabled = true;
+  btnParar.style.display = 'inline-block';
+  progressTxt.style.display = 'block';
+  barWrap.style.display = 'block';
+  progressTxt.textContent = 'Abrindo PDF...';
+  barFill.style.width = '2%';
+  resultEl.innerHTML = '';
+  document.getElementById(msgEl).className = 'msg';
+  document.getElementById('cardConferencia').style.display = 'none';
+
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    const file = fileInput.files[0];
+    const buffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buffer}).promise;
+
+    const ordemRotacoes = (config.apenas_angulo_zero !== false) ? [0] : [0, 90, 270, 180];
+    const paginas = [];
+    const temposPorPagina = [];
+    let interrompido = false;
+
+    function formatarTempoRestante(segundos){
+      if(segundos < 1) return 'menos de 1s';
+      if(segundos < 60) return `${Math.round(segundos)}s`;
+      const min = Math.floor(segundos/60);
+      const seg = Math.round(segundos%60);
+      return `${min}min ${seg}s`;
+    }
+    function estimativaTexto(paginasConcluidas){
+      if(paginasConcluidas === 0) return '';
+      const media = temposPorPagina.reduce((a,b)=>a+b,0) / temposPorPagina.length;
+      const restantes = pdf.numPages - paginasConcluidas;
+      if(restantes <= 0) return '';
+      return ` — tempo estimado restante: ~${formatarTempoRestante(media * restantes)}`;
+    }
+
+    for(let p=1; p<=pdf.numPages; p++){
+      if(ocrCancelado){ interrompido = true; break; }
+      barFill.style.width = Math.round(((p-1)/pdf.numPages)*100) + '%';
+      const estimativa = estimativaTexto(p-1);
+      progressTxt.textContent = `Lendo página ${p} de ${pdf.numPages}...${estimativa}`;
+
+      const inicioPagina = performance.now();
+      const page = await pdf.getPage(p);
+      const viewport = page.getViewport({scale: 3.0});
+      const canvasBase = document.createElement('canvas');
+      canvasBase.width = viewport.width;
+      canvasBase.height = viewport.height;
+      const ctxBase = canvasBase.getContext('2d');
+      await page.render({canvasContext: ctxBase, viewport: viewport}).promise;
+
+      let codigo = null;
+      let tipoDetectado = null;
+      let rotacaoUsada = 0;
+      let textoAceito = '';
+      let imagemAceita = null;
+      const tentativas = [];
+
+      for(const graus of ordemRotacoes){
+        if(ocrCancelado) break;
+        progressTxt.textContent = `Lendo página ${p} de ${pdf.numPages}` + (graus>0?` (tentando girada ${graus}°)`:'') + '...' + estimativa;
+        const canvasTeste = canvasRotacionado(canvasBase, graus);
+
+        const resultadoNumero = await lerNumeroComReforco(canvasTeste, 2);
+        const textoRecorte = resultadoNumero.texto;
+        const digitosNoRecorte = resultadoNumero.digitos;
+        const canvasRecorte = resultadoNumero.imagem;
+
+        const canvasCabecalho = recortarCabecalho(canvasTeste);
+        const texto = await ocrCabecalho(canvasCabecalho);
+
+        let img = null, imgNumero = null;
+        try{ img = canvasCabecalho.toDataURL('image/png'); }catch(e){}
+        try{ imgNumero = canvasRecorte.toDataURL('image/png'); }catch(e){}
+        tentativas.push({graus, texto, textoRecorte, imagem: img, imagemNumero: imgNumero, aceita:false});
+
+        // Aceita a rotação assim que o BRINDE for reconhecido — isso é o que
+        // importa pra contagem, que é o objetivo principal aqui. O número
+        // continua sendo extraído junto quando disponível, mas não trava a
+        // contagem do tipo se ele não for encontrado nessa rotação.
+        if(temBrindeReconhecivel(texto)){
+          tipoDetectado = tipoDoTexto(texto);
+          codigo = extrairCodigo(texto, digitosNoRecorte);
+          rotacaoUsada = graus;
+          textoAceito = texto;
+          imagemAceita = img;
+          tentativas[tentativas.length-1].aceita = true;
+          break;
+        }
+      }
+
+      // Camada extra opcional: inclinação fina
+      if(!tipoDetectado && config.tentar_inclinacao_fina && !ocrCancelado){
+        const angulosFinos = [-10,-5,5,10];
+        for(const baseGraus of ordemRotacoes){
+          if(tipoDetectado || ocrCancelado) break;
+          for(const ajuste of angulosFinos){
+            if(ocrCancelado) break;
+            const anguloTotal = baseGraus + ajuste;
+            progressTxt.textContent = `Lendo página ${p} de ${pdf.numPages} (corrigindo inclinação, ${anguloTotal}°)...`;
+            const canvasTesteFino = canvasRotacionado(canvasBase, anguloTotal);
+
+            const resultadoNumeroFino = await lerNumeroComReforco(canvasTesteFino, 3);
+            const digitosFino = resultadoNumeroFino.digitos;
+
+            const canvasCabecalhoFino = recortarCabecalho(canvasTesteFino);
+            const textoFino = await ocrCabecalho(canvasCabecalhoFino);
+
+            if(temBrindeReconhecivel(textoFino)){
+              tipoDetectado = tipoDoTexto(textoFino);
+              codigo = extrairCodigo(textoFino, digitosFino);
+              rotacaoUsada = anguloTotal;
+              textoAceito = textoFino;
+              try{ imagemAceita = canvasCabecalhoFino.toDataURL('image/png'); }catch(e){}
+              break;
+            }
+          }
+        }
+      }
+
+      // Bônus: se o tipo já foi determinado mas o número ainda não, tenta
+      // de novo só o número, com o modo mais robusto (dígitos + linha
+      // única). Não afeta a contagem — só melhora a chance de o código
+      // aparecer na lista.
+      if(tipoDetectado && !codigo && !ocrCancelado){
+        const qtdDigitosRobusto = config.codigo_digitos ?? 6;
+        const regexDigitosRobusto = new RegExp('(?<!\\d)\\d{'+qtdDigitosRobusto+'}(?!\\d)', 'g');
+        const rotacoesParaTentar = [rotacaoUsada, ...ordemRotacoes.filter(r=>r!==rotacaoUsada)];
+        for(const graus of rotacoesParaTentar){
+          if(ocrCancelado || codigo) break;
+          const canvasTesteRobusto = canvasRotacionado(canvasBase, graus);
+          const canvasRecorteRobusto = recortarRegiaoNumero(canvasTesteRobusto, 3);
+          const textoRobusto = await ocrNumeroRobusto(canvasRecorteRobusto);
+          const digitosRobusto = textoRobusto.match(regexDigitosRobusto) || [];
+          if(digitosRobusto.length > 0){
+            codigo = digitosRobusto[0];
+            break;
+          }
+        }
+      }
+
+      temposPorPagina.push((performance.now() - inicioPagina) / 1000);
+      barFill.style.width = Math.round((p/pdf.numPages)*100) + '%';
+
+      paginas.push({pagina:p, codigo, tipoDetectado, rotacaoUsada, tentativas});
+      if(ocrCancelado){ interrompido = true; break; }
+    }
+
+    progressTxt.textContent = 'Leitura concluída.';
+
+    const rodizio = paginas.filter(pg=>pg.tipoDetectado==='rodizio').length;
+    const fondue = paginas.filter(pg=>pg.tipoDetectado==='rodizio_fondue').length;
+    const naoIdentificados = paginas.filter(pg=>!pg.tipoDetectado).length;
+
+    ultimoResultadoOcr = { rodizio, fondue, naoIdentificados, totalPaginas: paginas.length, paginas };
+
+    let html = '';
+    if(interrompido) html += `<div class="msg alerta">Leitura interrompida pelo usuário — ${paginas.length} de ${pdf.numPages} página(s) processada(s).</div>`;
+    html += `<div id="resumoOcrTexto" class="msg ok">${rodizio} Rodízio, ${fondue} Rodízio+Fondue identificados de ${paginas.length} página(s). ${naoIdentificados} não identificada(s).</div>`;
+
+    html += `<div class="config-note" style="margin-top:0;">Encontrou algum código ou tipo errado? Corrija direto na lista abaixo — a contagem e a conferência se atualizam sozinhas.</div>`;
+    html += `<table style="margin-top:10px;" id="tabelaVouchersOcr">
+      <thead><tr><th>Página</th><th>Código</th><th>Tipo</th></tr></thead>
+      <tbody>${paginas.map((pg,idx)=>`<tr>
+        <td>${pg.pagina}</td>
+        <td><input type="text" class="edit-codigo" data-idx="${idx}" value="${pg.codigo || ''}" style="width:110px;padding:6px 8px;"></td>
+        <td>
+          <select class="edit-tipo" data-idx="${idx}" style="width:auto;padding:6px 8px;">
+            <option value="" ${!pg.tipoDetectado?'selected':''}>Não identificado</option>
+            <option value="rodizio" ${pg.tipoDetectado==='rodizio'?'selected':''}>Rodízio</option>
+            <option value="rodizio_fondue" ${pg.tipoDetectado==='rodizio_fondue'?'selected':''}>Rodízio + Fondue</option>
+          </select>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+
+    const escaparDebug = t => (t||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    html += `<details style="margin-top:12px;font-size:12.5px;color:var(--texto-suave);">
+      <summary style="cursor:pointer;">Ver detalhe de cada página (depuração)</summary>
+      ${paginas.map(pg => `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--borda);">
+        <b>Página ${pg.pagina}</b> — código: ${pg.codigo || '(nenhum)'}, tipo: ${pg.tipoDetectado ? nomeTipoConsumo(pg.tipoDetectado) : '(não identificado)'}, rotação usada: ${pg.rotacaoUsada}°
+        ${pg.tentativas.map(t => `<details style="margin-top:6px;margin-left:8px;">
+          <summary style="cursor:pointer;">Tentativa em ${t.graus}° ${t.aceita?'— ACEITA ✓':''}</summary>
+          <div style="margin-top:4px;"><b>Recorte do NÚMERO:</b></div>
+          ${t.imagemNumero ? `<img src="${t.imagemNumero}" style="max-width:280px;border:1px solid var(--borda);border-radius:6px;margin-top:4px;display:block;">` : '<div>(sem imagem)</div>'}
+          <pre style="white-space:pre-wrap;background:#F2F5F2;padding:8px;border-radius:6px;margin-top:4px;font-family:var(--mono);font-size:11.5px;">${escaparDebug(t.textoRecorte) || '(vazio)'}</pre>
+          <div style="margin-top:6px;"><b>Recorte do cabeçalho:</b></div>
+          ${t.imagem ? `<img src="${t.imagem}" style="max-width:100%;border:1px solid var(--borda);border-radius:6px;margin-top:4px;display:block;">` : ''}
+          <pre style="white-space:pre-wrap;background:#F2F5F2;padding:8px;border-radius:6px;margin-top:4px;font-family:var(--mono);font-size:11.5px;">${escaparDebug(t.texto) || '(vazio)'}</pre>
+        </details>`).join('')}
+      </div>`).join('')}
+    </details>`;
+
+    resultEl.innerHTML = html;
+
+    document.querySelectorAll('.edit-codigo').forEach(inp=>{
+      inp.addEventListener('input', (e)=>{
+        const idx = parseInt(e.target.dataset.idx);
+        ultimoResultadoOcr.paginas[idx].codigo = e.target.value.trim() || null;
+      });
+    });
+    document.querySelectorAll('.edit-tipo').forEach(sel=>{
+      sel.addEventListener('change', (e)=>{
+        const idx = parseInt(e.target.dataset.idx);
+        ultimoResultadoOcr.paginas[idx].tipoDetectado = e.target.value || null;
+        recalcularContagemOcr();
+      });
+    });
+
+    document.getElementById('confRodizioOcr').textContent = rodizio;
+    document.getElementById('confFondueOcr').textContent = fondue;
+    document.getElementById('confNaoIdent').textContent = naoIdentificados;
+    document.getElementById('cardConferencia').style.display = 'block';
+    document.getElementById('confMsg').className = 'msg';
+    document.getElementById('salvarMsg').className = 'msg';
+
+  }catch(e){
+    resultEl.innerHTML = `<div class="msg erro">Erro na leitura do PDF: ${e.message || e}</div>`;
+  }finally{
+    btn.disabled = false;
+    btnParar.style.display = 'none';
+    progressTxt.style.display = 'none';
+    barWrap.style.display = 'none';
+  }
+});
+
+function recalcularContagemOcr(){
+  if(!ultimoResultadoOcr) return;
+  const paginas = ultimoResultadoOcr.paginas;
+  const rodizio = paginas.filter(pg=>pg.tipoDetectado==='rodizio').length;
+  const fondue = paginas.filter(pg=>pg.tipoDetectado==='rodizio_fondue').length;
+  const naoIdentificados = paginas.filter(pg=>!pg.tipoDetectado).length;
+
+  ultimoResultadoOcr.rodizio = rodizio;
+  ultimoResultadoOcr.fondue = fondue;
+  ultimoResultadoOcr.naoIdentificados = naoIdentificados;
+
+  const resumoEl = document.getElementById('resumoOcrTexto');
+  if(resumoEl) resumoEl.textContent = `${rodizio} Rodízio, ${fondue} Rodízio+Fondue identificados de ${paginas.length} página(s). ${naoIdentificados} não identificada(s).`;
+
+  document.getElementById('confRodizioOcr').textContent = rodizio;
+  document.getElementById('confFondueOcr').textContent = fondue;
+  document.getElementById('confNaoIdent').textContent = naoIdentificados;
+
+  // Qualquer correção invalida a conferência anterior — pede pra conferir de novo
+  ultimaConferencia = null;
+  document.getElementById('confMsg').className = 'msg';
+}
+
+function showMsg(elId, texto, tipo){
+  const el = document.getElementById(elId);
+  el.textContent = texto;
+  el.className = 'msg ' + tipo;
+}
+
+// ---- conferência ----
+let ultimaConferencia = null;
+document.getElementById('btnConferir').addEventListener('click', ()=>{
+  if(!ultimoResultadoOcr){ showMsg('confMsg', 'Rode a leitura do scan primeiro.', 'erro'); return; }
+  const caixaRodizio = parseInt(document.getElementById('caixaRodizio').value) || 0;
+  const caixaFondue = parseInt(document.getElementById('caixaFondue').value) || 0;
+
+  const bateu = (caixaRodizio === ultimoResultadoOcr.rodizio) && (caixaFondue === ultimoResultadoOcr.fondue);
+  ultimaConferencia = { caixaRodizio, caixaFondue, bateu };
+
+  if(bateu){
+    showMsg('confMsg', 'Bate! Os números do caixa conferem com o scan.', 'ok');
+  } else {
+    const difRodizio = caixaRodizio - ultimoResultadoOcr.rodizio;
+    const difFondue = caixaFondue - ultimoResultadoOcr.fondue;
+    let detalhe = [];
+    if(difRodizio !== 0) detalhe.push(`Rodízio: caixa tem ${difRodizio>0?'+':''}${difRodizio} em relação ao scan`);
+    if(difFondue !== 0) detalhe.push(`Rodízio+Fondue: caixa tem ${difFondue>0?'+':''}${difFondue} em relação ao scan`);
+    let extra = ultimoResultadoOcr.naoIdentificados > 0 ? ` (há ${ultimoResultadoOcr.naoIdentificados} página(s) não identificada(s) pelo scan — pode explicar parte da diferença)` : '';
+    showMsg('confMsg', 'Não bate — ' + detalhe.join('; ') + '.' + extra, 'alerta');
+  }
+});
+
+// ---- salvar fechamento ----
+document.getElementById('btnSalvarFechamento').addEventListener('click', async ()=>{
+  if(!ultimoResultadoOcr){ showMsg('salvarMsg', 'Rode a leitura do scan primeiro.', 'erro'); return; }
+  if(!ultimaConferencia){ showMsg('salvarMsg', 'Clique em "Conferir" antes de salvar.', 'erro'); return; }
+
+  const data = document.getElementById('fechData').value || hoje();
+  const valorTotal = ultimoResultadoOcr.rodizio*valorVoucher('rodizio') + ultimoResultadoOcr.fondue*valorVoucher('rodizio_fondue');
+  const listaVouchers = ultimoResultadoOcr.paginas.map(pg=>({codigo: pg.codigo, tipo: pg.tipoDetectado}));
+
+  const registro = {
+    data,
+    qtd_rodizio_ocr: ultimoResultadoOcr.rodizio,
+    qtd_fondue_ocr: ultimoResultadoOcr.fondue,
+    qtd_nao_identificados: ultimoResultadoOcr.naoIdentificados,
+    qtd_rodizio_caixa: ultimaConferencia.caixaRodizio,
+    qtd_fondue_caixa: ultimaConferencia.caixaFondue,
+    bateu: ultimaConferencia.bateu,
+    valor_total: valorTotal,
+    lista_vouchers: listaVouchers,
+    link_scan_drive: document.getElementById('fechLink').value.trim() || null,
+    observacao: document.getElementById('fechObs').value.trim() || null,
+    controlista: config.controlista || null
+  };
+
+  try{
+    if(modoTeste()){
+      localDB.fechamentos.upsertByData(registro);
+    } else {
+      const {error} = await supabaseClient.from(tabelaFechamentos()).upsert([registro], {onConflict:'data'});
+      if(error) throw error;
+    }
+    showMsg('salvarMsg', 'Fechamento do dia ' + data + ' salvo com sucesso' + (modoTeste()?' (modo teste).':'.'), 'ok');
+    carregarHistoricoFechamentos();
+  }catch(e){
+    showMsg('salvarMsg', 'Erro ao salvar: ' + (e.message || e), 'erro');
+  }
+});
+
+async function carregarHistoricoFechamentos(){
+  const el = document.getElementById('tabelaFechamentos');
+  try{
+    let data;
+    if(modoTeste()){
+      data = localDB.fechamentos.all().sort((a,b)=>(b.data||'').localeCompare(a.data||'')).slice(0,30);
+    } else {
+      const resp = await supabaseClient.from(tabelaFechamentos()).select('*').order('data',{ascending:false}).limit(30);
+      if(resp.error) throw resp.error;
+      data = resp.data;
+    }
+    if(!data || data.length===0){ el.innerHTML = '<div class="empty">Nenhum fechamento registrado ainda.</div>'; return; }
+    el.innerHTML = `<table><thead><tr><th>Data</th><th>Rodízio (scan)</th><th>Fondue (scan)</th><th>Rodízio (caixa)</th><th>Fondue (caixa)</th><th>Status</th><th>Valor</th></tr></thead>
+      <tbody>${data.map(f=>`<tr>
+        <td>${f.data}</td>
+        <td>${f.qtd_rodizio_ocr}</td>
+        <td>${f.qtd_fondue_ocr}</td>
+        <td>${f.qtd_rodizio_caixa}</td>
+        <td>${f.qtd_fondue_caixa}</td>
+        <td><span class="badge ${f.bateu?'bate':'naobate'}">${f.bateu?'Bateu':'Não bateu'}</span></td>
+        <td>R$ ${fmtMoeda(f.valor_total)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  }catch(e){ el.innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+
+// ============================================================
+// RELATÓRIO
+// ============================================================
+function calcularPeriodo(preset){
+  const hj = new Date();
+  const hjStr = hoje();
+  if(preset === 'hoje') return {de: hjStr, ate: hjStr};
+  if(preset === '7dias'){
+    const d = new Date(hj); d.setDate(d.getDate()-6);
+    const off = d.getTimezoneOffset();
+    return {de: new Date(d.getTime()-off*60000).toISOString().slice(0,10), ate: hjStr};
+  }
+  if(preset === 'mes'){
+    const ano = hj.getFullYear(), mes = hj.getMonth()+1;
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+    return {de: `${ano}-${String(mes).padStart(2,'0')}-01`, ate: `${ano}-${String(mes).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`};
+  }
+  if(preset === 'q1'){
+    const ano = hj.getFullYear(), mes = hj.getMonth()+1;
+    return {de: `${ano}-${String(mes).padStart(2,'0')}-01`, ate: `${ano}-${String(mes).padStart(2,'0')}-15`};
+  }
+  if(preset === 'q2'){
+    const ano = hj.getFullYear(), mes = hj.getMonth()+1;
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+    return {de: `${ano}-${String(mes).padStart(2,'0')}-16`, ate: `${ano}-${String(mes).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`};
+  }
+  return null;
+}
+
+document.querySelectorAll('#periodoRapido button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#periodoRapido button').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    document.getElementById('periodoPersonalizado').style.display = btn.dataset.p === 'personalizado' ? 'block' : 'none';
+  });
+});
+
+document.getElementById('btnAplicarRelatorio').addEventListener('click', carregarRelatorio);
+
+async function carregarRelatorio(){
+  const el = document.getElementById('tabelaRelatorio');
+  const presetBtn = document.querySelector('#periodoRapido button.selected');
+  const preset = presetBtn ? presetBtn.dataset.p : 'mes';
+  let de, ate;
+  if(preset === 'personalizado'){
+    de = document.getElementById('relDe').value;
+    ate = document.getElementById('relAte').value;
+    if(!de || !ate){ el.innerHTML = '<div class="empty">Selecione as datas De/Até.</div>'; return; }
+  } else {
+    const periodo = calcularPeriodo(preset);
+    de = periodo.de; ate = periodo.ate;
+  }
+  const status = document.getElementById('relStatus').value;
+
+  try{
+    let data;
+    if(modoTeste()){
+      data = localDB.fechamentos.all().filter(f=>{
+        if(f.data < de || f.data > ate) return false;
+        if(status === 'bateu' && !f.bateu) return false;
+        if(status === 'nao_bateu' && f.bateu) return false;
+        return true;
+      }).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+    } else {
+      let query = supabaseClient.from(tabelaFechamentos()).select('*').gte('data', de).lte('data', ate).order('data', {ascending:false});
+      if(status === 'bateu') query = query.eq('bateu', true);
+      if(status === 'nao_bateu') query = query.eq('bateu', false);
+      const resp = await query;
+      if(resp.error) throw resp.error;
+      data = resp.data;
+    }
+
+    const dias = data.length;
+    const rodizioTotal = data.reduce((s,f)=>s+(f.qtd_rodizio_ocr||0),0);
+    const fondueTotal = data.reduce((s,f)=>s+(f.qtd_fondue_ocr||0),0);
+    const valorTotal = data.reduce((s,f)=>s+(f.valor_total||0),0);
+    const bateram = data.filter(f=>f.bateu).length;
+
+    document.getElementById('statDias').textContent = dias;
+    document.getElementById('statRodizioTotal').textContent = rodizioTotal;
+    document.getElementById('statFondueTotal').textContent = fondueTotal;
+    document.getElementById('statValorTotal').textContent = fmtMoeda(valorTotal);
+    document.getElementById('statBateram').textContent = `${bateram}/${dias}`;
+
+    if(!data || data.length===0){ el.innerHTML = '<div class="empty">Nenhum fechamento encontrado no período.</div>'; return; }
+
+    el.innerHTML = `<table><thead><tr><th>Data</th><th>Rodízio (scan)</th><th>Fondue (scan)</th><th>Rodízio (caixa)</th><th>Fondue (caixa)</th><th>Status</th><th>Valor</th><th></th></tr></thead>
+      <tbody>${data.map((f,i)=>`<tr>
+        <td>${f.data}</td>
+        <td>${f.qtd_rodizio_ocr}</td>
+        <td>${f.qtd_fondue_ocr}</td>
+        <td>${f.qtd_rodizio_caixa}</td>
+        <td>${f.qtd_fondue_caixa}</td>
+        <td><span class="badge ${f.bateu?'bate':'naobate'}">${f.bateu?'Bateu':'Não bateu'}</span></td>
+        <td>R$ ${fmtMoeda(f.valor_total)}</td>
+        <td><button class="action-link" onclick="toggleListaVouchers(${i})">Ver lista</button></td>
+      </tr>
+      <tr id="listaVouchers${i}" style="display:none;">
+        <td colspan="8">${renderListaVouchersHtml(f.lista_vouchers)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  }catch(e){ el.innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+
+function renderListaVouchersHtml(lista){
+  if(!lista || lista.length===0) return '<div class="empty">Sem lista de vouchers registrada para este dia.</div>';
+  return `<table style="margin:6px 0;"><thead><tr><th>Página</th><th>Código</th><th>Tipo</th></tr></thead>
+    <tbody>${lista.map((v,idx)=>`<tr>
+      <td>${idx+1}</td>
+      <td class="codigo">${v.codigo || '—'}</td>
+      <td>${v.tipo ? `<span class="badge bate">${nomeTipoConsumo(v.tipo)}</span>` : '<span class="badge naobate">Não identificado</span>'}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function toggleListaVouchers(i){
+  const row = document.getElementById('listaVouchers'+i);
+  if(!row) return;
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+
+// ============================================================
+// DANFE
+// ============================================================
+document.getElementById('btnCalcularDanfe').addEventListener('click', async ()=>{
+  const mesVal = document.getElementById('danfeMesRapido').value;
+  if(!mesVal){ alert('Selecione o mês.'); return; }
+  const [ano, mes] = mesVal.split('-').map(Number);
+  const quinzena = document.getElementById('danfeQuinzenaRapida').value;
+  let de, ate;
+  if(quinzena === 'q1'){ de = `${mesVal}-01`; ate = `${mesVal}-15`; }
+  else if(quinzena === 'q2'){
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+    de = `${mesVal}-16`; ate = `${mesVal}-${String(ultimoDia).padStart(2,'0')}`;
+  } else {
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+    de = `${mesVal}-01`; ate = `${mesVal}-${String(ultimoDia).padStart(2,'0')}`;
+  }
+
+  try{
+    let data;
+    if(modoTeste()){
+      data = localDB.fechamentos.all().filter(f=> f.data>=de && f.data<=ate);
+    } else {
+      const resp = await supabaseClient.from(tabelaFechamentos()).select('*').gte('data', de).lte('data', ate);
+      if(resp.error) throw resp.error;
+      data = resp.data;
+    }
+    const qtd = data.reduce((s,f)=>s+(f.qtd_rodizio_ocr||0)+(f.qtd_fondue_ocr||0),0);
+    const valorTotal = data.reduce((s,f)=>s+(f.valor_total||0),0);
+
+    document.getElementById('danfeQtdTotal').textContent = qtd;
+    document.getElementById('danfeValorTotal').textContent = 'R$ ' + fmtMoeda(valorTotal);
+    window._danfeValorTotal = valorTotal;
+    window._danfePeriodo = {mes: mesVal, quinzena, de, ate};
+
+    renderTabelaDanfe();
+  }catch(e){ alert('Erro ao calcular período: ' + (e.message || e)); }
+});
+
+function renderTabelaDanfe(){
+  const wrap = document.getElementById('danfeTabelaWrap');
+  const cnpjs = config.cnpjs || [];
+  if(cnpjs.length===0){ wrap.innerHTML = '<div class="empty">Cadastre os CNPJs na aba Configuração antes de gerar o DANFE.</div>'; return; }
+
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Empresa</th><th>CNPJ</th><th>% Receita</th><th>Valor calculado</th></tr></thead>
+    <tbody id="danfeLinhas">
+      ${cnpjs.map((c)=>`<tr>
+        <td>${c.nome}</td>
+        <td class="codigo">${c.cnpj}</td>
+        <td><input type="number" step="0.01" class="danfe-input danfe-pct" value="0"></td>
+        <td class="danfe-valor-receita">R$ 0,00</td>
+      </tr>`).join('')}
+    </tbody>
+    <tfoot><tr class="total-row">
+      <td colspan="2">Total</td>
+      <td id="danfeSomaPct">0,00%</td>
+      <td id="danfeSomaReceita">R$ 0,00</td>
+    </tr></tfoot>
+  </table>`;
+
+  document.querySelectorAll('.danfe-pct').forEach(inp=> inp.addEventListener('input', recalcularDanfe));
+  recalcularDanfe();
+}
+
+function recalcularDanfe(){
+  const valorTotal = window._danfeValorTotal || 0;
+  let somaPct = 0, somaReceita = 0;
+  document.querySelectorAll('#danfeLinhas tr').forEach(row=>{
+    const pct = parseFloat(row.querySelector('.danfe-pct').value) || 0;
+    const receita = valorTotal * (pct/100);
+    row.querySelector('.danfe-valor-receita').textContent = 'R$ ' + fmtMoeda(receita);
+    somaPct += pct; somaReceita += receita;
+  });
+  document.getElementById('danfeSomaPct').textContent = somaPct.toFixed(2).replace('.',',') + '%';
+  document.getElementById('danfeSomaReceita').textContent = 'R$ ' + fmtMoeda(somaReceita);
+
+  const sumEl = document.getElementById('danfePctSum');
+  sumEl.style.display = 'block';
+  if(Math.abs(somaPct-100) < 0.05){
+    sumEl.className = 'danfe-pct-sum ok';
+    sumEl.textContent = 'As porcentagens somam 100% — pronto para salvar.';
+  } else {
+    sumEl.className = 'danfe-pct-sum erro';
+    sumEl.textContent = `As porcentagens somam ${somaPct.toFixed(2).replace('.',',')}% — ajuste para fechar em 100%.`;
+  }
+}
+
+document.getElementById('btnSalvarDanfe').addEventListener('click', async ()=>{
+  const cnpjs = config.cnpjs || [];
+  if(cnpjs.length===0){ showMsg('danfeMsg', 'Cadastre os CNPJs na aba Configuração primeiro.', 'erro'); return; }
+  if(!window._danfePeriodo){ showMsg('danfeMsg', 'Calcule o período antes de salvar.', 'erro'); return; }
+
+  const valorTotal = window._danfeValorTotal || 0;
+  const periodo = window._danfePeriodo;
+  const registros = [];
+  document.querySelectorAll('#danfeLinhas tr').forEach((row, i)=>{
+    const pct = parseFloat(row.querySelector('.danfe-pct').value) || 0;
+    const receita = valorTotal * (pct/100);
+    registros.push({
+      periodo_label: `${periodo.mes} (${periodo.quinzena})`,
+      data_inicio: periodo.de,
+      data_fim: periodo.ate,
+      cnpj: cnpjs[i].cnpj,
+      empresa: cnpjs[i].nome,
+      percentual: pct,
+      valor_total_receita: receita
+    });
+  });
+
+  try{
+    if(modoTeste()){
+      localDB.danfe.insertMany(registros);
+    } else {
+      const {error} = await supabaseClient.from(tabelaDanfe()).insert(registros);
+      if(error) throw error;
+    }
+    showMsg('danfeMsg', 'Emissão de DANFE da quinzena salva com sucesso' + (modoTeste()?' (modo teste).':'.'), 'ok');
+    carregarHistoricoDanfe();
+  }catch(e){ showMsg('danfeMsg', 'Erro ao salvar: ' + (e.message || e), 'erro'); }
+});
+
+async function carregarHistoricoDanfe(){
+  const el = document.getElementById('tabelaDanfeHistorico');
+  try{
+    let data;
+    if(modoTeste()){
+      data = localDB.danfe.all().sort((a,b)=>(b.data_inicio||'').localeCompare(a.data_inicio||'')).slice(0,100);
+    } else {
+      const resp = await supabaseClient.from(tabelaDanfe()).select('*').order('data_inicio',{ascending:false}).limit(100);
+      if(resp.error) throw resp.error;
+      data = resp.data;
+    }
+    if(!data || data.length===0){ el.innerHTML = '<div class="empty">Nenhuma emissão salva ainda.</div>'; return; }
+    el.innerHTML = `<table><thead><tr><th>Período</th><th>Empresa</th><th>CNPJ</th><th>%</th><th>Valor</th></tr></thead>
+      <tbody>${data.map(d=>`<tr>
+        <td>${d.periodo_label} (${d.data_inicio} a ${d.data_fim})</td>
+        <td>${d.empresa}</td>
+        <td class="codigo">${d.cnpj}</td>
+        <td>${(d.percentual||0).toFixed(2).replace('.',',')}%</td>
+        <td>R$ ${fmtMoeda(d.valor_total_receita)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  }catch(e){ el.innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+
+// ============================================================
+// CONFIGURAÇÃO
+// ============================================================
+function preencherConfig(){
+  document.getElementById('cfgUrl').value = config.url || '';
+  document.getElementById('cfgKey').value = config.key || '';
+  document.getElementById('cfgTabelaFechamentos').value = config.tabela_fechamentos || 'fechamentos_sem_lancamento';
+  document.getElementById('cfgTabelaDanfe').value = config.tabela_danfe || 'danfe_emissoes';
+  document.getElementById('cfgControlista').value = config.controlista || '';
+  document.getElementById('cfgValorRodizio').value = config.valor_rodizio || '';
+  document.getElementById('cfgValorFondue').value = config.valor_fondue || '';
+  document.getElementById('cfgCropCabecalhoAltura').value = config.crop_cabecalho_altura ?? 35;
+  document.getElementById('cfgCropNumeroX').value = config.crop_numero_x ?? 65;
+  document.getElementById('cfgCropNumeroAltura').value = config.crop_numero_altura ?? 20;
+  document.getElementById('cfgCodigoDigitos').value = config.codigo_digitos ?? 6;
+  document.getElementById('cfgApenasAnguloZero').checked = config.apenas_angulo_zero !== false;
+  document.getElementById('cfgInclinacaoFina').checked = !!config.tentar_inclinacao_fina;
+}
+preencherConfig();
+
+document.getElementById('btnSalvarConfig').addEventListener('click', ()=>{
+  config.url = document.getElementById('cfgUrl').value.trim();
+  config.key = document.getElementById('cfgKey').value.trim();
+  config.tabela_fechamentos = document.getElementById('cfgTabelaFechamentos').value.trim() || 'fechamentos_sem_lancamento';
+  config.tabela_danfe = document.getElementById('cfgTabelaDanfe').value.trim() || 'danfe_emissoes';
+  config.controlista = document.getElementById('cfgControlista').value.trim();
+  config.valor_rodizio = document.getElementById('cfgValorRodizio').value.trim();
+  config.valor_fondue = document.getElementById('cfgValorFondue').value.trim();
+  config.crop_cabecalho_altura = parseFloat(document.getElementById('cfgCropCabecalhoAltura').value) || 35;
+  config.crop_numero_x = parseFloat(document.getElementById('cfgCropNumeroX').value) || 65;
+  config.crop_numero_altura = parseFloat(document.getElementById('cfgCropNumeroAltura').value) || 20;
+  config.codigo_digitos = parseInt(document.getElementById('cfgCodigoDigitos').value) || 6;
+  config.apenas_angulo_zero = document.getElementById('cfgApenasAnguloZero').checked;
+  config.tentar_inclinacao_fina = document.getElementById('cfgInclinacaoFina').checked;
+
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  initConnection();
+
+  if(supabaseClient){ showMsg('configMsg', 'Configuração salva e conectada com sucesso.', 'ok'); }
+  else { showMsg('configMsg', 'Configuração salva, mas faltam dados para conectar.', 'erro'); }
+});
+
+function renderListaCnpjs(){
+  const el = document.getElementById('listaCnpjs');
+  const cnpjs = config.cnpjs || [];
+  if(cnpjs.length===0){ el.innerHTML = '<div class="empty">Nenhum CNPJ cadastrado ainda.</div>'; return; }
+  el.innerHTML = cnpjs.map((c,i)=>`
+    <div class="cnpj-row">
+      <div class="info"><div class="nome">${c.nome}</div><div class="doc">${c.cnpj}</div></div>
+      <button class="action-link danger" onclick="removerCnpj(${i})">Remover</button>
+    </div>
+  `).join('');
+}
+document.getElementById('btnAddCnpj').addEventListener('click', ()=>{
+  const nome = document.getElementById('novoCnpjEmpresa').value.trim();
+  const numero = document.getElementById('novoCnpjNumero').value.trim();
+  if(!nome || !numero){ alert('Preencha o nome da empresa e o CNPJ.'); return; }
+  config.cnpjs = config.cnpjs || [];
+  config.cnpjs.push({nome, cnpj: numero});
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  document.getElementById('novoCnpjEmpresa').value = '';
+  document.getElementById('novoCnpjNumero').value = '';
+  renderListaCnpjs();
+});
+function removerCnpj(i){
+  if(!confirm('Remover este CNPJ da lista?')) return;
+  config.cnpjs.splice(i,1);
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  renderListaCnpjs();
+}
+document.getElementById('btnRestaurarCnpjs').addEventListener('click', ()=>{
+  if(!confirm('Isso substitui a lista atual pela lista padrão. Confirma?')) return;
+  config.cnpjs = CNPJS_PADRAO.slice();
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  renderListaCnpjs();
+});
+document.getElementById('btnLimparDadosTeste').addEventListener('click', ()=>{
+  if(!confirm('Isso apaga todos os fechamentos e DANFEs salvos localmente em modo teste. Confirma?')) return;
+  localStorage.removeItem(LOCAL_KEYS.fechamentos);
+  localStorage.removeItem(LOCAL_KEYS.danfe);
+  carregarHistoricoFechamentos();
+  showMsg('configMsg', 'Dados de teste removidos.', 'ok');
+});
+document.getElementById('btnLimparConfig').addEventListener('click', ()=>{
+  if(!confirm('Isso vai apagar toda a configuração salva neste navegador. Confirma?')) return;
+  localStorage.removeItem(CONFIG_KEY);
+  config = {cnpjs:[]};
+  supabaseClient = null;
+  preencherConfig();
+  renderListaCnpjs();
+  initConnection();
+  showMsg('configMsg', 'Configuração local removida.', 'ok');
+});
+
+// ============================================================
+// INICIALIZAÇÃO
+// ============================================================
+initConnection();
+carregarHistoricoFechamentos();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal Laghetto Pedras Altas · Esboço</title>
+<style>
+  :root{
+    --verde-escuro:#0A2A22;
+    --verde-claro:#C7F1C5;
+    --sage:#A1E19C;
+    --verde-mid:#123B30;
+    --bg:#F5F7F4;
+    --card:#FFFFFF;
+    --texto:#152119;
+    --texto-suave:#5B6B62;
+    --borda:#E1E8E2;
+    --erro:#B3432B;
+    --erro-bg:#FBEAE4;
+    --ok-bg:#EAF7E7;
+    --alerta-bg:#FDF3E3;
+    --alerta:#8A5A15;
+    --radius:10px;
+    --topbar-h:58px;
+    --sidebar-w:230px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--texto);}
+
+  /* ===== TOPBAR ===== */
+  .topbar{
+    height:var(--topbar-h);
+    background:var(--verde-escuro);
+    display:flex;align-items:center;
+    padding:0 20px;
+    gap:4px;
+    position:sticky;top:0;z-index:10;
+    box-shadow:0 1px 0 rgba(0,0,0,.15);
+  }
+  .topbar .brand{display:flex;align-items:center;gap:10px;margin-right:18px;flex-shrink:0;}
+  .topbar .brand .mark{width:30px;height:30px;border-radius:7px;background:var(--sage);display:flex;align-items:center;justify-content:center;color:var(--verde-escuro);font-weight:800;font-size:12px;}
+  .topbar .brand .txt{color:#fff;font-size:13.5px;font-weight:600;line-height:1.2;}
+  .topbar .brand .txt .sub{color:var(--sage);font-size:10.5px;font-weight:500;}
+  .topbar nav{display:flex;gap:2px;overflow-x:auto;flex:1;}
+  .topbar nav button{
+    background:transparent;border:none;color:var(--verde-claro);
+    padding:0 16px;height:var(--topbar-h);font-size:13.5px;font-weight:600;
+    cursor:pointer;opacity:.68;white-space:nowrap;
+    border-bottom:3px solid transparent;
+    transition:opacity .15s, border-color .15s, background .15s;
+  }
+  .topbar nav button:hover{opacity:1;background:rgba(255,255,255,.05);}
+  .topbar nav button.active{opacity:1;border-bottom-color:var(--sage);background:rgba(255,255,255,.06);}
+  .topbar nav button .lock{font-size:10.5px;margin-left:5px;opacity:.7;font-weight:500;}
+  .topbar .user-chip{display:flex;align-items:center;gap:8px;color:var(--verde-claro);font-size:12.5px;flex-shrink:0;padding-left:14px;}
+  .topbar .user-chip .avatar{width:26px;height:26px;border-radius:50%;background:var(--verde-mid);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--sage);}
+
+  /* ===== LAYOUT ===== */
+  .layout{display:flex;min-height:calc(100vh - var(--topbar-h));}
+  .sidebar{
+    width:var(--sidebar-w);flex-shrink:0;
+    background:#0E241D;
+    padding:18px 12px;
+    min-height:calc(100vh - var(--topbar-h));
+  }
+  .sidebar .setor-titulo{color:var(--sage);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:0 10px 12px;}
+  .sidebar button{
+    width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;
+    background:transparent;border:none;color:var(--verde-claro);
+    padding:10px 12px;font-size:13.5px;cursor:pointer;border-radius:8px;text-align:left;
+    margin-bottom:2px;opacity:.85;
+  }
+  .sidebar button:hover:not(:disabled){opacity:1;background:rgba(255,255,255,.06);}
+  .sidebar button.active{background:var(--verde-mid);opacity:1;font-weight:600;}
+  .sidebar button:disabled{opacity:.35;cursor:not-allowed;color:var(--verde-claro);}
+  .sidebar button .traco{font-size:12px;color:var(--texto-suave);}
+  main{flex:1;padding:30px 34px 60px;max-width:1100px;}
+  main.encaixado{padding:14px;max-width:none;}
+
+  .bloqueado-msg{
+    background:var(--card);border:1px dashed var(--borda);border-radius:var(--radius);
+    padding:48px 30px;text-align:center;color:var(--texto-suave);
+  }
+  .bloqueado-msg .icone{font-size:26px;margin-bottom:12px;opacity:.5;}
+  .bloqueado-msg h3{color:var(--verde-escuro);font-size:16px;margin:0 0 6px;}
+  .bloqueado-msg p{font-size:13.5px;margin:0;max-width:420px;margin-inline:auto;}
+
+  .view-header{margin-bottom:20px;}
+  .view-header h2{font-size:19px;margin:0 0 3px;color:var(--verde-escuro);}
+  .view-header .desc{font-size:13px;color:var(--texto-suave);}
+
+  .card{background:var(--card);border:1px solid var(--borda);border-radius:var(--radius);padding:20px 22px;margin-bottom:20px;}
+  .card h3{font-size:13px;margin:0 0 16px;color:var(--verde-escuro);text-transform:uppercase;letter-spacing:.04em;}
+  label{display:block;font-size:12.5px;color:var(--texto-suave);margin-bottom:5px;margin-top:14px;}
+  label:first-of-type{margin-top:0;}
+  input[type=text], select{width:100%;padding:9px 11px;border:1px solid var(--borda);border-radius:7px;font-size:14px;background:#fcfdfc;color:var(--texto);font-family:inherit;}
+  input:focus, select:focus{outline:none;border-color:var(--verde-mid);box-shadow:0 0 0 3px rgba(18,59,48,.10);}
+  .nivel-row{display:flex;gap:8px;margin-top:6px;}
+  .nivel-row button{
+    flex:1;padding:10px 4px;border:1px solid var(--borda);background:#fcfdfc;border-radius:7px;
+    font-size:13px;cursor:pointer;color:var(--texto);text-align:center;
+  }
+  .nivel-row button .n{display:block;font-weight:700;font-size:15px;}
+  .nivel-row button .d{display:block;font-size:10px;color:var(--texto-suave);margin-top:2px;}
+  .nivel-row button.selected{background:var(--verde-escuro);border-color:var(--verde-escuro);color:var(--verde-claro);}
+  .nivel-row button.selected .d{color:var(--sage);}
+  .menu-check-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  .menu-check{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--borda);border-radius:7px;font-size:13px;cursor:pointer;background:#fcfdfc;}
+  .menu-check input{width:auto;margin:0;}
+  .menu-check.disabled{opacity:.5;}
+  .btn-primary{padding:11px 18px;background:var(--verde-escuro);color:var(--verde-claro);border:none;border-radius:7px;font-size:13.5px;font-weight:600;cursor:pointer;}
+  .btn-primary.full{width:100%;margin-top:20px;}
+  .btn-primary:hover{background:var(--verde-mid);}
+  .msg{margin-top:14px;padding:10px 12px;border-radius:7px;font-size:13px;display:none;}
+  .msg.ok{background:var(--ok-bg);color:var(--verde-mid);display:block;}
+  .msg.erro{background:var(--erro-bg);color:var(--erro);display:block;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--texto-suave);padding:8px 10px;border-bottom:1px solid var(--borda);}
+  td{padding:10px;border-bottom:1px solid var(--borda);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;margin:1px 3px 1px 0;}
+  .badge.nivel{background:var(--verde-claro);color:var(--verde-escuro);}
+  .badge.menu-ok{background:#EFF4EF;color:var(--verde-mid);}
+  .empty{text-align:center;padding:30px 20px;color:var(--texto-suave);font-size:13.5px;}
+  .action-link{background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:12px;text-decoration:underline;padding:0;}
+  .action-link.danger{color:var(--erro);}
+  .config-note{font-size:12px;color:var(--texto-suave);background:#F2F5F2;border-radius:7px;padding:10px 12px;margin-top:16px;line-height:1.5;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="mark">LGM</div>
+    <div class="txt">Portal Pedras Altas<div class="sub">Esboço de navegação</div></div>
+  </div>
+  <nav id="topNav"></nav>
+  <div class="user-chip"><div class="avatar">EU</div> Eduardo · Nível 5</div>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="setor-titulo" id="setorTitulo">Gerência</div>
+    <div id="sidebarMenu"></div>
+  </div>
+  <main id="mainArea"></main>
+</div>
+
+<script>
+// ============================================================
+// ESTRUTURA DOS SETORES (esboço — dados de exemplo)
+// ============================================================
+const SETORES = {
+  gerencia: {
+    nome: 'Gerência',
+    ativo: true,
+    submenus: [
+      {id:'usuarios', nome:'Usuários e Permissões', ativo:true},
+      {id:'dashboard', nome:'Dashboard Geral', ativo:true},
+      {id:'relatorio_consolidado', nome:'Relatório Consolidado', ativo:false},
+    ]
+  },
+  manutencao: {
+    nome: 'Manutenção',
+    ativo: true,
+    url: './manutencao/',
+    submenus: []
+  },
+  dp: {
+    nome: 'DP',
+    ativo: true,
+    url: './dp/',
+    submenus: []
+  },
+  aeb: {
+    nome: 'A&B',
+    ativo: true,
+    url: './voucher/',
+    submenus: []
+  },
+  recepcao: {
+    nome: 'Recepção',
+    ativo: false,
+    submenus: [
+      {id:'checkin', nome:'Check-in / Check-out', ativo:false},
+      {id:'reservas', nome:'Reservas', ativo:false},
+    ]
+  },
+  governanca: {
+    nome: 'Governança',
+    ativo: false,
+    submenus: [
+      {id:'camareiras', nome:'Camareiras', ativo:false},
+      {id:'enxoval', nome:'Enxoval', ativo:false},
+    ]
+  }
+};
+
+const NIVEIS = [
+  {v:1, d:'Consulta'},
+  {v:2, d:'Operador'},
+  {v:3, d:'Supervisor'},
+  {v:4, d:'Coordenador'},
+  {v:5, d:'Admin'},
+];
+
+let setorAtual = 'gerencia';
+let submenuAtual = 'usuarios';
+
+// ============================================================
+// USUÁRIOS (demo — localStorage)
+// ============================================================
+const USERS_KEY = 'portalEsboco_usuarios';
+function carregarUsuarios(){ return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }
+function salvarUsuarios(arr){ localStorage.setItem(USERS_KEY, JSON.stringify(arr)); }
+if(carregarUsuarios().length === 0){
+  salvarUsuarios([
+    {nome:'Eduardo Rohden', nivel:5, menus:['gerencia','manutencao','dp','aeb','recepcao','governanca']},
+    {nome:'Encarregada de Governança', nivel:2, menus:['governanca']},
+    {nome:'Controlista A&B', nivel:2, menus:['aeb']},
+  ]);
+}
+
+// ============================================================
+// TOPBAR
+// ============================================================
+function renderTopNav(){
+  const nav = document.getElementById('topNav');
+  nav.innerHTML = Object.entries(SETORES).map(([id,s])=>`
+    <button data-setor="${id}" class="${id===setorAtual?'active':''}">
+      ${s.nome}${!s.ativo?'<span class="lock">— não conectado</span>':''}
+    </button>
+  `).join('');
+  nav.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      setorAtual = btn.dataset.setor;
+      const s = SETORES[setorAtual];
+      submenuAtual = s.submenus.length ? (s.submenus.find(sm=>sm.ativo)?.id || s.submenus[0].id) : null;
+      renderTopNav();
+      renderSidebar();
+      renderMain();
+    });
+  });
+}
+
+// ============================================================
+// SIDEBAR
+// ============================================================
+function renderSidebar(){
+  const s = SETORES[setorAtual];
+  document.getElementById('setorTitulo').textContent = s.nome;
+  const el = document.getElementById('sidebarMenu');
+
+  // Setores com sistema real encaixado (url) não precisam de submenu na
+  // nossa casca — o sistema de dentro já tem a navegação dele mesmo.
+  if(s.url){
+    el.innerHTML = `<div style="padding:10px 12px;color:var(--texto-suave);font-size:12.5px;">Sistema completo carregado ao lado.</div>`;
+    return;
+  }
+
+  el.innerHTML = s.submenus.map(sm=>`
+    <button data-sub="${sm.id}" class="${sm.id===submenuAtual?'active':''}" ${!sm.ativo?'disabled':''}>
+      <span>${sm.nome}</span>
+      ${!sm.ativo?'<span class="traco">—</span>':''}
+    </button>
+  `).join('');
+  el.querySelectorAll('button:not(:disabled)').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      submenuAtual = btn.dataset.sub;
+      renderSidebar();
+      renderMain();
+    });
+  });
+}
+
+// ============================================================
+// CONTEÚDO PRINCIPAL
+// ============================================================
+function renderMain(){
+  const main = document.getElementById('mainArea');
+  const s = SETORES[setorAtual];
+  main.classList.remove('encaixado');
+
+  if(!s.ativo){
+    main.innerHTML = `
+      <div class="bloqueado-msg">
+        <div class="icone">⏳</div>
+        <h3>${s.nome} ainda não está conectado</h3>
+        <p>Esse setor está no roteiro, mas ainda não tem sistema ligado ao portal. Assim que ficar pronto, aparece aqui automaticamente.</p>
+      </div>`;
+    return;
+  }
+
+  if(setorAtual === 'gerencia' && submenuAtual === 'usuarios'){
+    renderUsuarios(main);
+    return;
+  }
+
+  // Se o setor já tem um sistema real hospedado, encaixa ele via iframe —
+  // o próprio sistema cuida da navegação interna dele (Chamados, Equipe,
+  // etc.), então não precisamos recriar isso na casca do Portal.
+  if(s.url){
+    main.classList.add('encaixado');
+    main.innerHTML = `
+      <div style="height:calc(100vh - var(--topbar-h) - 22px);border:1px solid var(--borda);border-radius:var(--radius);overflow:hidden;background:#fff;">
+        <iframe src="${s.url}" style="width:100%;height:100%;border:none;" title="${s.nome}"></iframe>
+      </div>`;
+    return;
+  }
+
+  const sub = s.submenus.find(sm=>sm.id===submenuAtual);
+  if(sub && !sub.ativo){
+    main.innerHTML = `
+      <div class="bloqueado-msg">
+        <div class="icone">⏳</div>
+        <h3>${sub.nome} ainda não está conectado</h3>
+        <p>Esse submenu está previsto, mas ainda não tem sistema ligado.</p>
+      </div>`;
+    return;
+  }
+
+  main.innerHTML = `
+    <div class="view-header">
+      <h2>${sub ? sub.nome : ''}</h2>
+      <div class="desc">Esboço de navegação — aqui entraria o sistema real de ${s.nome}.</div>
+    </div>
+    <div class="card">
+      <div class="empty">Espaço reservado pro sistema de "${sub?sub.nome:''}" — já existe funcionando separadamente e será encaixado aqui.</div>
+    </div>`;
+}
+
+// ---- Usuários e Permissões ----
+let nivelSelecionado = 2;
+let menusSelecionados = [];
+
+function renderUsuarios(main){
+  main.innerHTML = `
+    <div class="view-header">
+      <h2>Usuários e Permissões</h2>
+      <div class="desc">Cada usuário tem um nível (1 a 5) e os menus principais que pode acessar.</div>
+    </div>
+
+    <div class="card">
+      <h3>Novo usuário</h3>
+      <label style="margin-top:0;">Nome</label>
+      <input type="text" id="novoUsuarioNome" placeholder="Ex: Maria Souza">
+
+      <label>Nível de acesso</label>
+      <div class="nivel-row" id="nivelRow">
+        ${NIVEIS.map(n=>`<button type="button" data-n="${n.v}" class="${n.v===nivelSelecionado?'selected':''}"><span class="n">${n.v}</span><span class="d">${n.d}</span></button>`).join('')}
+      </div>
+
+      <label>Menus permitidos</label>
+      <div class="menu-check-grid" id="menuCheckGrid">
+        ${Object.entries(SETORES).map(([id,s])=>`
+          <label class="menu-check ${!s.ativo?'disabled':''}">
+            <input type="checkbox" value="${id}" ${menusSelecionados.includes(id)?'checked':''}>
+            ${s.nome}${!s.ativo?' (não conectado)':''}
+          </label>
+        `).join('')}
+      </div>
+
+      <button class="btn-primary full" id="btnCriarUsuario">Criar usuário</button>
+      <div class="msg" id="usuarioMsg"></div>
+    </div>
+
+    <div class="card">
+      <h3>Usuários cadastrados</h3>
+      <div id="tabelaUsuarios"></div>
+    </div>
+  `;
+
+  document.querySelectorAll('#nivelRow button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      nivelSelecionado = parseInt(btn.dataset.n);
+      document.querySelectorAll('#nivelRow button').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+
+  document.querySelectorAll('#menuCheckGrid input').forEach(chk=>{
+    chk.addEventListener('change', ()=>{
+      menusSelecionados = [...document.querySelectorAll('#menuCheckGrid input:checked')].map(c=>c.value);
+    });
+  });
+
+  document.getElementById('btnCriarUsuario').addEventListener('click', ()=>{
+    const nome = document.getElementById('novoUsuarioNome').value.trim();
+    if(!nome){ showMsgUsuario('Digite o nome do usuário.', 'erro'); return; }
+    if(menusSelecionados.length === 0){ showMsgUsuario('Marque pelo menos um menu.', 'erro'); return; }
+
+    const usuarios = carregarUsuarios();
+    usuarios.push({nome, nivel: nivelSelecionado, menus: menusSelecionados});
+    salvarUsuarios(usuarios);
+
+    document.getElementById('novoUsuarioNome').value = '';
+    menusSelecionados = [];
+    nivelSelecionado = 2;
+    showMsgUsuario('Usuário criado com sucesso.', 'ok');
+    renderUsuarios(main);
+  });
+
+  renderTabelaUsuarios();
+}
+
+function showMsgUsuario(texto, tipo){
+  const el = document.getElementById('usuarioMsg');
+  el.textContent = texto;
+  el.className = 'msg ' + tipo;
+}
+
+function renderTabelaUsuarios(){
+  const el = document.getElementById('tabelaUsuarios');
+  const usuarios = carregarUsuarios();
+  if(usuarios.length === 0){ el.innerHTML = '<div class="empty">Nenhum usuário cadastrado ainda.</div>'; return; }
+  el.innerHTML = `<table>
+    <thead><tr><th>Nome</th><th>Nível</th><th>Menus permitidos</th><th></th></tr></thead>
+    <tbody>${usuarios.map((u,i)=>`<tr>
+      <td>${u.nome}</td>
+      <td><span class="badge nivel">${u.nivel} · ${NIVEIS.find(n=>n.v===u.nivel)?.d||''}</span></td>
+      <td>${u.menus.map(m=>`<span class="badge menu-ok">${SETORES[m]?.nome||m}</span>`).join('')}</td>
+      <td><button class="action-link danger" onclick="removerUsuario(${i})">Remover</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function removerUsuario(i){
+  if(!confirm('Remover este usuário?')) return;
+  const usuarios = carregarUsuarios();
+  usuarios.splice(i,1);
+  salvarUsuarios(usuarios);
+  renderTabelaUsuarios();
+}
+
+// ============================================================
+// INICIALIZAÇÃO
+// ============================================================
+renderTopNav();
+renderSidebar();
+renderMain();
+</script>
+
+</body>
+</html>
