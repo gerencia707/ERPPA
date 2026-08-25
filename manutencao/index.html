@@ -1,5 +1,6 @@
 
 
+
 <html>
 <head>
 <meta charset="UTF-8">
@@ -402,9 +403,9 @@ var MESES = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agost
 // Supabase direto - sem Google Apps Script
 var SUPA_URL='https://xdnnngifpbrbhxyluans.supabase.co';
 
-// Supabase do Portal DP (banco central de RH)
-var DP_URL = 'https://opcfppuxssiykjrotrcw.supabase.co';
-var DP_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wY2ZwcHV4c3NpeWtqcm90cmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NzU2NjMsImV4cCI6MjEwMTA1MTY2M30.fN5ek2xDgY-FKviSzBBDUzF4KqddjAZGCaLXyKuCZ8U';
+// Portal DP agora mora no mesmo banco da Manutenção (banco único do ERPPA)
+var DP_URL = 'https://xdnnngifpbrbhxyluans.supabase.co';
+var DP_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhkbm5uZ2lmcGJyYmh4eWx1YW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODgwODQsImV4cCI6MjA5NjI2NDA4NH0.1HmvUOo56BhCdLTjJH3UfTMkq8uO7-EK_zg3W0hX46A';
 var _dpCache = {};
 
 async function dpGet(path){
