@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -1193,7 +1194,7 @@ function sD(k, v, _ultimoId){
     if(reg) upsertUm(k, reg);
     else delUm(k, _ultimoId); // foi removido
   } else {
-    syncSupabase(k, v);
+    syncSupabase(k, v, anterior);
   }
 }
 
@@ -1232,19 +1233,26 @@ const DB = {
 };
 
 // Sincronizar array com Supabase — upsert de todos os registros
-async function syncSupabase(k, v){
+async function syncSupabase(k, v, anterior){
   const map = TBMAP[k];
   if(!map) return;
   try {
-    // Deletar registros que não existem mais no array local
-    const ids = v.map(function(r){ return r.id; }).filter(Boolean);
-    if(ids.length > 0){
+    // Upsert dos que continuam existindo (novos e alterados)
+    if(v.length > 0){
       await supa.from(map.tb).upsert(
         v.map(function(r){ return supaRow(k, r); }),
         { onConflict: 'id' }
       );
-    } else {
-      // Array vazio — deletar tudo da tabela (só quando explicitamente zerado)
+    }
+    // Apaga de verdade, no Supabase, os que sumiram do array local desde
+    // a última vez (isso é o que faltava — antes só reenviava os que
+    // sobravam, sem nunca excluir os removidos, então eles voltavam).
+    const idsAtuais = v.map(function(r){ return r.id; }).filter(Boolean);
+    const idsRemovidos = (anterior||[])
+      .map(function(r){ return r.id; })
+      .filter(function(id){ return id && idsAtuais.indexOf(id) === -1; });
+    if(idsRemovidos.length > 0){
+      await supa.from(map.tb).delete().in('id', idsRemovidos);
     }
   } catch(e){ console.warn('Supabase sync erro ('+k+'):', e.message); }
 }
@@ -1914,9 +1922,9 @@ function salvColab(){
   for(let i=0;i<nFilhos;i++){const el=document.getElementById('c-idade-'+i);if(el)idades.push(parseInt(el.value)||0);}
   const obj={id:id||uid(),nome:nm,cpf:document.getElementById('c-cpf').value,tel:document.getElementById('c-tel').value,cargo:document.getElementById('c-cargo').value,setor:document.getElementById('c-setor').value,lider:document.getElementById('c-lider').value,adm:document.getElementById('c-adm').value,aniv:document.getElementById('c-aniv').value,aso:document.getElementById('c-aso').value,contrato:document.getElementById('c-contrato').value,status:document.getElementById('c-status').value,email:document.getElementById('c-email').value,docs:document.getElementById('c-docs').value,obs:document.getElementById('c-obs').value,pis:document.getElementById('c-pis').value,ecivil:document.getElementById('c-ecivil').value,esc:document.getElementById('c-esc').value,banco:document.getElementById('c-banco').value,conta:document.getElementById('c-conta').value,filhos:temFilhos?'sim':'nao',nfilhos:nFilhos,idadesFilhos:idades};
   if(id){const i=C.findIndex(x=>x.id===id);if(i>-1)C[i]=obj;}else C.push(obj);
-  sD('colabs',C,obj.id);fMo('m-colab');renderColabs();toast('Colaborador salvo!');
+  sD('colabs',C,obj.id);fMo('m-colab');renderColabs();atualizarStatusFeriasAutomatico();renderDash();toast('Colaborador salvo!');
 }
-function delColab(id){conf('Remover colaborador?',()=>{sD('colabs',gD('colabs').filter(c=>c.id!==id));renderColabs();toast('Removido');});}
+function delColab(id){conf('Remover colaborador?',()=>{sD('colabs',gD('colabs').filter(c=>c.id!==id));renderColabs();renderDash();toast('Removido');});}
 function expColabCSV(){
   const C=gD('colabs');
   let csv='Nome;CPF;PIS;Cargo;Setor;Líder;Admissão;Contrato;Status;ASO;Aniversário;Est.Civil;Escolaridade;Banco;Conta;Filhos;Qtd Filhos;Docs Pendentes\n';
@@ -2223,6 +2231,46 @@ const DOCS_LIST=[
   {key:'aso_adm',label:'ASO Admissional',icon:'🩺'},
   {key:'ficha_reg',label:'Ficha de Registro',icon:'📋'},
 ];
+
+// Verifica se alguma férias entrou ou saiu do período (hoje entre início e
+// fim) e ajusta o status do colaborador de acordo. Roda sozinha assim que
+// os dados carregam — antes, isso só acontecia se alguém abrisse a aba de
+// Férias, e mesmo assim só pra quem já tinha data de admissão preenchida.
+function atualizarStatusFeriasAutomatico(){
+  const hj = hoje();
+  const colabs = gD('colabs').filter(function(c){ return c.status !== 'desligado'; });
+  const todasFerias = gD('ferias');
+
+  colabs.forEach(function(c){
+    const ferAtiva = todasFerias.filter(function(f){
+      return f.colabId === c.id && f.status !== 'concluida';
+    }).sort(function(a,b){ return (b.ini||'').localeCompare(a.ini||''); })[0];
+
+    if(!ferAtiva || !ferAtiva.ini || !ferAtiva.fim) return;
+
+    let statusAuto;
+    if(hj >= ferAtiva.ini && hj <= ferAtiva.fim) statusAuto = 'em_gozo';
+    else if(hj > ferAtiva.fim) statusAuto = 'concluida';
+    else statusAuto = 'programada';
+
+    if(statusAuto !== ferAtiva.status){
+      const F = gD('ferias');
+      const fi = F.findIndex(function(f){ return f.id === ferAtiva.id; });
+      if(fi > -1){ F[fi].status = statusAuto; sD('ferias', F, ferAtiva.id); }
+
+      if(statusAuto === 'concluida'){
+        const C = gD('colabs');
+        const ci = C.findIndex(function(x){ return x.id === c.id; });
+        if(ci > -1 && C[ci].status === 'ferias'){ C[ci].status = 'ativo'; sD('colabs', C, c.id); }
+      }
+      if(statusAuto === 'em_gozo'){
+        const C = gD('colabs');
+        const ci = C.findIndex(function(x){ return x.id === c.id; });
+        if(ci > -1 && C[ci].status === 'ativo'){ C[ci].status = 'ferias'; sD('colabs', C, c.id); }
+      }
+    }
+  });
+}
 
 function renderFerias(){
   const setores = gSetores();
@@ -3711,7 +3759,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.qu
 // Cargos carregados do Supabase — não preencher localmente
 testarConexao().then(function(ok){
   if(ok){
-    carregarDoSupabase().then(function(){ renderDash(); });
+    carregarDoSupabase().then(function(){ atualizarStatusFeriasAutomatico(); renderDash(); });
   } else {
     document.getElementById('loading-overlay').style.display='none';
     renderDash();
