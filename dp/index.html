@@ -257,7 +257,25 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
 </head>
 <body>
 
-
+<div id="telaLoginDP" style="min-height:100vh;width:100%;position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:var(--bg);">
+  <div style="width:100%;max-width:340px;padding:0 20px;">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="width:56px;height:56px;background:var(--verde);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:var(--verde-l);font-weight:800;font-size:18px;">DP</div>
+      <h1 style="font-size:18px;font-weight:700;color:var(--verde);margin:0;">Portal DP</h1>
+      <p style="font-size:13px;color:var(--text2);margin-top:4px;">Departamento Pessoal</p>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;">
+      <label style="display:block;font-size:12px;color:var(--text2);font-weight:500;margin-bottom:4px;">Usuário</label>
+      <select id="dpLoginUsuario" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;margin-bottom:14px;">
+        <option value="">Selecione seu usuário...</option>
+      </select>
+      <label style="display:block;font-size:12px;color:var(--text2);font-weight:500;margin-bottom:4px;">Senha</label>
+      <input id="dpLoginSenha" type="password" placeholder="Digite sua senha" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:14px;">
+      <div id="dpLoginErro" style="display:none;background:var(--red-dim);border:1px solid var(--red);border-radius:8px;padding:10px;font-size:13px;color:var(--red);margin-bottom:14px;text-align:center;">Usuário ou senha incorretos.</div>
+      <button onclick="fazerLoginDP()" style="width:100%;padding:12px;background:var(--verde);color:var(--verde-l);border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Entrar</button>
+    </div>
+  </div>
+</div>
 
 <!-- LOADING -->
 <div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(10,42,34,.85);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px">
@@ -266,7 +284,7 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
 </div>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
-<nav id="sidebar">
+<nav id="sidebar" style="display:none;">
   <div class="sb-logo">
     <div class="brand">Portal DP</div>
     <div class="sub">Departamento Pessoal</div>
@@ -289,11 +307,13 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
   <div class="sb-footer">Portal DP v3.0 · <span id="sb-hora"></span></div>
 </nav>
 
-<div id="main">
+<div id="main" style="display:none;">
   <div class="topbar">
     <div class="topbar-title" id="ttl">Dashboard</div>
     <div class="topbar-right">
       <div class="date-tag" id="top-data"></div>
+      <span id="dp-user-chip" style="font-size:12.5px;color:var(--text2);padding:0 4px;"></span>
+      <button class="btn btn-s btn-sm" onclick="sairDP()" title="Sair">⎋ Sair</button>
       <button class="btn btn-s btn-sm" onclick="imprimirColabs()" title="Imprimir lista de colaboradores">🖨 Imprimir</button>
       <button class="btn btn-g btn-sm" onclick="expResumoGestor()" title="Exportar resumo para o Portal do Gestor">↗ Resumo Gestor</button>
       <button class="btn btn-s btn-sm" onclick="expDados()">↓ Backup</button>
@@ -542,6 +562,26 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
     <!-- CONFIGURAÇÕES -->
     <div class="page" id="page-configuracoes">
       <div class="g2">
+
+        <!-- USUÁRIOS E SENHAS -->
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">🔐 Usuários e senhas</span></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:11px">
+            <div id="cfg-usuarios-lista"></div>
+            <div class="fg" style="margin-top:8px;">
+              <div class="fgr"><label>Nome</label><input type="text" id="novo-dp-usr-nome"></div>
+              <div class="fgr"><label>Login</label><input type="text" id="novo-dp-usr-login"></div>
+              <div class="fgr"><label>Senha</label><input type="text" id="novo-dp-usr-senha"></div>
+              <div class="fgr"><label>Perfil</label>
+                <select id="novo-dp-usr-perfil">
+                  <option value="operador">Operador</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-g btn-sm" onclick="addUsuarioDP()">+ Adicionar usuário</button>
+          </div>
+        </div>
 
         <!-- DADOS DO HOTEL -->
         <div class="card">
@@ -3558,6 +3598,7 @@ function renderConfiguracoes(){
   renderCfgCargos();
   renderCfgDocs();
   renderCfgEPI();
+  renderCfgUsuariosDP();
   // Info do sistema
   const col=gD('colabs');const cand=gD('candidatos');const fer=gD('ferias');const hist=gD('historico');
   document.getElementById('cfg-info-sistema').innerHTML=`
@@ -3573,6 +3614,58 @@ function renderConfiguracoes(){
 }
 
 /* SETORES em configurações */
+function renderCfgUsuariosDP(){
+  const el = document.getElementById('cfg-usuarios-lista');
+  if(!el) return;
+  if(!ehAdminDP()){
+    el.innerHTML = '<span class="tsm tmut">Só Administradores podem ver e gerenciar usuários.</span>';
+    document.getElementById('novo-dp-usr-nome').closest('.fg').style.display = 'none';
+    return;
+  }
+  if(!usuariosDP.length){ el.innerHTML = '<span class="tsm tmut">Nenhum usuário cadastrado.</span>'; return; }
+  el.innerHTML = usuariosDP.map(function(u){
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'+
+      '<div style="flex:1"><b>'+u.nome+'</b> <span class="tsm tmut">('+u.login+')</span></div>'+
+      '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;background:'+(u.perfil==='admin'?'var(--verde-ll)':'var(--surface2)')+'">'+(u.perfil==='admin'?'Admin':'Operador')+'</span>'+
+      '<button onclick="delUsuarioDP(\''+u.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--red)" title="Remover">✕</button>'+
+    '</div>';
+  }).join('');
+}
+
+async function addUsuarioDP(){
+  if(!ehAdminDP()){ toast('Só Administradores podem adicionar usuários.', true); return; }
+  const nome = document.getElementById('novo-dp-usr-nome').value.trim();
+  const login = document.getElementById('novo-dp-usr-login').value.trim();
+  const senha = document.getElementById('novo-dp-usr-senha').value.trim();
+  const perfil = document.getElementById('novo-dp-usr-perfil').value;
+  if(!nome || !senha){ toast('Preencha nome e senha.', true); return; }
+
+  const novo = {id: uid(), nome, login, senha, perfil};
+  try{
+    const {error} = await supa.from('dp_usuarios').insert([novo]);
+    if(error) throw error;
+    usuariosDP.push(novo);
+    document.getElementById('novo-dp-usr-nome').value='';
+    document.getElementById('novo-dp-usr-login').value='';
+    document.getElementById('novo-dp-usr-senha').value='';
+    renderCfgUsuariosDP();
+    toast('Usuário adicionado!');
+  }catch(e){ toast('Erro ao adicionar: '+(e.message||e), true); }
+}
+
+async function delUsuarioDP(id){
+  if(!ehAdminDP()){ toast('Só Administradores podem remover usuários.', true); return; }
+  if(usuariosDP.length <= 1){ toast('Não é possível remover o único usuário cadastrado.', true); return; }
+  if(!confirm('Remover este usuário?')) return;
+  try{
+    const {error} = await supa.from('dp_usuarios').delete().eq('id', id);
+    if(error) throw error;
+    usuariosDP = usuariosDP.filter(function(u){ return u.id !== id; });
+    renderCfgUsuariosDP();
+    toast('Usuário removido.');
+  }catch(e){ toast('Erro ao remover: '+(e.message||e), true); }
+}
+
 function renderCfgSetores(){
   const setores=gSetores();
   const setorHtml=setores.map(function(s){
@@ -3755,17 +3848,103 @@ function calcContrato(){
 /* ===== INIT ===== */
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.querySelectorAll('.mo.open').forEach(function(m){m.classList.remove('open');});document.getElementById('co').classList.remove('open');}});
 
-// Cargos padrão se não existirem
-// Cargos carregados do Supabase — não preencher localmente
-testarConexao().then(function(ok){
-  if(ok){
-    carregarDoSupabase().then(function(){ atualizarStatusFeriasAutomatico(); renderDash(); });
-  } else {
-    document.getElementById('loading-overlay').style.display='none';
-    renderDash();
+// ============================================================
+// LOGIN E USUÁRIOS DO DP
+// ============================================================
+const DP_UID_KEY = 'portalDP_uid';
+let usuariosDP = [];
+let usuarioLogadoDP = null;
+
+async function carregarUsuariosDP(){
+  try{
+    const {data, error} = await supa.from('dp_usuarios').select('*').order('nome');
+    if(error) throw error;
+    if(!data || data.length === 0){
+      const padrao = {id: uid(), nome:'Administrador', login:'ADM', senha:'ADM', perfil:'admin'};
+      await supa.from('dp_usuarios').insert([padrao]);
+      usuariosDP = [padrao];
+    } else {
+      usuariosDP = data;
+    }
+  }catch(e){
+    console.warn('Erro ao carregar usuários do DP, usando login de emergência:', e.message||e);
+    usuariosDP = [{id:'fallback-admin', nome:'Administrador', login:'ADM', senha:'ADM', perfil:'admin'}];
   }
+}
+
+function popularLoginSelectDP(){
+  const sel = document.getElementById('dpLoginUsuario');
+  sel.innerHTML = '<option value="">Selecione seu usuário...</option>' +
+    usuariosDP.map(function(u){ return '<option value="'+u.id+'">'+u.nome+'</option>'; }).join('');
+}
+
+function mostrarAppDP(){
+  document.getElementById('telaLoginDP').style.display = 'none';
+  document.getElementById('sidebar').style.display = 'flex';
+  document.getElementById('main').style.display = 'flex';
+  const chip = document.getElementById('dp-user-chip');
+  if(chip) chip.textContent = usuarioLogadoDP ? usuarioLogadoDP.nome + ' (' + (usuarioLogadoDP.perfil==='admin'?'Admin':'Operador') + ')' : '';
+  testarConexao().then(function(ok){
+    if(ok){
+      carregarDoSupabase().then(function(){ atualizarStatusFeriasAutomatico(); renderDash(); });
+    } else {
+      document.getElementById('loading-overlay').style.display='none';
+      renderDash();
+    }
+  });
+}
+
+function fazerLoginDP(){
+  const id = document.getElementById('dpLoginUsuario').value;
+  const senha = document.getElementById('dpLoginSenha').value;
+  const erroEl = document.getElementById('dpLoginErro');
+
+  if(!id){ erroEl.style.display='block'; erroEl.textContent='Selecione um usuário.'; return; }
+  const u = usuariosDP.find(function(x){ return x.id === id; });
+  if(!u || String(u.senha||'') !== String(senha)){
+    erroEl.style.display='block';
+    erroEl.textContent='Usuário ou senha incorretos.';
+    document.getElementById('dpLoginSenha').value='';
+    return;
+  }
+
+  usuarioLogadoDP = u;
+  localStorage.setItem(DP_UID_KEY, u.id);
+  erroEl.style.display='none';
+  mostrarAppDP();
+}
+
+document.getElementById('dpLoginSenha').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') fazerLoginDP();
 });
+
+function sairDP(){
+  localStorage.removeItem(DP_UID_KEY);
+  usuarioLogadoDP = null;
+  document.getElementById('sidebar').style.display = 'none';
+  document.getElementById('main').style.display = 'none';
+  document.getElementById('telaLoginDP').style.display = 'flex';
+  document.getElementById('dpLoginUsuario').value = '';
+  document.getElementById('dpLoginSenha').value = '';
+}
+
+function ehAdminDP(){
+  return !!(usuarioLogadoDP && usuarioLogadoDP.perfil === 'admin');
+}
+
+async function iniciarLoginDP(){
+  await carregarUsuariosDP();
+  popularLoginSelectDP();
+  const savedId = localStorage.getItem(DP_UID_KEY);
+  const savedUser = savedId ? usuariosDP.find(function(u){ return u.id === savedId; }) : null;
+  if(savedUser){
+    usuarioLogadoDP = savedUser;
+    mostrarAppDP();
+  } else {
+    document.getElementById('telaLoginDP').style.display = 'flex';
+  }
+}
+iniciarLoginDP();
 </script>
 </body>
 </html>
-
