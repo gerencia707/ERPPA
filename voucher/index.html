@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -7,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
   :root{
     --verde-escuro:#0A2A22;
@@ -94,6 +96,9 @@
   .period-buttons{display:flex;gap:8px;flex-wrap:wrap;}
   .period-buttons button{padding:8px 14px;border:1px solid var(--borda);background:#fcfdfc;border-radius:20px;font-size:13px;cursor:pointer;color:var(--texto);}
   .period-buttons button.selected{background:var(--verde-escuro);color:var(--verde-claro);border-color:var(--verde-escuro);font-weight:600;}
+  .segmented{display:flex;gap:8px;margin-top:6px;}
+  .segmented button{flex:1;padding:11px 8px;border:1px solid var(--borda);background:#fcfdfc;border-radius:7px;font-size:13px;cursor:pointer;color:var(--texto);transition:all .12s;}
+  .segmented button.selected{background:var(--verde-escuro);border-color:var(--verde-escuro);color:var(--verde-claro);font-weight:600;}
   .conf-grande{display:flex;align-items:center;justify-content:center;gap:24px;padding:22px 20px;border-radius:var(--radius);border:1px solid var(--borda);background:#fcfdfc;margin-bottom:14px;flex-wrap:wrap;}
   .conf-grande .item{text-align:center;}
   .conf-grande .num{font-size:30px;font-weight:800;color:var(--verde-escuro);line-height:1;}
@@ -118,19 +123,47 @@
 </head>
 <body>
 
-<div class="app">
+<div id="telaLogin" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);">
+  <div style="width:100%;max-width:340px;padding:0 20px;">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="width:52px;height:52px;border-radius:12px;background:var(--sage);display:flex;align-items:center;justify-content:center;color:var(--verde-escuro);font-weight:800;font-size:18px;margin:0 auto 12px;">LGM</div>
+      <h2 style="margin:0;color:var(--verde-escuro);font-size:18px;">Voucher LGM</h2>
+      <div style="color:var(--texto-suave);font-size:13px;margin-top:2px;">Entrar no sistema</div>
+    </div>
+    <div class="card">
+      <label style="margin-top:0;">Usuário</label>
+      <select id="loginUsuario">
+        <option value="">Selecione seu usuário...</option>
+      </select>
+      <label>Senha</label>
+      <input type="password" id="loginSenha" placeholder="Digite a senha">
+      <button class="btn-primary full" id="btnEntrar">Entrar</button>
+      <div class="msg" id="loginMsg"></div>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="appPrincipal" style="display:none;">
   <div class="sidebar">
     <div class="brand">
       <div class="mark">LGM</div>
       <div><h1>Voucher LGM</h1><div class="sub">Contagem por Scan</div></div>
     </div>
+    <div class="user-chip-topo" style="padding:0 18px 12px;color:var(--verde-claro);font-size:12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:6px;">
+      <div style="width:26px;height:26px;border-radius:50%;background:var(--verde-mid);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--sage);flex-shrink:0;" id="avatarUsuarioLogado">–</div>
+      <div><div style="font-weight:600;" id="nomeUsuarioLogado">–</div><div style="font-size:10.5px;color:var(--sage);" id="perfilUsuarioLogado">–</div></div>
+    </div>
     <nav>
       <button data-view="fechamento" class="active"><span class="ic">✓</span>Fechamento do Dia</button>
       <button data-view="relatorio"><span class="ic">▤</span>Relatório</button>
+      <button data-view="graficos"><span class="ic">📊</span>Gráficos</button>
       <button data-view="danfe"><span class="ic">⎘</span>Emissão de DANFE</button>
       <button data-view="config"><span class="ic">⚙</span>Configuração</button>
     </nav>
     <div class="conn-status"><span class="conn-dot off" id="connDot"></span><span id="connText">Não conectado</span></div>
+    <div style="padding:10px 18px 16px;">
+      <button type="button" onclick="sair()" style="width:100%;background:transparent;border:1px solid rgba(255,255,255,.2);color:var(--verde-claro);padding:8px;border-radius:7px;font-size:12.5px;cursor:pointer;">Sair</button>
+    </div>
   </div>
 
   <main>
@@ -242,6 +275,47 @@
       </div>
     </section>
 
+    <!-- ===================== GRÁFICOS ===================== -->
+    <section class="view" id="view-graficos">
+      <div class="view-header">
+        <h2>Gráficos</h2>
+        <div class="desc">Evolução dos vouchers e do valor ao longo do período.</div>
+      </div>
+
+      <div class="card">
+        <h3>Período</h3>
+        <div class="period-buttons" id="periodoRapidoGraficos">
+          <button type="button" data-p="7dias">Últimos 7 dias</button>
+          <button type="button" data-p="mes" class="selected">Este mês</button>
+          <button type="button" data-p="q1">1ª quinzena</button>
+          <button type="button" data-p="q2">2ª quinzena</button>
+          <button type="button" data-p="personalizado">Personalizado</button>
+        </div>
+        <div id="periodoPersonalizadoGraficos" style="display:none;margin-top:14px;">
+          <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;">
+            <div><label style="margin-top:0;">De</label><input type="date" id="grafDe"></div>
+            <div><label style="margin-top:0;">Até</label><input type="date" id="grafAte"></div>
+          </div>
+        </div>
+        <button class="btn-primary full" id="btnAplicarGraficos">Aplicar</button>
+      </div>
+
+      <div class="card">
+        <h3>Vouchers por dia (Rodízio x Rodízio+Fondue)</h3>
+        <canvas id="graficoTipos" height="90"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Valor total por dia (R$)</h3>
+        <canvas id="graficoValor" height="90"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Conferência (Bateu x Não bateu)</h3>
+        <canvas id="graficoConferencia" height="90"></canvas>
+      </div>
+    </section>
+
     <!-- ===================== DANFE ===================== -->
     <section class="view" id="view-danfe">
       <div class="view-header">
@@ -315,6 +389,26 @@
           <input type="number" step="0.01" id="cfgValorRodizio" placeholder="70">
           <label>Valor do voucher Rodízio + Fondue (R$)</label>
           <input type="number" step="0.01" id="cfgValorFondue" placeholder="80">
+
+          <div class="divider"></div>
+
+          <label>Tabela de usuários</label>
+          <input type="text" id="cfgTabelaUsuarios" placeholder="voucher_usuarios">
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Usuários e senhas</h3>
+        <div id="listaUsuariosVoucher"></div>
+        <div class="add-cnpj-form" style="flex-wrap:wrap;">
+          <input type="text" id="novoUsrNome" placeholder="Nome">
+          <input type="text" id="novoUsrLogin" placeholder="Login">
+          <input type="text" id="novoUsrSenha" placeholder="Senha">
+          <select id="novoUsrPerfil" style="width:auto;">
+            <option value="operador">Operador</option>
+            <option value="admin">Administrador</option>
+          </select>
+          <button class="btn-secondary" id="btnAddUsuario">Adicionar</button>
         </div>
       </div>
 
@@ -419,8 +513,124 @@ if(!config._valoresPreenchidos){
   if(config.crop_numero_altura === undefined) config.crop_numero_altura = 20;
   if(config.codigo_digitos === undefined) config.codigo_digitos = 6;
   if(config.apenas_angulo_zero === undefined) config.apenas_angulo_zero = true;
+  if(!config.tabela_usuarios) config.tabela_usuarios = 'voucher_usuarios';
   config._valoresPreenchidos = true;
   localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+}
+
+// ============================================================
+// LOGIN E USUÁRIOS
+// ============================================================
+const UID_KEY = 'voucherLGM_sl_uid';
+let usuariosVoucher = [];
+let usuarioLogado = null;
+
+function tabelaUsuarios(){ return config.tabela_usuarios || 'voucher_usuarios'; }
+
+const LOCAL_USUARIOS_KEY = 'voucherLGM_sl_usuarios';
+function localUsuariosCarregar(){ return JSON.parse(localStorage.getItem(LOCAL_USUARIOS_KEY) || '[]'); }
+function localUsuariosSalvar(arr){ localStorage.setItem(LOCAL_USUARIOS_KEY, JSON.stringify(arr)); }
+
+async function carregarUsuariosVoucher(){
+  if(modoTeste()){
+    let arr = localUsuariosCarregar();
+    if(arr.length === 0){
+      arr = [{id: novoId(), nome:'Administrador', login:'ADM', senha:'ADM', perfil:'admin'}];
+      localUsuariosSalvar(arr);
+    }
+    usuariosVoucher = arr;
+    return;
+  }
+  try{
+    const {data, error} = await supabaseClient.from(tabelaUsuarios()).select('*').order('nome');
+    if(error) throw error;
+    if(!data || data.length === 0){
+      const padrao = {id: novoId(), nome:'Administrador', login:'ADM', senha:'ADM', perfil:'admin'};
+      await supabaseClient.from(tabelaUsuarios()).insert([padrao]);
+      usuariosVoucher = [padrao];
+    } else {
+      usuariosVoucher = data;
+    }
+  }catch(e){
+    console.warn('Erro ao carregar usuários:', e.message||e);
+    usuariosVoucher = [];
+  }
+}
+
+function popularLoginSelect(){
+  const sel = document.getElementById('loginUsuario');
+  sel.innerHTML = '<option value="">Selecione seu usuário...</option>' +
+    usuariosVoucher.map(u=>`<option value="${u.id}">${u.nome}</option>`).join('');
+}
+
+function iniciaisNome(nome){
+  const partes = (nome||'').trim().split(/\s+/);
+  return ((partes[0]?.[0]||'') + (partes[1]?.[0]||'')).toUpperCase() || '–';
+}
+
+function aplicarRestricoesPerfil(){
+  const ehAdmin = usuarioLogado && usuarioLogado.perfil === 'admin';
+  const navDanfe = document.querySelector('.sidebar nav button[data-view="danfe"]');
+  const navConfig = document.querySelector('.sidebar nav button[data-view="config"]');
+  if(navDanfe) navDanfe.style.display = ehAdmin ? 'flex' : 'none';
+  if(navConfig) navConfig.style.display = ehAdmin ? 'flex' : 'none';
+
+  document.getElementById('nomeUsuarioLogado').textContent = usuarioLogado ? usuarioLogado.nome : '–';
+  document.getElementById('perfilUsuarioLogado').textContent = usuarioLogado ? (usuarioLogado.perfil==='admin'?'Administrador':'Operador') : '–';
+  document.getElementById('avatarUsuarioLogado').textContent = usuarioLogado ? iniciaisNome(usuarioLogado.nome) : '–';
+}
+
+function mostrarApp(){
+  document.getElementById('telaLogin').style.display = 'none';
+  document.getElementById('appPrincipal').style.display = 'flex';
+  aplicarRestricoesPerfil();
+}
+
+function fazerLogin(){
+  const id = document.getElementById('loginUsuario').value;
+  const senha = document.getElementById('loginSenha').value;
+  const msgEl = document.getElementById('loginMsg');
+
+  if(!id){ msgEl.textContent = 'Selecione um usuário.'; msgEl.className = 'msg erro'; return; }
+  const u = usuariosVoucher.find(x=>x.id===id);
+  if(!u || String(u.senha||'') !== String(senha)){
+    msgEl.textContent = 'Usuário ou senha incorretos.';
+    msgEl.className = 'msg erro';
+    document.getElementById('loginSenha').value = '';
+    return;
+  }
+
+  usuarioLogado = u;
+  localStorage.setItem(UID_KEY, u.id);
+  document.getElementById('loginSenha').value = '';
+  msgEl.className = 'msg';
+  mostrarApp();
+}
+
+document.getElementById('btnEntrar').addEventListener('click', fazerLogin);
+document.getElementById('loginSenha').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') fazerLogin();
+});
+
+function sair(){
+  localStorage.removeItem(UID_KEY);
+  usuarioLogado = null;
+  document.getElementById('appPrincipal').style.display = 'none';
+  document.getElementById('telaLogin').style.display = 'flex';
+  document.getElementById('loginUsuario').value = '';
+}
+
+async function iniciarLogin(){
+  await carregarUsuariosVoucher();
+  popularLoginSelect();
+  const savedId = localStorage.getItem(UID_KEY);
+  const savedUser = savedId ? usuariosVoucher.find(u=>u.id===savedId) : null;
+  if(savedUser){
+    usuarioLogado = savedUser;
+    mostrarApp();
+  } else {
+    document.getElementById('telaLogin').style.display = 'flex';
+  }
 }
 
 function hoje(){
@@ -492,8 +702,9 @@ document.querySelectorAll('.sidebar nav button').forEach(btn=>{
     document.getElementById('view-'+btn.dataset.view).classList.add('active');
     if(btn.dataset.view === 'fechamento') carregarHistoricoFechamentos();
     if(btn.dataset.view === 'relatorio') carregarRelatorio();
+    if(btn.dataset.view === 'graficos') carregarGraficos();
     if(btn.dataset.view === 'danfe') { renderTabelaDanfe(); carregarHistoricoDanfe(); }
-    if(btn.dataset.view === 'config') renderListaCnpjs();
+    if(btn.dataset.view === 'config') { renderListaCnpjs(); renderListaUsuariosVoucher(); }
   });
 });
 
@@ -1086,6 +1297,93 @@ document.querySelectorAll('#periodoRapido button').forEach(btn=>{
   });
 });
 
+// ============================================================
+// GRÁFICOS
+// ============================================================
+let chartTipos = null, chartValor = null, chartConferencia = null;
+
+document.querySelectorAll('#periodoRapidoGraficos button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#periodoRapidoGraficos button').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    document.getElementById('periodoPersonalizadoGraficos').style.display = btn.dataset.p === 'personalizado' ? 'block' : 'none';
+  });
+});
+
+document.getElementById('btnAplicarGraficos').addEventListener('click', carregarGraficos);
+
+async function carregarGraficos(){
+  const presetBtn = document.querySelector('#periodoRapidoGraficos button.selected');
+  const preset = presetBtn ? presetBtn.dataset.p : 'mes';
+  let de, ate;
+  if(preset === 'personalizado'){
+    de = document.getElementById('grafDe').value;
+    ate = document.getElementById('grafAte').value;
+    if(!de || !ate) return;
+  } else {
+    const periodo = calcularPeriodo(preset);
+    de = periodo.de; ate = periodo.ate;
+  }
+
+  try{
+    let data;
+    if(modoTeste()){
+      data = localDB.fechamentos.all().filter(f=> f.data>=de && f.data<=ate)
+        .sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+    } else {
+      const resp = await supabaseClient.from(tabelaFechamentos()).select('*').gte('data', de).lte('data', ate).order('data', {ascending:true});
+      if(resp.error) throw resp.error;
+      data = resp.data;
+    }
+
+    const labels = data.map(f=>f.data);
+    const rodizioSerie = data.map(f=>f.qtd_rodizio_ocr||0);
+    const fondueSerie = data.map(f=>f.qtd_fondue_ocr||0);
+    const valorSerie = data.map(f=>f.valor_total||0);
+    const bateram = data.filter(f=>f.bateu).length;
+    const naoBateram = data.filter(f=>!f.bateu).length;
+
+    const corVerdeEscuro = '#0A2A22';
+    const corSage = '#A1E19C';
+    const corAlerta = '#B3432B';
+
+    if(chartTipos) chartTipos.destroy();
+    chartTipos = new Chart(document.getElementById('graficoTipos'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {label:'Rodízio', data: rodizioSerie, backgroundColor: corSage},
+          {label:'Rodízio + Fondue', data: fondueSerie, backgroundColor: corVerdeEscuro}
+        ]
+      },
+      options: {responsive:true, scales:{x:{stacked:true}, y:{stacked:true, beginAtZero:true}}}
+    });
+
+    if(chartValor) chartValor.destroy();
+    chartValor = new Chart(document.getElementById('graficoValor'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{label:'Valor total (R$)', data: valorSerie, borderColor: corVerdeEscuro, backgroundColor: 'rgba(10,42,34,.08)', fill:true, tension:.25}]
+      },
+      options: {responsive:true, scales:{y:{beginAtZero:true}}}
+    });
+
+    if(chartConferencia) chartConferencia.destroy();
+    chartConferencia = new Chart(document.getElementById('graficoConferencia'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Bateu', 'Não bateu'],
+        datasets: [{data: [bateram, naoBateram], backgroundColor: [corSage, corAlerta]}]
+      },
+      options: {responsive:true}
+    });
+  }catch(e){
+    console.warn('Erro ao carregar gráficos:', e.message||e);
+  }
+}
+
 document.getElementById('btnAplicarRelatorio').addEventListener('click', carregarRelatorio);
 
 async function carregarRelatorio(){
@@ -1135,7 +1433,7 @@ async function carregarRelatorio(){
 
     if(!data || data.length===0){ el.innerHTML = '<div class="empty">Nenhum fechamento encontrado no período.</div>'; return; }
 
-    el.innerHTML = `<table><thead><tr><th>Data</th><th>Rodízio (scan)</th><th>Fondue (scan)</th><th>Rodízio (caixa)</th><th>Fondue (caixa)</th><th>Status</th><th>Valor</th><th></th></tr></thead>
+    el.innerHTML = `<table><thead><tr><th>Data</th><th>Rodízio (scan)</th><th>Fondue (scan)</th><th>Rodízio (caixa)</th><th>Fondue (caixa)</th><th>Status</th><th>Valor</th><th>Scan</th><th></th></tr></thead>
       <tbody>${data.map((f,i)=>`<tr>
         <td>${f.data}</td>
         <td>${f.qtd_rodizio_ocr}</td>
@@ -1144,10 +1442,11 @@ async function carregarRelatorio(){
         <td>${f.qtd_fondue_caixa}</td>
         <td><span class="badge ${f.bateu?'bate':'naobate'}">${f.bateu?'Bateu':'Não bateu'}</span></td>
         <td>R$ ${fmtMoeda(f.valor_total)}</td>
+        <td>${f.link_scan_drive ? `<a class="linkscan" href="${f.link_scan_drive}" target="_blank">Ver scan</a>` : '—'}</td>
         <td><button class="action-link" onclick="toggleListaVouchers(${i})">Ver lista</button></td>
       </tr>
       <tr id="listaVouchers${i}" style="display:none;">
-        <td colspan="8">${renderListaVouchersHtml(f.lista_vouchers)}</td>
+        <td colspan="9">${renderListaVouchersHtml(f.lista_vouchers)}</td>
       </tr>`).join('')}</tbody></table>`;
   }catch(e){ el.innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`; }
 }
@@ -1330,6 +1629,7 @@ function preencherConfig(){
   document.getElementById('cfgCodigoDigitos').value = config.codigo_digitos ?? 6;
   document.getElementById('cfgApenasAnguloZero').checked = config.apenas_angulo_zero !== false;
   document.getElementById('cfgInclinacaoFina').checked = !!config.tentar_inclinacao_fina;
+  document.getElementById('cfgTabelaUsuarios').value = config.tabela_usuarios || 'voucher_usuarios';
 }
 preencherConfig();
 
@@ -1347,6 +1647,7 @@ document.getElementById('btnSalvarConfig').addEventListener('click', ()=>{
   config.codigo_digitos = parseInt(document.getElementById('cfgCodigoDigitos').value) || 6;
   config.apenas_angulo_zero = document.getElementById('cfgApenasAnguloZero').checked;
   config.tentar_inclinacao_fina = document.getElementById('cfgInclinacaoFina').checked;
+  config.tabela_usuarios = document.getElementById('cfgTabelaUsuarios').value.trim() || 'voucher_usuarios';
 
   localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
   initConnection();
@@ -1354,6 +1655,65 @@ document.getElementById('btnSalvarConfig').addEventListener('click', ()=>{
   if(supabaseClient){ showMsg('configMsg', 'Configuração salva e conectada com sucesso.', 'ok'); }
   else { showMsg('configMsg', 'Configuração salva, mas faltam dados para conectar.', 'erro'); }
 });
+
+function renderListaUsuariosVoucher(){
+  const el = document.getElementById('listaUsuariosVoucher');
+  if(usuariosVoucher.length === 0){ el.innerHTML = '<div class="empty">Nenhum usuário cadastrado ainda.</div>'; return; }
+  el.innerHTML = usuariosVoucher.map(u=>`
+    <div class="cnpj-row">
+      <div class="info">
+        <div class="nome">${u.nome} <span class="badge ${u.perfil==='admin'?'bate':'info'}" style="margin-left:6px;">${u.perfil==='admin'?'Administrador':'Operador'}</span></div>
+        <div class="doc">Login: ${u.login||'—'}</div>
+      </div>
+      <button class="action-link danger" onclick="removerUsuarioVoucher('${u.id}')">Remover</button>
+    </div>
+  `).join('');
+}
+
+document.getElementById('btnAddUsuario').addEventListener('click', async ()=>{
+  const nome = document.getElementById('novoUsrNome').value.trim();
+  const login = document.getElementById('novoUsrLogin').value.trim();
+  const senha = document.getElementById('novoUsrSenha').value.trim();
+  const perfil = document.getElementById('novoUsrPerfil').value;
+  if(!nome || !senha){ alert('Preencha ao menos o nome e a senha.'); return; }
+
+  const novo = {id: novoId(), nome, login, senha, perfil};
+  try{
+    if(modoTeste()){
+      const arr = localUsuariosCarregar();
+      arr.push(novo);
+      localUsuariosSalvar(arr);
+      usuariosVoucher = arr;
+    } else {
+      const {error} = await supabaseClient.from(tabelaUsuarios()).insert([novo]);
+      if(error) throw error;
+      usuariosVoucher.push(novo);
+    }
+    document.getElementById('novoUsrNome').value = '';
+    document.getElementById('novoUsrLogin').value = '';
+    document.getElementById('novoUsrSenha').value = '';
+    renderListaUsuariosVoucher();
+    popularLoginSelect();
+  }catch(e){ alert('Erro ao adicionar usuário: ' + (e.message||e)); }
+});
+
+async function removerUsuarioVoucher(id){
+  if(usuariosVoucher.length <= 1){ alert('Não é possível remover o único usuário cadastrado.'); return; }
+  if(!confirm('Remover este usuário?')) return;
+  try{
+    if(modoTeste()){
+      const arr = localUsuariosCarregar().filter(u=>u.id!==id);
+      localUsuariosSalvar(arr);
+      usuariosVoucher = arr;
+    } else {
+      const {error} = await supabaseClient.from(tabelaUsuarios()).delete().eq('id', id);
+      if(error) throw error;
+      usuariosVoucher = usuariosVoucher.filter(u=>u.id!==id);
+    }
+    renderListaUsuariosVoucher();
+    popularLoginSelect();
+  }catch(e){ alert('Erro ao remover usuário: ' + (e.message||e)); }
+}
 
 function renderListaCnpjs(){
   const el = document.getElementById('listaCnpjs');
@@ -1411,6 +1771,7 @@ document.getElementById('btnLimparConfig').addEventListener('click', ()=>{
 // INICIALIZAÇÃO
 // ============================================================
 initConnection();
+iniciarLogin();
 carregarHistoricoFechamentos();
 </script>
 
