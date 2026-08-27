@@ -506,6 +506,8 @@ if(!config._cnpjsPreenchidos){
   localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
 }
 if(!config._valoresPreenchidos){
+  if(!config.url) config.url = 'https://xdnnngifpbrbhxyluans.supabase.co';
+  if(!config.key) config.key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhkbm5uZ2lmcGJyYmh4eWx1YW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODgwODQsImV4cCI6MjA5NjI2NDA4NH0.1HmvUOo56BhCdLTjJH3UfTMkq8uO7-EK_zg3W0hX46A';
   if(!config.valor_rodizio) config.valor_rodizio = '70';
   if(!config.valor_fondue) config.valor_fondue = '80';
   if(config.crop_cabecalho_altura === undefined) config.crop_cabecalho_altura = 35;
