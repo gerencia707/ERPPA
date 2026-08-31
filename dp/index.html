@@ -1567,10 +1567,20 @@ async function carregarDoSupabase(){
     _cache.cargos       = (cargos.data||[]).map(fromSupaCargo);
     _cache.matriz       = (matriz.data||[]).map(fromSupaMatriz);
 
-    // Setores do Supabase
+    // Setores do Supabase — se a tabela estiver vazia, semeia os padrões
+    // uma vez (senão o sistema fica usando uma lista fixa só em memória que
+    // nunca é gravada, e qualquer setor novo some ao recarregar).
     const setoresRes = await supa.from('dp_setores').select('nome').eq('ativo',true).order('nome');
     if(setoresRes.data && setoresRes.data.length){
       _cache.setores_arr = { list: setoresRes.data.map(function(s){ return s.nome; }) };
+    } else {
+      const semear = SETORES_DEFAULT.map(function(n){
+        return {nome:n, slug:n.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g,''), ativo:true};
+      });
+      try{
+        await supa.from('dp_setores').insert(semear);
+      }catch(errSemear){ console.warn('Não foi possível semear setores padrão:', errSemear.message||errSemear); }
+      _cache.setores_arr = { list: SETORES_DEFAULT.slice() };
     }
 
     // Config
