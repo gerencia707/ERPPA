@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -391,7 +392,7 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
       <div class="card">
         <div class="card-hdr"><span class="card-title">Quadro ideal × realizado</span></div>
         <div class="tw">
-          <div class="matriz-row header">
+          <div class="matriz-row header" style="grid-template-columns:1.5fr repeat(7,1fr) 80px">
             <div class="mz-cell">Setor</div>
             <div class="mz-cell center">Líder ideal</div>
             <div class="mz-cell center">Sub-líder ideal</div>
@@ -1602,14 +1603,22 @@ function gSetores(){
 }
 function sSetores(v){
   _cache.setores_arr = {list:v};
-  // Sync setores no Supabase
-  supa.from('dp_setores').select('nome').then(function(res){
-    var existentes = (res.data||[]).map(function(s){ return s.nome; });
-    var novos = v.filter(function(n){ return !existentes.includes(n); });
-    var removidos = existentes.filter(function(n){ return !v.includes(n); });
-    if(novos.length) supa.from('dp_setores').insert(novos.map(function(n){ return {nome:n, slug:n.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g,'')}; }));
+  // Sync setores no Supabase — trata separadamente: novo (nunca existiu),
+  // reativar (existia mas tinha sido removido antes) e removido.
+  supa.from('dp_setores').select('nome,ativo').then(function(res){
+    var todos = res.data || [];
+    var todosNomes = todos.map(function(s){ return s.nome; });
+    var inativos = todos.filter(function(s){ return !s.ativo; }).map(function(s){ return s.nome; });
+    var ativos = todos.filter(function(s){ return s.ativo; }).map(function(s){ return s.nome; });
+
+    var novos = v.filter(function(n){ return !todosNomes.includes(n); });
+    var reativar = v.filter(function(n){ return inativos.includes(n); });
+    var removidos = ativos.filter(function(n){ return !v.includes(n); });
+
+    if(novos.length) supa.from('dp_setores').insert(novos.map(function(n){ return {nome:n, slug:n.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g,''), ativo:true}; }));
+    if(reativar.length) supa.from('dp_setores').update({ativo:true}).in('nome', reativar);
     if(removidos.length) supa.from('dp_setores').update({ativo:false}).in('nome',removidos);
-  });
+  }).catch(function(e){ console.warn('Erro ao sincronizar setores:', e.message||e); });
 }
 
 /* ===== UTILS ===== */
@@ -1876,7 +1885,19 @@ function renderColabRow(c){
   const ST_LBL = {ativo:'Ativo',experiencia:'Experiência',ferias:'Férias',afastado:'Afastado',desligado:'Desligado'};
   const liderTag = c.lider==='sim' ? '<span class="badge b-gv" style="font-size:9px">Líder</span> ' : '';
 
-  return '<div class="colab-row">'
+  // Destaca a linha inteira de quem está em experiência (45 ou 90 dias) —
+  // fica bem mais fácil de bater o olho na lista e ver quem precisa de
+  // atenção, sem precisar ler o texto pequeno do badge de contrato.
+  let rowStyle = '';
+  if(c.contrato === 'experiencia' && c.adm){
+    const d45x = addDias(c.adm, 45), d90x = addDias(c.adm, 90);
+    const dias45x = diasAte(d45x), dias90x = diasAte(d90x);
+    if(dias45x >= 0 || dias90x >= 0){
+      rowStyle = ' style="background:var(--orange-dim);border-left:3px solid var(--orange);"';
+    }
+  }
+
+  return '<div class="colab-row"' + rowStyle + '>'
     + '<div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:28px;height:28px;font-size:10px">' + initials(c.nome) + '</div>'
     + '<div><div class="nm" style="font-size:13px">' + liderTag + c.nome + '</div>'
     + (c.tel ? '<div class="tsm tmut">' + c.tel + '</div>' : '') + '</div></div>'
@@ -2105,7 +2126,7 @@ function renderMatriz(){
   // Linha de total — totalIdealLid já inclui lid2 e lid3
   const saldoTotal=(totalIdealLid+totalIdealOp)-(totalAtualLid+totalAtualOp);
   const corTotal=saldoTotal>0?'neg':saldoTotal<0?'ok':'zero';
-  rows.push('<div class="matriz-row" style="background:var(--surface2);font-weight:600">'
+  rows.push('<div class="matriz-row" style="grid-template-columns:1.5fr repeat(7,1fr) 80px;background:var(--surface2);font-weight:600">'
     +'<div class="mz-cell"><strong>TOTAL</strong></div>'
     +'<div class="mz-cell center">'+totalIdealLid+'</div>'
     +'<div class="mz-cell center"></div>'
