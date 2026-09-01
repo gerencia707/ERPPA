@@ -715,6 +715,33 @@ document.querySelectorAll('.sidebar nav button').forEach(btn=>{
 // ============================================================
 document.getElementById('fechData').value = hoje();
 let ultimoResultadoOcr = null; // {rodizio, fondue, naoIdentificados, totalPaginas, paginas:[...]}
+let codigosHistoricos = {}; // { codigo: 'YYYY-MM-DD' (data do fechamento em que já apareceu) }
+
+// Carrega todos os códigos de voucher já lançados em fechamentos anteriores,
+// pra poder avisar quando um código do scan atual já foi usado em outro dia.
+async function carregarCodigosHistoricos(){
+  codigosHistoricos = {};
+  try{
+    let fechamentos;
+    if(modoTeste()){
+      fechamentos = localDB.fechamentos.all();
+    } else {
+      const resp = await supabaseClient.from(tabelaFechamentos()).select('data, lista_vouchers');
+      if(resp.error) throw resp.error;
+      fechamentos = resp.data || [];
+    }
+    fechamentos.forEach(f=>{
+      const lista = f.lista_vouchers;
+      if(Array.isArray(lista)){
+        lista.forEach(v=>{
+          if(v && v.codigo && !codigosHistoricos[v.codigo]){
+            codigosHistoricos[v.codigo] = f.data;
+          }
+        });
+      }
+    });
+  }catch(e){ console.warn('Não foi possível carregar códigos históricos:', e.message||e); }
+}
 
 function preprocessarCanvas(canvas){
   function limiarOtsu(cinza){
@@ -931,6 +958,10 @@ document.getElementById('btnLerContar').addEventListener('click', async ()=>{
   document.getElementById(msgEl).className = 'msg';
   document.getElementById('cardConferencia').style.display = 'none';
 
+  // Carrega os códigos já usados em outros dias, pra apontar repetições
+  // entre fechamentos (não só dentro do scan atual).
+  await carregarCodigosHistoricos();
+
   try{
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
     const file = fileInput.files[0];
@@ -1142,6 +1173,7 @@ function renderTabelaVouchersOcr(){
       const semCodigo = !pg.codigo;
       const semTipo = !pg.tipoDetectado;
       const dupes = pg.codigo && ocorrencias[pg.codigo].length > 1;
+      const jaUsadoOutroDia = pg.codigo && codigosHistoricos[pg.codigo];
 
       let corLinha = '';
       let situacao = '<span class="badge bate">OK</span>';
@@ -1149,6 +1181,9 @@ function renderTabelaVouchersOcr(){
         corLinha = 'background:var(--erro-bg);';
         const outras = ocorrencias[pg.codigo].filter(o=>o.idx!==idx).map(o=>'pág. '+o.pagina);
         situacao = `<span class="badge naobate">Repetido</span> <span style="font-size:11.5px;color:var(--erro);">já em ${outras.join(', ')}</span>`;
+      } else if(jaUsadoOutroDia){
+        corLinha = 'background:var(--erro-bg);';
+        situacao = `<span class="badge naobate">Já usado</span> <span style="font-size:11.5px;color:var(--erro);">no fechamento de ${jaUsadoOutroDia}</span>`;
       } else if(semCodigo || semTipo){
         corLinha = 'background:var(--alerta-bg);';
         const faltas = [];
