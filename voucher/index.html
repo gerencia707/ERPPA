@@ -731,15 +731,22 @@ async function carregarCodigosHistoricos(){
       fechamentos = resp.data || [];
     }
     fechamentos.forEach(f=>{
-      const lista = f.lista_vouchers;
+      let lista = f.lista_vouchers;
+      // Dependendo de como o dado volta do banco, lista_vouchers pode vir
+      // como texto (string JSON) em vez de lista pronta — normaliza os dois.
+      if(typeof lista === 'string'){
+        try{ lista = JSON.parse(lista); }catch(e){ lista = null; }
+      }
       if(Array.isArray(lista)){
         lista.forEach(v=>{
-          if(v && v.codigo && !codigosHistoricos[v.codigo]){
-            codigosHistoricos[v.codigo] = f.data;
+          const cod = v && (v.codigo != null) ? String(v.codigo).trim() : null;
+          if(cod && !codigosHistoricos[cod]){
+            codigosHistoricos[cod] = f.data;
           }
         });
       }
     });
+    console.log('Códigos históricos carregados:', Object.keys(codigosHistoricos).length);
   }catch(e){ console.warn('Não foi possível carregar códigos históricos:', e.message||e); }
 }
 
@@ -1173,7 +1180,8 @@ function renderTabelaVouchersOcr(){
       const semCodigo = !pg.codigo;
       const semTipo = !pg.tipoDetectado;
       const dupes = pg.codigo && ocorrencias[pg.codigo].length > 1;
-      const jaUsadoOutroDia = pg.codigo && codigosHistoricos[pg.codigo];
+      const codNormalizado = pg.codigo ? String(pg.codigo).trim() : null;
+      const jaUsadoOutroDia = codNormalizado && codigosHistoricos[codNormalizado];
 
       let corLinha = '';
       let situacao = '<span class="badge bate">OK</span>';
