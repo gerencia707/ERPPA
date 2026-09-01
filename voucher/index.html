@@ -1081,21 +1081,8 @@ document.getElementById('btnLerContar').addEventListener('click', async ()=>{
     if(interrompido) html += `<div class="msg alerta">Leitura interrompida pelo usuário — ${paginas.length} de ${pdf.numPages} página(s) processada(s).</div>`;
     html += `<div id="resumoOcrTexto" class="msg ok">${rodizio} Rodízio, ${fondue} Rodízio+Fondue identificados de ${paginas.length} página(s). ${naoIdentificados} não identificada(s).</div>`;
 
-    html += `<div class="config-note" style="margin-top:0;">Encontrou algum código ou tipo errado? Corrija direto na lista abaixo — a contagem e a conferência se atualizam sozinhas.</div>`;
-    html += `<table style="margin-top:10px;" id="tabelaVouchersOcr">
-      <thead><tr><th>Página</th><th>Código</th><th>Tipo</th></tr></thead>
-      <tbody>${paginas.map((pg,idx)=>`<tr>
-        <td>${pg.pagina}</td>
-        <td><input type="text" class="edit-codigo" data-idx="${idx}" value="${pg.codigo || ''}" style="width:110px;padding:6px 8px;"></td>
-        <td>
-          <select class="edit-tipo" data-idx="${idx}" style="width:auto;padding:6px 8px;">
-            <option value="" ${!pg.tipoDetectado?'selected':''}>Não identificado</option>
-            <option value="rodizio" ${pg.tipoDetectado==='rodizio'?'selected':''}>Rodízio</option>
-            <option value="rodizio_fondue" ${pg.tipoDetectado==='rodizio_fondue'?'selected':''}>Rodízio + Fondue</option>
-          </select>
-        </td>
-      </tr>`).join('')}</tbody>
-    </table>`;
+    html += `<div class="config-note" style="margin-top:0;">Vouchers <b style="color:#8A5A15;">em amarelo</b> estão sem código ou sem tipo. Vouchers <b style="color:var(--erro);">em vermelho</b> têm código repetido (duplicados). Corrija direto na lista, ou use o ✕ para excluir uma linha duplicada por erro de scanner.</div>`;
+    html += `<div id="tabelaVouchersWrap" style="margin-top:10px;"></div>`;
 
     const escaparDebug = t => (t||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
     html += `<details style="margin-top:12px;font-size:12.5px;color:var(--texto-suave);">
@@ -1116,19 +1103,7 @@ document.getElementById('btnLerContar').addEventListener('click', async ()=>{
 
     resultEl.innerHTML = html;
 
-    document.querySelectorAll('.edit-codigo').forEach(inp=>{
-      inp.addEventListener('input', (e)=>{
-        const idx = parseInt(e.target.dataset.idx);
-        ultimoResultadoOcr.paginas[idx].codigo = e.target.value.trim() || null;
-      });
-    });
-    document.querySelectorAll('.edit-tipo').forEach(sel=>{
-      sel.addEventListener('change', (e)=>{
-        const idx = parseInt(e.target.dataset.idx);
-        ultimoResultadoOcr.paginas[idx].tipoDetectado = e.target.value || null;
-        recalcularContagemOcr();
-      });
-    });
+    renderTabelaVouchersOcr();
 
     document.getElementById('confRodizioOcr').textContent = rodizio;
     document.getElementById('confFondueOcr').textContent = fondue;
@@ -1146,6 +1121,85 @@ document.getElementById('btnLerContar').addEventListener('click', async ()=>{
     barWrap.style.display = 'none';
   }
 });
+
+function renderTabelaVouchersOcr(){
+  const wrap = document.getElementById('tabelaVouchersWrap');
+  if(!wrap || !ultimoResultadoOcr) return;
+  const paginas = ultimoResultadoOcr.paginas;
+
+  // Mapa de código -> lista de índices, pra achar duplicados
+  const ocorrencias = {};
+  paginas.forEach((pg, idx)=>{
+    if(pg.codigo){
+      if(!ocorrencias[pg.codigo]) ocorrencias[pg.codigo] = [];
+      ocorrencias[pg.codigo].push({idx, pagina: pg.pagina});
+    }
+  });
+
+  wrap.innerHTML = `<table id="tabelaVouchersOcr">
+    <thead><tr><th>Página</th><th>Código</th><th>Tipo</th><th>Situação</th><th></th></tr></thead>
+    <tbody>${paginas.map((pg,idx)=>{
+      const semCodigo = !pg.codigo;
+      const semTipo = !pg.tipoDetectado;
+      const dupes = pg.codigo && ocorrencias[pg.codigo].length > 1;
+
+      let corLinha = '';
+      let situacao = '<span class="badge bate">OK</span>';
+      if(dupes){
+        corLinha = 'background:var(--erro-bg);';
+        const outras = ocorrencias[pg.codigo].filter(o=>o.idx!==idx).map(o=>'pág. '+o.pagina);
+        situacao = `<span class="badge naobate">Repetido</span> <span style="font-size:11.5px;color:var(--erro);">já em ${outras.join(', ')}</span>`;
+      } else if(semCodigo || semTipo){
+        corLinha = 'background:var(--alerta-bg);';
+        const faltas = [];
+        if(semCodigo) faltas.push('sem código');
+        if(semTipo) faltas.push('sem tipo');
+        situacao = `<span class="badge" style="background:#F5E6C8;color:var(--alerta);">${faltas.join(' e ')}</span>`;
+      }
+
+      return `<tr style="${corLinha}">
+        <td>${pg.pagina}</td>
+        <td><input type="text" class="edit-codigo" data-idx="${idx}" value="${pg.codigo || ''}" style="width:110px;padding:6px 8px;"></td>
+        <td>
+          <select class="edit-tipo" data-idx="${idx}" style="width:auto;padding:6px 8px;">
+            <option value="" ${!pg.tipoDetectado?'selected':''}>Não identificado</option>
+            <option value="rodizio" ${pg.tipoDetectado==='rodizio'?'selected':''}>Rodízio</option>
+            <option value="rodizio_fondue" ${pg.tipoDetectado==='rodizio_fondue'?'selected':''}>Rodízio + Fondue</option>
+          </select>
+        </td>
+        <td>${situacao}</td>
+        <td><button class="btn-excluir-voucher" data-idx="${idx}" title="Excluir este voucher" style="background:none;border:none;cursor:pointer;color:var(--erro);font-size:16px;padding:2px 6px;">✕</button></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+
+  document.querySelectorAll('.edit-codigo').forEach(inp=>{
+    inp.addEventListener('input', (e)=>{
+      const idx = parseInt(e.target.dataset.idx);
+      ultimoResultadoOcr.paginas[idx].codigo = e.target.value.trim() || null;
+    });
+    // Ao terminar de editar (sair do campo), redesenha pra reavaliar destaques
+    inp.addEventListener('blur', ()=>{ renderTabelaVouchersOcr(); });
+  });
+  document.querySelectorAll('.edit-tipo').forEach(sel=>{
+    sel.addEventListener('change', (e)=>{
+      const idx = parseInt(e.target.dataset.idx);
+      ultimoResultadoOcr.paginas[idx].tipoDetectado = e.target.value || null;
+      recalcularContagemOcr();
+      renderTabelaVouchersOcr();
+    });
+  });
+  document.querySelectorAll('.btn-excluir-voucher').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      const idx = parseInt(e.target.dataset.idx);
+      const pg = ultimoResultadoOcr.paginas[idx];
+      if(!confirm(`Excluir o voucher da página ${pg.pagina}${pg.codigo?' (código '+pg.codigo+')':''}?`)) return;
+      ultimoResultadoOcr.paginas.splice(idx, 1);
+      recalcularContagemOcr();
+      renderTabelaVouchersOcr();
+    });
+  });
+}
 
 function recalcularContagemOcr(){
   if(!ultimoResultadoOcr) return;
