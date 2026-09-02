@@ -1399,12 +1399,14 @@ function supaRow(k, r){
     return { id: r.id, nome: r.nome, setor_slug: slugSetor(r.setor) };
   }
   if(k === 'matriz'){
+    // Usa ?? (nullish) em vez de || pra NÃO transformar 0 em valor padrão —
+    // um setor pode legitimamente ter 0 líderes, e o || forçava sempre pra 1.
     return {
       id: r.id, setor_slug: slugSetor(r.setor),
-      lideres_ideal: r.lideal||1,
-      lid2_ideal: r.lid2ideal||0,
-      lid3_ideal: r.lid3ideal||0,
-      oper_ideal: r.oideal||4
+      lideres_ideal: (r.lideal != null ? r.lideal : 1),
+      lid2_ideal: (r.lid2ideal != null ? r.lid2ideal : 0),
+      lid3_ideal: (r.lid3ideal != null ? r.lid3ideal : 0),
+      oper_ideal: (r.oideal != null ? r.oideal : 4)
     };
   }
   return r;
@@ -1525,7 +1527,7 @@ function fromSupaCargo(r){
 }
 function fromSupaMatriz(r){
   const SETOR_NOME = {manutencao:'Manutenção',governanca:'Governança',recepcao:'Recepção',ab:'A&B',cozinha:'Cozinha',lazer:'Lazer',administrativo:'Administrativo',reservas:'Reservas'};
-  return { id:r.id, setor:nomeSetor(r.setor_slug), lideal:r.lideres_ideal||1, lid2ideal:r.lid2_ideal||0, lid3ideal:r.lid3_ideal||0, oideal:r.oper_ideal||4 };
+  return { id:r.id, setor:nomeSetor(r.setor_slug), lideal:(r.lideres_ideal!=null?r.lideres_ideal:1), lid2ideal:(r.lid2_ideal!=null?r.lid2_ideal:0), lid3ideal:(r.lid3_ideal!=null?r.lid3_ideal:0), oideal:(r.oper_ideal!=null?r.oper_ideal:4) };
 }
 
 // Carregar todos os dados do Supabase para o cache ao iniciar
