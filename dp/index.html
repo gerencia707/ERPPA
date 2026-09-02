@@ -3006,12 +3006,19 @@ const HIERARQUIA = {
   'Gerente de A&B':          { setor:'A&B',          nivel:1, grupo:null },
   'Supervisor de A&B':       { setor:'A&B',          nivel:2, grupo:null },
   'Maître':                  { setor:'A&B',          nivel:3, grupo:'salao' },
+  'Maitre':                  { setor:'A&B',          nivel:3, grupo:'salao' },
   'Chefe de Cozinha':        { setor:'A&B',          nivel:3, grupo:'cozinha' },
   'Chefe de Fila':           { setor:'A&B',          nivel:4, grupo:'salao' },
   'SubChefe de Cozinha':     { setor:'A&B',          nivel:4, grupo:'cozinha' },
+  'Sub Chefe de Cozinha':    { setor:'A&B',          nivel:4, grupo:'cozinha' },
   'Garçom':                  { setor:'A&B',          nivel:5, grupo:'salao' },
+  'Garçom Pleno':            { setor:'A&B',          nivel:5, grupo:'salao' },
   'Cozinheiro/Confeiteiro':  { setor:'A&B',          nivel:5, grupo:'cozinha' },
+  'Cozinheiro':              { setor:'A&B',          nivel:5, grupo:'cozinha' },
+  'Confeiteira':             { setor:'A&B',          nivel:5, grupo:'cozinha' },
+  'Confeiteiro':             { setor:'A&B',          nivel:5, grupo:'cozinha' },
   'Aux. de Cozinha':         { setor:'A&B',          nivel:5, grupo:'cozinha' },
+  'Auxiliar de Cozinha':     { setor:'A&B',          nivel:5, grupo:'cozinha' },
 
   // MANUTENÇÃO
   'Supervisor de Manutenção':{ setor:'Manutenção',   nivel:1, grupo:null },
@@ -3071,31 +3078,42 @@ function renderOrganograma(){
     +'</div></div>';
   html += '<div class="org-connector"><div class="org-connector-line"></div></div>';
 
-  // Setores a mostrar
-  var setoresMostrar = setorFiltro
-    ? (setorFiltro.startsWith('A&B') ? ['A&B Salão','A&B Cozinha'] : [setorFiltro])
-    : setores;
+  // Qual bloco cada pessoa pertence: decidido pelo SETOR DO CARGO (via
+  // HIERARQUIA) — assim quem tem cargo "Gerente de A&B" cai no bloco A&B
+  // mesmo que esteja cadastrado no setor Gerência. Se o cargo não estiver
+  // na hierarquia, usa o setor cadastrado como reserva.
+  function setorDoCargo(c){
+    var h = c.cargo ? HIERARQUIA[c.cargo] : null;
+    if(h && h.setor) return h.setor === 'A&B' ? 'A&B' : h.setor;
+    // reserva: setor cadastrado (A&B Salão/Cozinha viram bloco 'A&B')
+    if(c.setor === 'A&B Salão' || c.setor === 'A&B Cozinha') return 'A&B';
+    return c.setor;
+  }
 
-  // Agrupar A&B Salão e A&B Cozinha juntos
-  var blocoAB = null;
-  var outrosBlocos = [];
+  var ehGM = function(c){ return c.cargo && (c.cargo.toLowerCase().includes('gerente geral') || c.cargo.toLowerCase() === 'gm'); };
 
-  setoresMostrar.forEach(function(setor){
-    var membros = colabs.filter(function(c){
-      return (c.setor === setor) &&
-        !(c.cargo && (c.cargo.toLowerCase().includes('gerente geral') || c.cargo.toLowerCase() === 'gm'));
-    });
-    if(!membros.length) return;
-
-    if(setor === 'A&B Salão' || setor === 'A&B Cozinha'){
-      if(!blocoAB) blocoAB = { tipo:'ab', membros:[] };
-      blocoAB.membros = blocoAB.membros.concat(membros);
-    } else {
-      outrosBlocos.push({ setor:setor, membros:membros });
+  // Monta os blocos a partir de TODOS os colaboradores (exceto o GM),
+  // agrupando pelo setor do cargo.
+  var blocosPorSetor = {};
+  colabs.forEach(function(c){
+    if(ehGM(c)) return;
+    var bloco = setorDoCargo(c);
+    if(setorFiltro){
+      var alvo = setorFiltro.startsWith('A&B') ? 'A&B' : setorFiltro;
+      if(bloco !== alvo) return;
     }
+    if(!blocosPorSetor[bloco]) blocosPorSetor[bloco] = [];
+    blocosPorSetor[bloco].push(c);
   });
 
-  if(blocoAB) outrosBlocos.push(blocoAB);
+  var outrosBlocos = [];
+  Object.keys(blocosPorSetor).forEach(function(setor){
+    if(setor === 'A&B'){
+      outrosBlocos.push({ tipo:'ab', membros: blocosPorSetor[setor] });
+    } else {
+      outrosBlocos.push({ setor:setor, membros: blocosPorSetor[setor] });
+    }
+  });
 
   html += '<div style="display:flex;gap:32px;flex-wrap:wrap;justify-content:center;align-items:flex-start;padding:8px 16px">';
 
