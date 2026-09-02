@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portal Laghetto Pedras Altas · Esboço</title>
+<title>ERPPA · Portal Pedras Altas</title>
 <style>
   :root{
     --verde-escuro:#0A2A22;
@@ -115,6 +115,8 @@
   .msg{margin-top:14px;padding:10px 12px;border-radius:7px;font-size:13px;display:none;}
   .msg.ok{background:var(--ok-bg);color:var(--verde-mid);display:block;}
   .msg.erro{background:var(--erro-bg);color:var(--erro);display:block;}
+  .msg.alerta{background:var(--alerta-bg);color:var(--alerta);display:block;}
+  .divider{height:1px;background:var(--borda);margin:20px 0;}
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
   th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--texto-suave);padding:8px 10px;border-bottom:1px solid var(--borda);}
   td{padding:10px;border-bottom:1px solid var(--borda);vertical-align:middle;}
@@ -127,13 +129,13 @@
   .action-link.danger{color:var(--erro);}
   .config-note{font-size:12px;color:var(--texto-suave);background:#F2F5F2;border-radius:7px;padding:10px 12px;margin-top:16px;line-height:1.5;}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
 <div class="topbar">
   <div class="brand">
-    <div class="mark">LGM</div>
-    <div class="txt">Portal Pedras Altas<div class="sub">Esboço de navegação</div></div>
+    <div class="txt">Portal Pedras Altas<div class="sub">ERPPA</div></div>
   </div>
   <nav id="topNav"></nav>
   <div class="user-chip"></div>
@@ -207,6 +209,93 @@ const NIVEIS = [
 
 let setorAtual = 'gerencia';
 let submenuAtual = 'usuarios';
+
+// ============================================================
+// CONEXÃO SUPABASE (só leitura do uso do banco)
+// ============================================================
+const SUPA_URL = 'https://xdnnngifpbrbhxyluans.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhkbm5uZ2lmcGJyYmh4eWx1YW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODgwODQsImV4cCI6MjA5NjI2NDA4NH0.1HmvUOo56BhCdLTjJH3UfTMkq8uO7-EK_zg3W0hX46A';
+const supaPortal = supabase.createClient(SUPA_URL, SUPA_KEY);
+const LIMITE_BANCO_MB = 500; // limite do plano gratuito
+
+function renderDashboardGeral(main){
+  main.innerHTML = `
+    <div class="view-header">
+      <h2>Dashboard Geral</h2>
+      <div class="desc">Uso do banco de dados (limite gratuito: ${LIMITE_BANCO_MB} MB).</div>
+    </div>
+    <div class="card" id="cardUsoBanco">
+      <div class="empty">Carregando uso do banco...</div>
+    </div>`;
+  carregarUsoBanco();
+}
+
+async function carregarUsoBanco(){
+  const card = document.getElementById('cardUsoBanco');
+  try{
+    const [totalRes, sistemasRes] = await Promise.all([
+      supaPortal.rpc('uso_banco_total'),
+      supaPortal.rpc('uso_banco_por_sistema')
+    ]);
+    if(totalRes.error) throw totalRes.error;
+    if(sistemasRes.error) throw sistemasRes.error;
+
+    const totalBytes = totalRes.data || 0;
+    const totalMB = totalBytes / (1024*1024);
+    const pct = Math.min(100, (totalMB / LIMITE_BANCO_MB) * 100);
+
+    let corBarra = 'var(--sage)', alerta = '';
+    if(pct >= 90){
+      corBarra = 'var(--erro)';
+      alerta = `<div class="msg erro" style="display:block;margin-bottom:16px;">⚠️ Atenção: o banco está com ${pct.toFixed(1)}% do espaço usado. Considere limpar dados antigos ou avaliar um upgrade.</div>`;
+    } else if(pct >= 80){
+      corBarra = '#E0A030';
+      alerta = `<div class="msg alerta" style="display:block;margin-bottom:16px;">O banco está com ${pct.toFixed(1)}% do espaço usado. Ainda há folga, mas vale ficar de olho.</div>`;
+    }
+
+    const sistemas = sistemasRes.data || [];
+    const totalSistemas = sistemas.reduce((s,x)=>s+(x.bytes||0),0) || 1;
+    const coresSistema = {'DP':'#0A2A22','Voucher LGM':'#4A8C7A','Manutenção':'#A1E19C'};
+
+    card.innerHTML = `
+      ${alerta}
+      <h3>Uso total</h3>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+        <span><b>${totalMB.toFixed(1)} MB</b> usados</span>
+        <span style="color:var(--texto-suave);">${pct.toFixed(1)}% de ${LIMITE_BANCO_MB} MB</span>
+      </div>
+      <div style="height:14px;background:var(--borda);border-radius:8px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${corBarra};transition:width .4s;"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3>Uso por sistema</h3>
+      <table>
+        <thead><tr><th>Sistema</th><th>Tamanho</th><th>Participação</th></tr></thead>
+        <tbody>${sistemas.map(x=>{
+          const mb = (x.bytes||0)/(1024*1024);
+          const part = ((x.bytes||0)/totalSistemas)*100;
+          const cor = coresSistema[x.sistema] || 'var(--texto-suave)';
+          return `<tr>
+            <td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${cor};margin-right:6px;"></span>${x.sistema}</td>
+            <td>${mb.toFixed(2)} MB</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="flex:1;height:8px;background:var(--borda);border-radius:4px;overflow:hidden;max-width:160px;">
+                  <div style="height:100%;width:${part}%;background:${cor};"></div>
+                </div>
+                <span style="font-size:12px;color:var(--texto-suave);">${part.toFixed(0)}%</span>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+      <div style="font-size:11.5px;color:var(--texto-suave);margin-top:12px;">Atualizado agora. Recarregue a página para atualizar os números.</div>`;
+  }catch(e){
+    card.innerHTML = `<div class="msg erro" style="display:block;">Não foi possível ler o uso do banco: ${e.message||e}<br><br>Você já rodou o SQL <b>criar_funcao_uso_banco.sql</b> no Supabase? Ele é necessário para liberar essa leitura.</div>`;
+  }
+}
 
 // ============================================================
 // USUÁRIOS (demo — localStorage)
@@ -301,6 +390,11 @@ function renderMain(){
     return;
   }
 
+  if(setorAtual === 'gerencia' && submenuAtual === 'dashboard'){
+    renderDashboardGeral(main);
+    return;
+  }
+
   // Se o setor já tem um sistema real hospedado, encaixa ele via iframe —
   // o próprio sistema cuida da navegação interna dele (Chamados, Equipe,
   // etc.), então não precisamos recriar isso na casca do Portal.
@@ -327,10 +421,10 @@ function renderMain(){
   main.innerHTML = `
     <div class="view-header">
       <h2>${sub ? sub.nome : ''}</h2>
-      <div class="desc">Esboço de navegação — aqui entraria o sistema real de ${s.nome}.</div>
+      <div class="desc">Este módulo ainda será conectado ao portal.</div>
     </div>
     <div class="card">
-      <div class="empty">Espaço reservado pro sistema de "${sub?sub.nome:''}" — já existe funcionando separadamente e será encaixado aqui.</div>
+      <div class="empty">Espaço reservado para o sistema de "${sub?sub.nome:''}".</div>
     </div>`;
 }
 
