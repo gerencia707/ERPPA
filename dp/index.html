@@ -1434,17 +1434,36 @@ async function syncConfig(v){
 }
 
 // Helpers
+// Mapa único slug -> nome (fonte de verdade). Antes esse mapa estava
+// duplicado em 4 lugares e nenhum tinha Gerência/A&B Salão/A&B Cozinha,
+// então matrizes/colaboradores desses setores não eram reconhecidos ao
+// carregar de volta do banco.
+const SETOR_NOME_GLOBAL = {
+  'governanca':'Governança','recepcao':'Recepção',
+  'ab-salao':'A&B Salão','ab-cozinha':'A&B Cozinha',
+  'manutencao':'Manutenção','administrativo':'Administrativo',
+  'gerencia':'Gerência',
+  'ab':'A&B Salão','cozinha':'A&B Cozinha','lazer':'Lazer','reservas':'Reservas'
+};
+function nomeSetor(slug){ return SETOR_NOME_GLOBAL[slug] || slug || ''; }
+
 function slugSetor(nome){
   if(!nome) return 'administrativo';
   const map = {
     'Governança':'governanca','Recepção':'recepcao',
     'A&B Salão':'ab-salao','A&B Cozinha':'ab-cozinha',
     'Manutenção':'manutencao','Administrativo':'administrativo',
+    'Gerência':'gerencia',
     // compatibilidade com nomes antigos
     'A&B':'ab-salao','Cozinha':'ab-cozinha',
     'Lazer':'lazer','Reservas':'reservas'
   };
-  return map[nome] || nome.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g,'-').replace(/-+/g,'-');
+  // Fallback: remove os acentos ANTES de trocar caracteres. Sem o passo de
+  // remover as marcas de acento (\u0300-\u036f) que o normalize('NFD') separa,
+  // "Gerência" virava "gere-ncia" (o acento do ê sozinho virava traço).
+  return map[nome] || nome.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
 }
 function getColabSetor(colabId){
   const c = (_cache.colabs||[]).find(function(x){ return x.id===colabId; });
@@ -1453,16 +1472,10 @@ function getColabSetor(colabId){
 
 // Converter linha do Supabase para formato local
 function fromSupaColab(r){
-  const SETOR_NOME = {
-    'governanca':'Governança','recepcao':'Recepção',
-    'ab-salao':'A&B Salão','ab-cozinha':'A&B Cozinha',
-    'manutencao':'Manutenção','administrativo':'Administrativo',
-    'ab':'A&B Salão','cozinha':'A&B Cozinha','lazer':'Lazer','reservas':'Reservas'
-  };
   return {
     id:r.id, nome:r.nome, cpf:r.cpf||'', pis:r.pis||'',
     email:r.email||'', tel:r.tel||'',
-    cargo:r.cargo||'', setor:SETOR_NOME[r.setor_slug]||r.setor_slug||'',
+    cargo:r.cargo||'', setor:nomeSetor(r.setor_slug),
     lider:r.lider?'sim':'nao', adm:r.adm||'',
     contrato:r.contrato||'clt', status:r.status||'ativo',
     aniv:r.aniv||'', ecivil:r.ecivil||'', esc:r.esc||'',
@@ -1473,15 +1486,9 @@ function fromSupaColab(r){
   };
 }
 function fromSupaCand(r){
-  const SETOR_NOME = {
-    'governanca':'Governança','recepcao':'Recepção',
-    'ab-salao':'A&B Salão','ab-cozinha':'A&B Cozinha',
-    'manutencao':'Manutenção','administrativo':'Administrativo',
-    'ab':'A&B Salão','cozinha':'A&B Cozinha','lazer':'Lazer','reservas':'Reservas'
-  };
   return {
     id:r.id, nome:r.nome, cargo:r.cargo||'',
-    setor:SETOR_NOME[r.setor_slug]||r.setor_slug||'',
+    setor:nomeSetor(r.setor_slug),
     tel:r.tel||'', etapa:r.etapa||'documentos',
     origem:r.origem||'indicacao', data:r.data_entrada||'',
     prev:r.prev_inicio||'', obs:r.obs||'', colabId:r.colab_id||null
@@ -1514,12 +1521,11 @@ function fromSupaDeslig(r){
   };
 }
 function fromSupaCargo(r){
-  const SETOR_NOME = {manutencao:'Manutenção',governanca:'Governança',recepcao:'Recepção',ab:'A&B',cozinha:'Cozinha',lazer:'Lazer',administrativo:'Administrativo',reservas:'Reservas'};
-  return { id:r.id, nome:r.nome, setor:SETOR_NOME[r.setor_slug]||r.setor_slug||'' };
+  return { id:r.id, nome:r.nome, setor:nomeSetor(r.setor_slug) };
 }
 function fromSupaMatriz(r){
   const SETOR_NOME = {manutencao:'Manutenção',governanca:'Governança',recepcao:'Recepção',ab:'A&B',cozinha:'Cozinha',lazer:'Lazer',administrativo:'Administrativo',reservas:'Reservas'};
-  return { id:r.id, setor:SETOR_NOME[r.setor_slug]||r.setor_slug, lideal:r.lideres_ideal||1, lid2ideal:r.lid2_ideal||0, lid3ideal:r.lid3_ideal||0, oideal:r.oper_ideal||4 };
+  return { id:r.id, setor:nomeSetor(r.setor_slug), lideal:r.lideres_ideal||1, lid2ideal:r.lid2_ideal||0, lid3ideal:r.lid3_ideal||0, oideal:r.oper_ideal||4 };
 }
 
 // Carregar todos os dados do Supabase para o cache ao iniciar
@@ -1575,7 +1581,7 @@ async function carregarDoSupabase(){
       _cache.setores_arr = { list: setoresRes.data.map(function(s){ return s.nome; }) };
     } else {
       const semear = SETORES_DEFAULT.map(function(n){
-        return {nome:n, slug:n.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g,''), ativo:true};
+        return {nome:n, slug:slugSetor(n), ativo:true};
       });
       try{
         await supa.from('dp_setores').insert(semear);
@@ -1625,7 +1631,7 @@ function sSetores(v){
     var reativar = v.filter(function(n){ return inativos.includes(n); });
     var removidos = ativos.filter(function(n){ return !v.includes(n); });
 
-    if(novos.length) supa.from('dp_setores').insert(novos.map(function(n){ return {nome:n, slug:n.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g,''), ativo:true}; }));
+    if(novos.length) supa.from('dp_setores').insert(novos.map(function(n){ return {nome:n, slug:slugSetor(n), ativo:true}; }));
     if(reativar.length) supa.from('dp_setores').update({ativo:true}).in('nome', reativar);
     if(removidos.length) supa.from('dp_setores').update({ativo:false}).in('nome',removidos);
   }).catch(function(e){ console.warn('Erro ao sincronizar setores:', e.message||e); });
