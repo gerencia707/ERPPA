@@ -1201,7 +1201,7 @@ function renderTabelaVouchersOcr(){
       }
 
       return `<tr style="${corLinha}">
-        <td>${pg.pagina}</td>
+        <td>${pg.manual ? '<span class="badge info" style="font-size:10.5px;">manual</span>' : pg.pagina}</td>
         <td><input type="text" class="edit-codigo" data-idx="${idx}" value="${pg.codigo || ''}" style="width:110px;padding:6px 8px;"></td>
         <td>
           <select class="edit-tipo" data-idx="${idx}" style="width:auto;padding:6px 8px;">
@@ -1214,7 +1214,27 @@ function renderTabelaVouchersOcr(){
         <td><button class="btn-excluir-voucher" data-idx="${idx}" title="Excluir este voucher" style="background:none;border:none;cursor:pointer;color:var(--erro);font-size:16px;padding:2px 6px;">✕</button></td>
       </tr>`;
     }).join('')}</tbody>
-  </table>`;
+  </table>
+  <button class="btn-secondary" id="btnAddVoucherManual" style="margin-top:12px;">+ Adicionar voucher manualmente</button>`;
+
+  const btnAdd = document.getElementById('btnAddVoucherManual');
+  if(btnAdd){
+    btnAdd.addEventListener('click', ()=>{
+      // Linha nova em branco, pro operador preencher código e escolher o tipo.
+      // Entra como uma "página" sem número real (marcada como manual).
+      const proxPagina = ultimoResultadoOcr.paginas.length
+        ? Math.max(...ultimoResultadoOcr.paginas.map(p=>p.pagina||0)) + 1
+        : 1;
+      ultimoResultadoOcr.paginas.push({
+        pagina: proxPagina, codigo: null, tipoDetectado: null,
+        rotacaoUsada: 0, tentativas: [], manual: true
+      });
+      renderTabelaVouchersOcr();
+      // Foca no campo de código da linha recém-criada
+      const inputs = document.querySelectorAll('.edit-codigo');
+      if(inputs.length) inputs[inputs.length-1].focus();
+    });
+  }
 
   document.querySelectorAll('.edit-codigo').forEach(inp=>{
     inp.addEventListener('input', (e)=>{
