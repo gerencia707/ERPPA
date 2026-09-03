@@ -583,6 +583,28 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
           </div>
         </div>
 
+        <!-- HIERARQUIA DE CARGOS (ORGANOGRAMA) -->
+        <div class="card" style="grid-column:1/-1">
+          <div class="card-hdr"><span class="card-title">🗂 Hierarquia de cargos (organograma)</span></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:11px">
+            <span class="tsm tmut">Define a ordem dos cargos no organograma. Nível 1 = topo do setor (chefe/gerente); números maiores ficam abaixo. Para A&B, use o grupo "salao" ou "cozinha".</span>
+            <div id="cfg-hierarquia-lista"></div>
+            <div class="fg" style="margin-top:8px;">
+              <div class="fgr"><label>Cargo</label><input type="text" id="novo-hier-cargo"></div>
+              <div class="fgr"><label>Setor</label><input type="text" id="novo-hier-setor" placeholder="Ex: Recepção, A&B, Manutenção"></div>
+              <div class="fgr"><label>Nível (1 = topo)</label><input type="number" id="novo-hier-nivel" value="3" min="1" max="9"></div>
+              <div class="fgr"><label>Grupo (só A&B)</label>
+                <select id="novo-hier-grupo">
+                  <option value="">— nenhum —</option>
+                  <option value="salao">Salão</option>
+                  <option value="cozinha">Cozinha</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-g btn-sm" onclick="addHierarquia()">+ Adicionar cargo à hierarquia</button>
+          </div>
+        </div>
+
         <!-- DADOS DO HOTEL -->
         <div class="card">
           <div class="card-hdr"><span class="card-title">🏨 Dados do hotel</span></div>
@@ -1547,6 +1569,7 @@ async function testarConexao(){
 async function carregarDoSupabase(){
   document.getElementById('loading-overlay').style.display='flex';
   try {
+    await carregarHierarquia();
     const [
       colabs, candidatos, ferias, hist, docs,
       epiTipos, epiEntregas, deslig, cargos, matriz, cfg
@@ -2988,7 +3011,10 @@ function filtrarCargosCand(){
 
 
 /* ===== HIERARQUIA DE CARGOS ===== */
-const HIERARQUIA = {
+// Hierarquia padrão (semente) — usada só na primeira vez, se a tabela
+// dp_hierarquia do banco estiver vazia. Depois disso, o que vale é o que
+// está no banco (editável na Configuração).
+const HIERARQUIA_PADRAO = {
   // GOVERNANÇA
   'Governanta':              { setor:'Governança',   nivel:1, grupo:null },
   'Supervisora de Andares':  { setor:'Governança',   nivel:2, grupo:null },
@@ -3041,6 +3067,48 @@ const HIERARQUIA = {
   'Menor Aprendiz':          { setor:'Administrativo', nivel:3, grupo:null }
 };
 
+// Hierarquia "ativa" — começa como cópia da padrão e é substituída pelo
+// que vier do banco (dp_hierarquia). É essa que o organograma consulta.
+let HIERARQUIA = Object.assign({}, HIERARQUIA_PADRAO);
+let HIERARQUIA_NORM = {};
+let hierarquiaLista = []; // [{id, cargo, setor, nivel, grupo}] — pra edição
+
+function reconstruirHierarquiaAtiva(){
+  HIERARQUIA = {};
+  hierarquiaLista.forEach(function(h){
+    HIERARQUIA[h.cargo] = { setor:h.setor, nivel:h.nivel, grupo:h.grupo||null };
+  });
+  // reconstrói também o índice normalizado
+  HIERARQUIA_NORM = {};
+  Object.keys(HIERARQUIA).forEach(function(k){ HIERARQUIA_NORM[normCargo(k)] = HIERARQUIA[k]; });
+}
+
+async function carregarHierarquia(){
+  try{
+    const {data, error} = await supa.from('dp_hierarquia').select('*').order('setor').order('nivel');
+    if(error) throw error;
+    if(data && data.length){
+      hierarquiaLista = data.map(function(r){ return {id:r.id, cargo:r.cargo, setor:r.setor, nivel:r.nivel, grupo:r.grupo||null}; });
+    } else {
+      // Semeia a padrão no banco na primeira vez
+      const semear = Object.keys(HIERARQUIA_PADRAO).map(function(cargo){
+        const h = HIERARQUIA_PADRAO[cargo];
+        return {id:uid(), cargo:cargo, setor:h.setor, nivel:h.nivel, grupo:h.grupo||null};
+      });
+      try{ await supa.from('dp_hierarquia').insert(semear); }catch(e){ console.warn('Não semeou hierarquia:', e.message||e); }
+      hierarquiaLista = semear;
+    }
+    reconstruirHierarquiaAtiva();
+  }catch(e){
+    console.warn('Erro ao carregar hierarquia, usando padrão:', e.message||e);
+    hierarquiaLista = Object.keys(HIERARQUIA_PADRAO).map(function(cargo){
+      const h = HIERARQUIA_PADRAO[cargo];
+      return {id:'padrao-'+cargo, cargo:cargo, setor:h.setor, nivel:h.nivel, grupo:h.grupo||null};
+    });
+    reconstruirHierarquiaAtiva();
+  }
+}
+
 // Índice normalizado da hierarquia — permite achar o cargo mesmo com
 // diferença de acento, espaço extra ou maiúscula/minúscula (ex: "Maitre"
 // x "Maître", "Sub Chefe" x "SubChefe"). Sem isso, qualquer diferencinha
@@ -3051,7 +3119,6 @@ function normCargo(s){
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .replace(/\s+/g,' ').trim();
 }
-var HIERARQUIA_NORM = {};
 Object.keys(HIERARQUIA).forEach(function(k){ HIERARQUIA_NORM[normCargo(k)] = HIERARQUIA[k]; });
 
 function hierCargo(cargo){
@@ -3678,6 +3745,7 @@ function renderConfiguracoes(){
   renderCfgDocs();
   renderCfgEPI();
   renderCfgUsuariosDP();
+  renderCfgHierarquia();
   // Info do sistema
   const col=gD('colabs');const cand=gD('candidatos');const fer=gD('ferias');const hist=gD('historico');
   document.getElementById('cfg-info-sistema').innerHTML=`
@@ -3693,6 +3761,88 @@ function renderConfiguracoes(){
 }
 
 /* SETORES em configurações */
+function renderCfgHierarquia(){
+  const el = document.getElementById('cfg-hierarquia-lista');
+  if(!el) return;
+  if(!ehAdminDP()){
+    el.innerHTML = '<span class="tsm tmut">Só Administradores podem editar a hierarquia.</span>';
+    const fg = document.getElementById('novo-hier-cargo');
+    if(fg) fg.closest('.fg').style.display = 'none';
+    return;
+  }
+  if(!hierarquiaLista.length){ el.innerHTML = '<span class="tsm tmut">Nenhum cargo na hierarquia.</span>'; return; }
+
+  // Agrupa por setor, ordena por nível
+  const porSetor = {};
+  hierarquiaLista.forEach(function(h){ (porSetor[h.setor] = porSetor[h.setor] || []).push(h); });
+
+  let html = '';
+  Object.keys(porSetor).sort().forEach(function(setor){
+    html += '<div style="margin-top:10px;"><b style="font-size:12px;color:var(--verde)">'+setor+'</b>';
+    html += '<table style="width:100%;font-size:13px;margin-top:4px;"><tbody>';
+    porSetor[setor].sort(function(a,b){ return a.nivel-b.nivel; }).forEach(function(h){
+      html += '<tr style="border-bottom:1px solid var(--border)">'+
+        '<td style="padding:5px 4px">'+h.cargo+'</td>'+
+        '<td style="padding:5px 4px;width:90px"><input type="number" min="1" max="9" value="'+h.nivel+'" onchange="editHierarquiaNivel(\''+h.id+'\',this.value)" style="width:55px;padding:3px 6px"></td>'+
+        '<td style="padding:5px 4px;width:110px;color:var(--text3)">'+(h.grupo?('grupo: '+h.grupo):'')+'</td>'+
+        '<td style="padding:5px 4px;width:36px;text-align:right"><button onclick="delHierarquia(\''+h.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--red)" title="Remover">✕</button></td>'+
+      '</tr>';
+    });
+    html += '</tbody></table></div>';
+  });
+  el.innerHTML = html;
+}
+
+async function addHierarquia(){
+  if(!ehAdminDP()){ toast('Só Administradores podem editar a hierarquia.', true); return; }
+  const cargo = document.getElementById('novo-hier-cargo').value.trim();
+  const setor = document.getElementById('novo-hier-setor').value.trim();
+  const nivel = parseInt(document.getElementById('novo-hier-nivel').value) || 3;
+  const grupo = document.getElementById('novo-hier-grupo').value || null;
+  if(!cargo || !setor){ toast('Preencha cargo e setor.', true); return; }
+
+  const novo = {id:uid(), cargo:cargo, setor:setor, nivel:nivel, grupo:grupo};
+  try{
+    const {error} = await supa.from('dp_hierarquia').insert([novo]);
+    if(error) throw error;
+    hierarquiaLista.push(novo);
+    reconstruirHierarquiaAtiva();
+    document.getElementById('novo-hier-cargo').value='';
+    document.getElementById('novo-hier-setor').value='';
+    document.getElementById('novo-hier-nivel').value='3';
+    document.getElementById('novo-hier-grupo').value='';
+    renderCfgHierarquia();
+    toast('Cargo adicionado à hierarquia!');
+  }catch(e){ toast('Erro ao adicionar: '+(e.message||e), true); }
+}
+
+async function editHierarquiaNivel(id, valor){
+  if(!ehAdminDP()){ toast('Só Administradores podem editar.', true); return; }
+  const nivel = parseInt(valor) || 3;
+  try{
+    const {error} = await supa.from('dp_hierarquia').update({nivel:nivel}).eq('id', id);
+    if(error) throw error;
+    const h = hierarquiaLista.find(function(x){ return x.id===id; });
+    if(h) h.nivel = nivel;
+    reconstruirHierarquiaAtiva();
+    renderCfgHierarquia();
+    toast('Nível atualizado!');
+  }catch(e){ toast('Erro ao atualizar: '+(e.message||e), true); }
+}
+
+async function delHierarquia(id){
+  if(!ehAdminDP()){ toast('Só Administradores podem editar.', true); return; }
+  if(!confirm('Remover este cargo da hierarquia?')) return;
+  try{
+    const {error} = await supa.from('dp_hierarquia').delete().eq('id', id);
+    if(error) throw error;
+    hierarquiaLista = hierarquiaLista.filter(function(x){ return x.id!==id; });
+    reconstruirHierarquiaAtiva();
+    renderCfgHierarquia();
+    toast('Cargo removido da hierarquia.');
+  }catch(e){ toast('Erro ao remover: '+(e.message||e), true); }
+}
+
 function renderCfgUsuariosDP(){
   const el = document.getElementById('cfg-usuarios-lista');
   if(!el) return;
