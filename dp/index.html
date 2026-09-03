@@ -2994,13 +2994,18 @@ const HIERARQUIA = {
   'Supervisora de Andares':  { setor:'Governança',   nivel:2, grupo:null },
   'Camareira':               { setor:'Governança',   nivel:3, grupo:null },
   'Aux. de Limpeza':         { setor:'Governança',   nivel:3, grupo:null },
+  'Auxiliar de Limpeza':     { setor:'Governança',   nivel:3, grupo:null },
 
   // RECEPÇÃO
-  'Supervisor de Recepção':  { setor:'Recepção',     nivel:1, grupo:null },
-  'Recepcionista Sênior':    { setor:'Recepção',     nivel:2, grupo:null },
-  'Recepcionista Pleno':     { setor:'Recepção',     nivel:2, grupo:null },
-  'Guest':                   { setor:'Recepção',     nivel:3, grupo:null },
-  'Mensageiro/Manobrista':   { setor:'Recepção',     nivel:3, grupo:null },
+  'Chefe de Recepção':       { setor:'Recepção',     nivel:1, grupo:null },
+  'Supervisor de Recepção':  { setor:'Recepção',     nivel:2, grupo:null },
+  'Recepcionista Sênior':    { setor:'Recepção',     nivel:3, grupo:null },
+  'Recepcionista Senior':    { setor:'Recepção',     nivel:3, grupo:null },
+  'Recepcionista Pleno':     { setor:'Recepção',     nivel:3, grupo:null },
+  'Recreacionista':          { setor:'Recepção',     nivel:3, grupo:null },
+  'Guest':                   { setor:'Recepção',     nivel:4, grupo:null },
+  'Guest Relation':          { setor:'Recepção',     nivel:4, grupo:null },
+  'Mensageiro/Manobrista':   { setor:'Recepção',     nivel:4, grupo:null },
 
   // A&B — dois setores, uma hierarquia unificada
   'Gerente de A&B':          { setor:'A&B',          nivel:1, grupo:null },
@@ -3021,9 +3026,11 @@ const HIERARQUIA = {
   'Auxiliar de Cozinha':     { setor:'A&B',          nivel:5, grupo:'cozinha' },
 
   // MANUTENÇÃO
-  'Supervisor de Manutenção':{ setor:'Manutenção',   nivel:1, grupo:null },
-  'Manutencionista Sênior':  { setor:'Manutenção',   nivel:2, grupo:null },
-  'Manutencionista Pleno':   { setor:'Manutenção',   nivel:2, grupo:null },
+  'Chefe de Manutenção':     { setor:'Manutenção',   nivel:1, grupo:null },
+  'Supervisor de Manutenção':{ setor:'Manutenção',   nivel:2, grupo:null },
+  'Manutencionista Sênior':  { setor:'Manutenção',   nivel:3, grupo:null },
+  'Manutencionista Senior':  { setor:'Manutenção',   nivel:3, grupo:null },
+  'Manutencionista Pleno':   { setor:'Manutenção',   nivel:3, grupo:null },
 
   // ADMINISTRATIVO — sem hierarquia rígida
   'Analista Sênior':         { setor:'Administrativo', nivel:1, grupo:null },
@@ -3034,12 +3041,28 @@ const HIERARQUIA = {
   'Menor Aprendiz':          { setor:'Administrativo', nivel:3, grupo:null }
 };
 
+// Índice normalizado da hierarquia — permite achar o cargo mesmo com
+// diferença de acento, espaço extra ou maiúscula/minúscula (ex: "Maitre"
+// x "Maître", "Sub Chefe" x "SubChefe"). Sem isso, qualquer diferencinha
+// no nome do cargo cadastrado fazia a pessoa cair no nível 99 e sumir da
+// estrutura do organograma.
+function normCargo(s){
+  return (s||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ').trim();
+}
+var HIERARQUIA_NORM = {};
+Object.keys(HIERARQUIA).forEach(function(k){ HIERARQUIA_NORM[normCargo(k)] = HIERARQUIA[k]; });
+
+function hierCargo(cargo){
+  return HIERARQUIA[cargo] || HIERARQUIA_NORM[normCargo(cargo)] || null;
+}
 function nivelCargo(cargo){
-  var h = HIERARQUIA[cargo];
+  var h = hierCargo(cargo);
   return h ? h.nivel : 99;
 }
 function grupoCargo(cargo){
-  var h = HIERARQUIA[cargo];
+  var h = hierCargo(cargo);
   return h ? h.grupo : null;
 }
 
@@ -3083,7 +3106,7 @@ function renderOrganograma(){
   // mesmo que esteja cadastrado no setor Gerência. Se o cargo não estiver
   // na hierarquia, usa o setor cadastrado como reserva.
   function setorDoCargo(c){
-    var h = c.cargo ? HIERARQUIA[c.cargo] : null;
+    var h = c.cargo ? hierCargo(c.cargo) : null;
     if(h && h.setor) return h.setor === 'A&B' ? 'A&B' : h.setor;
     // reserva: setor cadastrado (A&B Salão/Cozinha viram bloco 'A&B')
     if(c.setor === 'A&B Salão' || c.setor === 'A&B Cozinha') return 'A&B';
