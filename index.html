@@ -226,8 +226,128 @@ function renderDashboardGeral(main){
     </div>
     <div class="card" id="cardUsoBanco">
       <div class="empty">Carregando uso do banco...</div>
+    </div>
+
+    <div class="card">
+      <h3>Limpeza de dados antigos</h3>
+      <div class="config-note" style="margin-top:0;">Apaga <b>permanentemente</b> registros antigos de um tipo específico, até a data escolhida. Use com cuidado — não há como desfazer. Dados permanentes (equipe, colaboradores, apartamentos, CNPJs) nunca aparecem aqui.</div>
+
+      <label style="margin-top:16px;">1. O que limpar</label>
+      <select id="limpTipo">
+        <option value="">Selecione o tipo de dado...</option>
+        <optgroup label="Manutenção">
+          <option value="man_chamados">Chamados concluídos</option>
+          <option value="man_compras">Compras concluídas</option>
+          <option value="man_gastos">Lançamentos de gastos</option>
+          <option value="man_lembretes">Lembretes</option>
+        </optgroup>
+        <optgroup label="DP">
+          <option value="dp_historico">Histórico de colaboradores</option>
+          <option value="dp_desligamentos">Desligamentos</option>
+          <option value="dp_ferias">Férias concluídas</option>
+        </optgroup>
+        <optgroup label="Voucher LGM">
+          <option value="vou_fechamentos">Fechamentos diários</option>
+          <option value="vou_danfe">Emissões de DANFE</option>
+        </optgroup>
+      </select>
+
+      <label>2. Apagar registros ATÉ esta data (inclusive)</label>
+      <input type="date" id="limpData">
+
+      <button class="btn-primary" id="btnVerificarLimpeza" style="margin-top:16px;">Verificar o que será apagado</button>
+      <div class="msg" id="limpMsg"></div>
+      <div id="limpConfirmacao" style="margin-top:14px;"></div>
     </div>`;
   carregarUsoBanco();
+  configurarLimpeza();
+}
+
+// Mapa: tipo -> {tabela, campoData, filtroExtra, label}
+const TIPOS_LIMPEZA = {
+  man_chamados:    { tabela:'chamados',            campoData:'concluidoEm',   label:'chamados concluídos',       filtro:function(q){ return q.eq('status','concluido'); } },
+  man_compras:     { tabela:'compras',             campoData:'comprado_em',   label:'compras concluídas',        filtro:function(q){ return q; } },
+  man_gastos:      { tabela:'lancamentos_gastos',  campoData:'lancado_em',    label:'lançamentos de gastos',     filtro:function(q){ return q; } },
+  man_lembretes:   { tabela:'lembretes',           campoData:'dataInicio',    label:'lembretes',                 filtro:function(q){ return q; } },
+  dp_historico:    { tabela:'dp_historico',        campoData:'data',          label:'histórico de colaboradores',filtro:function(q){ return q; } },
+  dp_desligamentos:{ tabela:'dp_desligamentos',    campoData:'data_deslig',   label:'desligamentos',             filtro:function(q){ return q; } },
+  dp_ferias:       { tabela:'dp_ferias',           campoData:'data_fim',      label:'férias concluídas',         filtro:function(q){ return q.eq('status','concluida'); } },
+  vou_fechamentos: { tabela:'fechamentos_sem_lancamento', campoData:'data',   label:'fechamentos diários',       filtro:function(q){ return q; } },
+  vou_danfe:       { tabela:'danfe_emissoes',      campoData:'data_fim',      label:'emissões de DANFE',         filtro:function(q){ return q; } }
+};
+
+function configurarLimpeza(){
+  document.getElementById('btnVerificarLimpeza').addEventListener('click', verificarLimpeza);
+}
+
+async function verificarLimpeza(){
+  const tipo = document.getElementById('limpTipo').value;
+  const data = document.getElementById('limpData').value;
+  const msg = document.getElementById('limpMsg');
+  const confDiv = document.getElementById('limpConfirmacao');
+  confDiv.innerHTML = '';
+
+  if(!tipo){ msg.textContent = 'Selecione o tipo de dado.'; msg.className = 'msg erro'; return; }
+  if(!data){ msg.textContent = 'Selecione a data limite.'; msg.className = 'msg erro'; return; }
+
+  const cfg = TIPOS_LIMPEZA[tipo];
+  msg.textContent = 'Verificando...'; msg.className = 'msg';
+
+  try{
+    let q = supaPortal.from(cfg.tabela).select('*', {count:'exact', head:true}).lte(cfg.campoData, data);
+    q = cfg.filtro(q);
+    const {count, error} = await q;
+    if(error) throw error;
+
+    if(!count || count === 0){
+      msg.textContent = `Nenhum registro de "${cfg.label}" encontrado até ${data}. Nada a apagar.`;
+      msg.className = 'msg ok';
+      return;
+    }
+
+    msg.className = 'msg';
+    confDiv.innerHTML = `
+      <div class="msg alerta" style="display:block;">
+        Serão apagados <b>${count}</b> registro(s) de <b>${cfg.label}</b> com data até <b>${data}</b>.
+        Esta ação é <b>permanente e não pode ser desfeita</b>.
+      </div>
+      <label style="margin-top:6px;">Para confirmar, digite <b>APAGAR</b> abaixo:</label>
+      <input type="text" id="limpConfirmaTexto" placeholder="APAGAR" style="max-width:200px;">
+      <button class="btn-primary" id="btnConfirmarLimpeza" style="margin-top:12px;background:var(--erro);display:block;">Apagar ${count} registro(s) definitivamente</button>`;
+
+    document.getElementById('btnConfirmarLimpeza').addEventListener('click', ()=>executarLimpeza(tipo, data, count));
+  }catch(e){
+    msg.textContent = 'Erro ao verificar: ' + (e.message||e);
+    msg.className = 'msg erro';
+  }
+}
+
+async function executarLimpeza(tipo, data, countEsperado){
+  const confirmaTexto = document.getElementById('limpConfirmaTexto').value.trim();
+  const msg = document.getElementById('limpMsg');
+  if(confirmaTexto !== 'APAGAR'){
+    msg.textContent = 'Digite APAGAR (em maiúsculas) para confirmar.';
+    msg.className = 'msg erro';
+    return;
+  }
+
+  const cfg = TIPOS_LIMPEZA[tipo];
+  try{
+    let q = supaPortal.from(cfg.tabela).delete().lte(cfg.campoData, data);
+    q = cfg.filtro(q);
+    const {error} = await q;
+    if(error) throw error;
+
+    msg.textContent = `${countEsperado} registro(s) de "${cfg.label}" apagado(s) com sucesso.`;
+    msg.className = 'msg ok';
+    document.getElementById('limpConfirmacao').innerHTML = '';
+    document.getElementById('limpTipo').value = '';
+    document.getElementById('limpData').value = '';
+    carregarUsoBanco(); // atualiza a barra de uso
+  }catch(e){
+    msg.textContent = 'Erro ao apagar: ' + (e.message||e);
+    msg.className = 'msg erro';
+  }
 }
 
 async function carregarUsoBanco(){
