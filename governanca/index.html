@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Governança · Pedras Altas</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --verde-escuro:#0A2A22; --verde-claro:#C7F1C5; --sage:#A1E19C; --verde-mid:#123B30;
+    --bg:#F5F7F4; --card:#FFFFFF; --texto:#152119; --texto-suave:#5B6B62; --borda:#E1E8E2;
+    --erro:#B3432B; --erro-bg:#FBEAE4; --ok-bg:#EAF7E7; --alerta-bg:#FDF3E3; --alerta:#8A5A15;
+    --radius:10px; --mono:'SFMono-Regular',Consolas,Menlo,monospace; --sidebar-w:212px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--texto);}
+  .app{display:flex;min-height:100vh;}
+  .sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--verde-escuro);color:var(--verde-claro);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+  .sidebar .brand{display:flex;align-items:center;gap:10px;padding:20px 18px;border-bottom:1px solid rgba(255,255,255,.08);}
+  .sidebar .brand .mark{width:34px;height:34px;border-radius:8px;background:var(--sage);display:flex;align-items:center;justify-content:center;color:var(--verde-escuro);font-weight:700;font-size:13px;flex-shrink:0;}
+  .sidebar .brand h1{font-size:14.5px;margin:0;font-weight:600;color:#fff;}
+  .sidebar .brand .sub{font-size:11px;color:var(--sage);margin-top:1px;}
+  .sidebar .user-chip{padding:12px 18px;font-size:12px;color:var(--verde-claro);display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.08);}
+  .sidebar .user-chip .avatar{width:26px;height:26px;border-radius:50%;background:var(--verde-mid);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--sage);flex-shrink:0;}
+  .sidebar nav{flex:1;padding:14px 10px;}
+  .sidebar nav button{width:100%;display:flex;align-items:center;gap:10px;background:transparent;border:none;color:var(--verde-claro);padding:11px 12px;font-size:13.5px;cursor:pointer;border-radius:8px;text-align:left;opacity:.75;margin-bottom:2px;}
+  .sidebar nav button .ic{font-size:15px;width:18px;text-align:center;}
+  .sidebar nav button.active{opacity:1;background:var(--verde-mid);font-weight:600;}
+  .sidebar nav button:hover{opacity:1;background:rgba(255,255,255,.06);}
+  .sidebar .conn-status{padding:14px 18px;font-size:11.5px;color:var(--sage);border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;}
+  .conn-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;flex-shrink:0;}
+  .conn-dot.on{background:#5FBF6B;} .conn-dot.off{background:#C9463A;} .conn-dot.test{background:#E8B93F;}
+  main{flex:1;padding:28px 32px 60px;max-width:1180px;}
+  .view{display:none;} .view.active{display:block;}
+  .view-header{margin-bottom:20px;}
+  .view-header h2{font-size:19px;margin:0 0 3px;color:var(--verde-escuro);}
+  .view-header .desc{font-size:13px;color:var(--texto-suave);}
+  .card{background:var(--card);border:1px solid var(--borda);border-radius:var(--radius);padding:20px 22px;margin-bottom:20px;}
+  .card h3{font-size:13px;margin:0 0 16px;color:var(--verde-escuro);text-transform:uppercase;letter-spacing:.04em;}
+  label{display:block;font-size:12.5px;color:var(--texto-suave);margin-bottom:5px;margin-top:14px;}
+  label:first-of-type{margin-top:0;}
+  input[type=text],input[type=date],input[type=number],input[type=url],input[type=password],select,textarea{width:100%;padding:9px 11px;border:1px solid var(--borda);border-radius:7px;font-size:14px;background:#fcfdfc;color:var(--texto);font-family:inherit;}
+  textarea{resize:vertical;min-height:52px;}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--verde-mid);box-shadow:0 0 0 3px rgba(18,59,48,.10);}
+  .btn-primary{padding:11px 18px;background:var(--verde-escuro);color:var(--verde-claro);border:none;border-radius:7px;font-size:13.5px;font-weight:600;cursor:pointer;}
+  .btn-primary.full{width:100%;margin-top:20px;}
+  .btn-primary:hover{background:var(--verde-mid);}
+  .btn-secondary{padding:9px 14px;background:#fff;color:var(--verde-escuro);border:1px solid var(--verde-escuro);border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-secondary:hover{background:var(--verde-claro);}
+  .msg{margin-top:14px;padding:10px 12px;border-radius:7px;font-size:13px;display:none;}
+  .msg.erro{background:var(--erro-bg);color:var(--erro);display:block;}
+  .msg.ok{background:var(--ok-bg);color:var(--verde-mid);display:block;}
+  .msg.alerta{background:var(--alerta-bg);color:var(--alerta);display:block;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--texto-suave);padding:8px 10px;border-bottom:1px solid var(--borda);}
+  td{padding:9px 10px;border-bottom:1px solid var(--borda);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;}
+  .badge.ok{background:var(--ok-bg);color:var(--verde-mid);}
+  .badge.pend{background:var(--alerta-bg);color:var(--alerta);}
+  .badge.info{background:#EFF4EF;color:var(--texto-suave);}
+  .badge.erro{background:var(--erro-bg);color:var(--erro);}
+  .empty{text-align:center;padding:34px 20px;color:var(--texto-suave);font-size:13.5px;}
+  .divider{height:1px;background:var(--borda);margin:20px 0;}
+  .config-note{font-size:12px;color:var(--texto-suave);background:#F2F5F2;border-radius:7px;padding:10px 12px;margin-top:14px;line-height:1.5;}
+  .action-link{background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:12px;text-decoration:underline;padding:0;}
+  .action-link.danger{color:var(--erro);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  @media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr;}}
+  .dias-check{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  .dias-check label{display:flex;align-items:center;gap:4px;margin:0;font-size:12.5px;background:#fcfdfc;border:1px solid var(--borda);padding:6px 10px;border-radius:7px;cursor:pointer;}
+  .dias-check input{width:auto;margin:0;}
+  .row-form{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:14px;}
+  .row-form .fld{flex:1;min-width:120px;}
+  .row-form .fld label{margin-top:0;}
+  .stat-row{display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+  .stat{background:var(--card);border:1px solid var(--borda);border-radius:var(--radius);padding:14px 18px;flex:1;min-width:130px;}
+  .stat .num{font-size:22px;font-weight:700;color:var(--verde-escuro);}
+  .stat .lbl{font-size:11.5px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="telaLogin" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);">
+  <div style="width:100%;max-width:340px;padding:0 20px;">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="width:52px;height:52px;border-radius:12px;background:var(--sage);display:flex;align-items:center;justify-content:center;color:var(--verde-escuro);font-weight:800;font-size:15px;margin:0 auto 12px;">GOV</div>
+      <h2 style="margin:0;color:var(--verde-escuro);font-size:18px;">Governança</h2>
+      <div style="color:var(--texto-suave);font-size:13px;margin-top:2px;">Entrar no sistema</div>
+    </div>
+    <div class="card">
+      <label style="margin-top:0;">Usuário</label>
+      <select id="loginUsuario"><option value="">Selecione seu usuário...</option></select>
+      <label>Senha</label>
+      <input type="password" id="loginSenha" placeholder="Digite a senha">
+      <button class="btn-primary full" id="btnEntrar">Entrar</button>
+      <div class="msg" id="loginMsg"></div>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="appPrincipal" style="display:none;">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="mark">GOV</div>
+      <div><h1>Governança</h1><div class="sub">Pedras Altas</div></div>
+    </div>
+    <div class="user-chip">
+      <div class="avatar" id="avatarUser">–</div>
+      <div><div style="font-weight:600;" id="nomeUser">–</div><div style="font-size:10.5px;color:var(--sage);" id="perfilUser">–</div></div>
+    </div>
+    <nav>
+      <button data-view="escala" class="active"><span class="ic">📅</span>Escala de Folga</button>
+      <button data-view="calendario"><span class="ic">🧹</span>Calendário de Limpezas</button>
+      <button data-view="lavanderia"><span class="ic">🧺</span>Lavanderia</button>
+      <button data-view="achados"><span class="ic">🔑</span>Achados e Perdidos</button>
+      <button data-view="equipe"><span class="ic">👥</span>Equipe (DP)</button>
+      <button data-view="config"><span class="ic">⚙</span>Configuração</button>
+    </nav>
+    <div class="conn-status"><span class="conn-dot off" id="connDot"></span><span id="connText">Não conectado</span></div>
+    <div style="padding:10px 18px 16px;">
+      <button type="button" onclick="sair()" style="width:100%;background:transparent;border:1px solid rgba(255,255,255,.2);color:var(--verde-claro);padding:8px;border-radius:7px;font-size:12.5px;cursor:pointer;">Sair</button>
+    </div>
+  </div>
+
+  <main>
+    <!-- ESCALA DE FOLGA -->
+    <section class="view active" id="view-escala">
+      <div class="view-header"><h2>Escala de Folga</h2><div class="desc">Colaboradoras da Governança e seus dias de folga na semana.</div></div>
+      <div class="card">
+        <h3>Adicionar à escala</h3>
+        <div class="grid3">
+          <div><label style="margin-top:0;">Nome</label><input type="text" id="escNome"></div>
+          <div><label style="margin-top:0;">Cargo</label><input type="text" id="escCargo" placeholder="Ex: Camareira"></div>
+          <div><label style="margin-top:0;">Turno</label>
+            <select id="escTurno"><option value="manha">Manhã</option><option value="tarde">Tarde</option><option value="integral">Integral</option></select>
+          </div>
+        </div>
+        <label>Dias de folga na semana</label>
+        <div class="dias-check" id="escDias">
+          <label><input type="checkbox" value="dom">Dom</label>
+          <label><input type="checkbox" value="seg">Seg</label>
+          <label><input type="checkbox" value="ter">Ter</label>
+          <label><input type="checkbox" value="qua">Qua</label>
+          <label><input type="checkbox" value="qui">Qui</label>
+          <label><input type="checkbox" value="sex">Sex</label>
+          <label><input type="checkbox" value="sab">Sáb</label>
+        </div>
+        <button class="btn-primary full" id="btnAddEscala">Adicionar</button>
+        <div class="msg" id="escMsg"></div>
+      </div>
+      <div class="card"><h3>Escala atual</h3><div id="tabelaEscala"></div></div>
+    </section>
+
+    <!-- CALENDÁRIO DE LIMPEZAS -->
+    <section class="view" id="view-calendario">
+      <div class="view-header"><h2>Calendário de Limpezas e Higienizações</h2><div class="desc">Marque as datas de limpezas e higienizações programadas.</div></div>
+      <div class="card">
+        <h3>Nova limpeza / higienização</h3>
+        <div class="grid3">
+          <div><label style="margin-top:0;">Título</label><input type="text" id="calTitulo" placeholder="Ex: Higienização de colchões"></div>
+          <div><label style="margin-top:0;">Data</label><input type="date" id="calData"></div>
+          <div><label style="margin-top:0;">Tipo</label>
+            <select id="calTipo"><option value="limpeza">Limpeza</option><option value="higienizacao">Higienização</option><option value="outro">Outro</option></select>
+          </div>
+        </div>
+        <label>Descrição (opcional)</label>
+        <textarea id="calDesc" placeholder="Detalhes, local, quem faz..."></textarea>
+        <button class="btn-primary full" id="btnAddCal">Adicionar ao calendário</button>
+        <div class="msg" id="calMsg"></div>
+      </div>
+      <div class="card"><h3>Programadas</h3><div id="tabelaCalendario"></div></div>
+    </section>
+
+    <!-- LAVANDERIA -->
+    <section class="view" id="view-lavanderia">
+      <div class="view-header"><h2>Controle de Lavanderia</h2><div class="desc">Cada linha é um envio: o que foi mandado e o que voltou.</div></div>
+      <div class="card">
+        <h3>Novo registro</h3>
+        <div class="row-form">
+          <div class="fld"><label>Data</label><input type="date" id="lavData"></div>
+          <div class="fld"><label>Item</label><input type="text" id="lavItem" placeholder="Ex: Lençol casal"></div>
+          <div class="fld"><label>Enviado</label><input type="number" id="lavEnviada" min="0" placeholder="0"></div>
+          <div class="fld"><label>Recebido</label><input type="number" id="lavRecebida" min="0" placeholder="0"></div>
+        </div>
+        <label>Observação (opcional)</label>
+        <input type="text" id="lavObs" placeholder="Ex: 2 peças com mancha, devolvidas">
+        <button class="btn-primary full" id="btnAddLav">Registrar envio</button>
+        <div class="msg" id="lavMsg"></div>
+      </div>
+      <div class="card">
+        <h3>Filtrar por período</h3>
+        <div class="grid2">
+          <div><label style="margin-top:0;">De</label><input type="date" id="lavDe"></div>
+          <div><label style="margin-top:0;">Até</label><input type="date" id="lavAte"></div>
+        </div>
+        <button class="btn-secondary" id="btnFiltrarLav" style="margin-top:12px;">Aplicar filtro</button>
+        <button class="btn-secondary" id="btnLimparFiltroLav" style="margin-top:12px;">Ver tudo</button>
+      </div>
+      <div class="card"><h3>Registros</h3><div id="tabelaLavanderia"></div></div>
+    </section>
+
+    <!-- ACHADOS E PERDIDOS -->
+    <section class="view" id="view-achados">
+      <div class="view-header"><h2>Achados e Perdidos</h2><div class="desc">Itens encontrados no hotel. (No futuro também aparecerá na Recepção.)</div></div>
+      <div class="card">
+        <h3>Registrar item encontrado</h3>
+        <div class="grid3">
+          <div><label style="margin-top:0;">Data</label><input type="date" id="achData"></div>
+          <div><label style="margin-top:0;">Item</label><input type="text" id="achItem" placeholder="Ex: Carregador de celular"></div>
+          <div><label style="margin-top:0;">Local encontrado</label><input type="text" id="achLocal" placeholder="Ex: UH 302"></div>
+        </div>
+        <div class="grid2">
+          <div><label>Encontrado por</label><input type="text" id="achPor" placeholder="Nome da camareira"></div>
+          <div><label>Hóspede (se souber)</label><input type="text" id="achHospede" placeholder="Nome / UH"></div>
+        </div>
+        <label>Observação</label>
+        <input type="text" id="achObs">
+        <button class="btn-primary full" id="btnAddAch">Registrar</button>
+        <div class="msg" id="achMsg"></div>
+      </div>
+      <div class="card"><h3>Itens registrados</h3><div id="tabelaAchados"></div></div>
+    </section>
+
+    <!-- EQUIPE (DP) -->
+    <section class="view" id="view-equipe">
+      <div class="view-header"><h2>Equipe (dados do DP)</h2><div class="desc">Informações do setor Governança vindas do sistema de DP (somente leitura).</div></div>
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="statColabs">–</div><div class="lbl">Colaboradores ativos</div></div>
+        <div class="stat"><div class="num" id="statExperiencia">–</div><div class="lbl">Em experiência</div></div>
+        <div class="stat"><div class="num" id="statVagas">–</div><div class="lbl">Vagas em aberto</div></div>
+      </div>
+      <div class="card"><h3>Colaboradores da Governança</h3><div id="tabelaColabsDP"></div></div>
+      <div class="card"><h3>Pipeline de contratação (Governança)</h3><div id="tabelaPipelineDP"></div></div>
+    </section>
+
+    <!-- CONFIGURAÇÃO -->
+    <section class="view" id="view-config">
+      <div class="view-header"><h2>Configuração</h2><div class="desc">Conexão e usuários.</div></div>
+      <div class="grid2">
+        <div class="card">
+          <h3>Conexão Supabase</h3>
+          <label style="margin-top:0;">URL do projeto</label>
+          <input type="text" id="cfgUrl" placeholder="https://xxxxx.supabase.co">
+          <label>Chave anon (public)</label>
+          <input type="text" id="cfgKey" placeholder="eyJhbGciOi...">
+          <div class="config-note">Já vem pré-configurado com o banco central. Só mexa aqui se souber o que está fazendo.</div>
+          <button class="btn-primary full" id="btnSalvarConfig">Salvar conexão</button>
+          <div class="msg" id="cfgMsg"></div>
+        </div>
+        <div class="card" id="cardUsuarios">
+          <h3>Usuários e senhas</h3>
+          <div id="listaUsuarios"></div>
+          <div class="row-form">
+            <div class="fld"><label>Nome</label><input type="text" id="novoUsrNome"></div>
+            <div class="fld"><label>Login</label><input type="text" id="novoUsrLogin"></div>
+            <div class="fld"><label>Senha</label><input type="text" id="novoUsrSenha"></div>
+            <div class="fld"><label>Perfil</label><select id="novoUsrPerfil"><option value="operador">Operador</option><option value="admin">Administrador</option></select></div>
+          </div>
+          <button class="btn-secondary" id="btnAddUsuario" style="margin-top:12px;">Adicionar usuário</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+// ============================================================
+// CONFIG E CONEXÃO
+// ============================================================
+const CONFIG_KEY = 'govLGM_config_v1';
+let config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+if(!config.url) config.url = 'https://xdnnngifpbrbhxyluans.supabase.co';
+if(!config.key) config.key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhkbm5uZ2lmcGJyYmh4eWx1YW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODgwODQsImV4cCI6MjA5NjI2NDA4NH0.1HmvUOo56BhCdLTjJH3UfTMkq8uO7-EK_zg3W0hX46A';
+localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+
+let supa = null;
+function initConn(){
+  const dot=document.getElementById('connDot'), txt=document.getElementById('connText');
+  if(config.url && config.key){
+    try{ supa = supabase.createClient(config.url, config.key); dot.className='conn-dot on'; txt.textContent='Conectado'; }
+    catch(e){ supa=null; dot.className='conn-dot off'; txt.textContent='Erro na conexão'; }
+  } else { supa=null; dot.className='conn-dot test'; txt.textContent='Sem conexão'; }
+}
+function uid(){ return crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now()+'-'+Math.random().toString(16).slice(2); }
+function hoje(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function showMsg(id,txt,tipo){ const el=document.getElementById(id); el.textContent=txt; el.className='msg '+tipo; }
+function iniciais(n){ const p=(n||'').trim().split(/\s+/); return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase()||'–'; }
+function esc(t){ return (t||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+const DIAS_LBL = {dom:'Dom',seg:'Seg',ter:'Ter',qua:'Qua',qui:'Qui',sex:'Sex',sab:'Sáb'};
+
+// ============================================================
+// LOGIN
+// ============================================================
+const UID_KEY='govLGM_uid';
+let usuarios=[], usuarioLogado=null;
+
+async function carregarUsuarios(){
+  try{
+    const {data,error}=await supa.from('gov_usuarios').select('*').order('nome');
+    if(error) throw error;
+    if(!data||!data.length){
+      const p={id:uid(),nome:'Administrador',login:'ADM',senha:'ADM',perfil:'admin'};
+      await supa.from('gov_usuarios').insert([p]); usuarios=[p];
+    } else usuarios=data;
+  }catch(e){ console.warn('users',e.message); usuarios=[{id:'fb',nome:'Administrador',login:'ADM',senha:'ADM',perfil:'admin'}]; }
+}
+function popularLogin(){
+  document.getElementById('loginUsuario').innerHTML='<option value="">Selecione seu usuário...</option>'+usuarios.map(u=>`<option value="${u.id}">${esc(u.nome)}</option>`).join('');
+}
+function ehAdmin(){ return usuarioLogado && usuarioLogado.perfil==='admin'; }
+function aplicarPerfil(){
+  const nav=document.querySelector('.sidebar nav button[data-view="config"]');
+  if(nav) nav.style.display = ehAdmin()?'flex':'none';
+  document.getElementById('nomeUser').textContent=usuarioLogado?usuarioLogado.nome:'–';
+  document.getElementById('perfilUser').textContent=usuarioLogado?(usuarioLogado.perfil==='admin'?'Administrador':'Operador'):'–';
+  document.getElementById('avatarUser').textContent=usuarioLogado?iniciais(usuarioLogado.nome):'–';
+}
+function mostrarApp(){ document.getElementById('telaLogin').style.display='none'; document.getElementById('appPrincipal').style.display='flex'; aplicarPerfil(); carregarTudo(); }
+function fazerLogin(){
+  const id=document.getElementById('loginUsuario').value, senha=document.getElementById('loginSenha').value, m=document.getElementById('loginMsg');
+  if(!id){ m.textContent='Selecione um usuário.'; m.className='msg erro'; return; }
+  const u=usuarios.find(x=>x.id===id);
+  if(!u||String(u.senha||'')!==String(senha)){ m.textContent='Usuário ou senha incorretos.'; m.className='msg erro'; document.getElementById('loginSenha').value=''; return; }
+  usuarioLogado=u; localStorage.setItem(UID_KEY,u.id); m.className='msg'; document.getElementById('loginSenha').value=''; mostrarApp();
+}
+function sair(){ localStorage.removeItem(UID_KEY); usuarioLogado=null; document.getElementById('appPrincipal').style.display='none'; document.getElementById('telaLogin').style.display='flex'; }
+document.getElementById('btnEntrar').addEventListener('click',fazerLogin);
+document.getElementById('loginSenha').addEventListener('keydown',e=>{ if(e.key==='Enter') fazerLogin(); });
+
+async function iniciarLogin(){
+  await carregarUsuarios(); popularLogin();
+  const sid=localStorage.getItem(UID_KEY), su=sid?usuarios.find(u=>u.id===sid):null;
+  if(su){ usuarioLogado=su; mostrarApp(); } else document.getElementById('telaLogin').style.display='flex';
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+document.querySelectorAll('.sidebar nav button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.sidebar nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    if(btn.dataset.view==='equipe') carregarEquipeDP();
+    if(btn.dataset.view==='config') renderUsuarios();
+  });
+});
+
+function carregarTudo(){
+  carregarEscala(); carregarCalendario(); carregarLavanderia(); carregarAchados();
+  document.getElementById('calData').value=hoje();
+  document.getElementById('lavData').value=hoje();
+  document.getElementById('achData').value=hoje();
+}
+
+// ============================================================
+// ESCALA DE FOLGA
+// ============================================================
+document.getElementById('btnAddEscala').addEventListener('click', async ()=>{
+  const nome=document.getElementById('escNome').value.trim();
+  if(!nome){ showMsg('escMsg','Digite o nome.','erro'); return; }
+  const dias=[...document.querySelectorAll('#escDias input:checked')].map(c=>c.value).join(',');
+  const reg={id:uid(),nome,cargo:document.getElementById('escCargo').value.trim(),turno:document.getElementById('escTurno').value,dias_folga:dias,domingos_folga:'',status:'ativo'};
+  try{
+    const {error}=await supa.from('gov_escala').insert([reg]); if(error) throw error;
+    document.getElementById('escNome').value=''; document.getElementById('escCargo').value='';
+    document.querySelectorAll('#escDias input:checked').forEach(c=>c.checked=false);
+    showMsg('escMsg','Adicionada à escala.','ok'); carregarEscala();
+  }catch(e){ showMsg('escMsg','Erro: '+(e.message||e),'erro'); }
+});
+async function carregarEscala(){
+  const el=document.getElementById('tabelaEscala');
+  try{
+    const {data,error}=await supa.from('gov_escala').select('*').eq('status','ativo').order('nome'); if(error) throw error;
+    if(!data.length){ el.innerHTML='<div class="empty">Ninguém na escala ainda.</div>'; return; }
+    el.innerHTML=`<table><thead><tr><th>Nome</th><th>Cargo</th><th>Turno</th><th>Folgas</th><th></th></tr></thead><tbody>${data.map(e=>`<tr>
+      <td>${esc(e.nome)}</td><td>${esc(e.cargo||'—')}</td><td>${esc(e.turno||'—')}</td>
+      <td>${(e.dias_folga||'').split(',').filter(Boolean).map(d=>`<span class="badge info">${DIAS_LBL[d]||d}</span>`).join(' ')||'—'}</td>
+      <td><button class="action-link danger" onclick="removerEscala('${e.id}')">Remover</button></td>
+    </tr>`).join('')}</tbody></table>`;
+  }catch(e){ el.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+async function removerEscala(id){ if(!confirm('Remover da escala?')) return; try{ await supa.from('gov_escala').delete().eq('id',id); carregarEscala(); }catch(e){ alert('Erro: '+(e.message||e)); } }
+
+// ============================================================
+// CALENDÁRIO
+// ============================================================
+document.getElementById('btnAddCal').addEventListener('click', async ()=>{
+  const titulo=document.getElementById('calTitulo').value.trim(), data=document.getElementById('calData').value;
+  if(!titulo||!data){ showMsg('calMsg','Preencha título e data.','erro'); return; }
+  const reg={id:uid(),titulo,data,tipo:document.getElementById('calTipo').value,descricao:document.getElementById('calDesc').value.trim(),concluido:false};
+  try{
+    const {error}=await supa.from('gov_calendario').insert([reg]); if(error) throw error;
+    document.getElementById('calTitulo').value=''; document.getElementById('calDesc').value='';
+    showMsg('calMsg','Adicionado.','ok'); carregarCalendario();
+  }catch(e){ showMsg('calMsg','Erro: '+(e.message||e),'erro'); }
+});
+async function carregarCalendario(){
+  const el=document.getElementById('tabelaCalendario');
+  try{
+    const {data,error}=await supa.from('gov_calendario').select('*').order('data'); if(error) throw error;
+    if(!data.length){ el.innerHTML='<div class="empty">Nenhuma limpeza programada.</div>'; return; }
+    const tipoLbl={limpeza:'Limpeza',higienizacao:'Higienização',outro:'Outro'};
+    el.innerHTML=`<table><thead><tr><th>Data</th><th>Título</th><th>Tipo</th><th>Status</th><th></th></tr></thead><tbody>${data.map(c=>`<tr>
+      <td>${c.data.split('-').reverse().join('/')}</td>
+      <td>${esc(c.titulo)}${c.descricao?`<div style="font-size:11.5px;color:var(--texto-suave)">${esc(c.descricao)}</div>`:''}</td>
+      <td><span class="badge info">${tipoLbl[c.tipo]||c.tipo}</span></td>
+      <td>${c.concluido?'<span class="badge ok">Concluído</span>':'<span class="badge pend">Pendente</span>'}</td>
+      <td>${c.concluido?'':`<button class="action-link" onclick="concluirCal('${c.id}')">Concluir</button> `}<button class="action-link danger" onclick="removerCal('${c.id}')">Remover</button></td>
+    </tr>`).join('')}</tbody></table>`;
+  }catch(e){ el.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+async function concluirCal(id){ try{ await supa.from('gov_calendario').update({concluido:true,concluido_em:new Date().toISOString()}).eq('id',id); carregarCalendario(); }catch(e){ alert('Erro: '+(e.message||e)); } }
+async function removerCal(id){ if(!confirm('Remover do calendário?')) return; try{ await supa.from('gov_calendario').delete().eq('id',id); carregarCalendario(); }catch(e){ alert('Erro: '+(e.message||e)); } }
+
+// ============================================================
+// LAVANDERIA
+// ============================================================
+let filtroLav=null;
+document.getElementById('btnAddLav').addEventListener('click', async ()=>{
+  const data=document.getElementById('lavData').value, item=document.getElementById('lavItem').value.trim();
+  if(!data||!item){ showMsg('lavMsg','Preencha data e item.','erro'); return; }
+  const reg={id:uid(),data,item,qtd_enviada:parseInt(document.getElementById('lavEnviada').value)||0,qtd_recebida:parseInt(document.getElementById('lavRecebida').value)||0,obs:document.getElementById('lavObs').value.trim()};
+  try{
+    const {error}=await supa.from('gov_lavanderia').insert([reg]); if(error) throw error;
+    document.getElementById('lavItem').value=''; document.getElementById('lavEnviada').value=''; document.getElementById('lavRecebida').value=''; document.getElementById('lavObs').value='';
+    showMsg('lavMsg','Registrado.','ok'); carregarLavanderia();
+  }catch(e){ showMsg('lavMsg','Erro: '+(e.message||e),'erro'); }
+});
+document.getElementById('btnFiltrarLav').addEventListener('click',()=>{ filtroLav={de:document.getElementById('lavDe').value,ate:document.getElementById('lavAte').value}; carregarLavanderia(); });
+document.getElementById('btnLimparFiltroLav').addEventListener('click',()=>{ filtroLav=null; document.getElementById('lavDe').value=''; document.getElementById('lavAte').value=''; carregarLavanderia(); });
+async function carregarLavanderia(){
+  const el=document.getElementById('tabelaLavanderia');
+  try{
+    let q=supa.from('gov_lavanderia').select('*').order('data',{ascending:false});
+    if(filtroLav&&filtroLav.de) q=q.gte('data',filtroLav.de);
+    if(filtroLav&&filtroLav.ate) q=q.lte('data',filtroLav.ate);
+    const {data,error}=await q; if(error) throw error;
+    if(!data.length){ el.innerHTML='<div class="empty">Nenhum registro.</div>'; return; }
+    let totEnv=0,totRec=0;
+    const linhas=data.map(l=>{
+      totEnv+=l.qtd_enviada; totRec+=l.qtd_recebida;
+      const dif=l.qtd_recebida-l.qtd_enviada;
+      const difTxt=dif===0?'<span class="badge ok">OK</span>':`<span class="badge erro">${dif>0?'+':''}${dif}</span>`;
+      return `<tr><td>${l.data.split('-').reverse().join('/')}</td><td>${esc(l.item)}</td><td>${l.qtd_enviada}</td><td>${l.qtd_recebida}</td><td>${difTxt}</td><td>${esc(l.obs||'')}</td><td><button class="action-link danger" onclick="removerLav('${l.id}')">✕</button></td></tr>`;
+    }).join('');
+    const difTot=totRec-totEnv;
+    el.innerHTML=`<table><thead><tr><th>Data</th><th>Item</th><th>Enviado</th><th>Recebido</th><th>Diferença</th><th>Obs</th><th></th></tr></thead><tbody>${linhas}</tbody>
+      <tfoot><tr style="font-weight:700;background:var(--verde-escuro);color:var(--verde-claro)"><td colspan="2">Total</td><td>${totEnv}</td><td>${totRec}</td><td>${difTot===0?'OK':(difTot>0?'+':'')+difTot}</td><td colspan="2"></td></tr></tfoot></table>`;
+  }catch(e){ el.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+async function removerLav(id){ if(!confirm('Remover este registro?')) return; try{ await supa.from('gov_lavanderia').delete().eq('id',id); carregarLavanderia(); }catch(e){ alert('Erro: '+(e.message||e)); } }
+
+// ============================================================
+// ACHADOS E PERDIDOS
+// ============================================================
+document.getElementById('btnAddAch').addEventListener('click', async ()=>{
+  const data=document.getElementById('achData').value, item=document.getElementById('achItem').value.trim();
+  if(!data||!item){ showMsg('achMsg','Preencha data e item.','erro'); return; }
+  const reg={id:uid(),data_achado:data,item,local_encontrado:document.getElementById('achLocal').value.trim(),encontrado_por:document.getElementById('achPor').value.trim(),hospede:document.getElementById('achHospede').value.trim(),obs:document.getElementById('achObs').value.trim(),status:'guardado'};
+  try{
+    const {error}=await supa.from('gov_achados_perdidos').insert([reg]); if(error) throw error;
+    ['achItem','achLocal','achPor','achHospede','achObs'].forEach(i=>document.getElementById(i).value='');
+    showMsg('achMsg','Registrado.','ok'); carregarAchados();
+  }catch(e){ showMsg('achMsg','Erro: '+(e.message||e),'erro'); }
+});
+async function carregarAchados(){
+  const el=document.getElementById('tabelaAchados');
+  try{
+    const {data,error}=await supa.from('gov_achados_perdidos').select('*').order('data_achado',{ascending:false}); if(error) throw error;
+    if(!data.length){ el.innerHTML='<div class="empty">Nenhum item registrado.</div>'; return; }
+    const stLbl={guardado:'<span class="badge pend">Guardado</span>',devolvido:'<span class="badge ok">Devolvido</span>',descartado:'<span class="badge info">Descartado</span>'};
+    el.innerHTML=`<table><thead><tr><th>Data</th><th>Item</th><th>Local</th><th>Por</th><th>Status</th><th></th></tr></thead><tbody>${data.map(a=>`<tr>
+      <td>${a.data_achado.split('-').reverse().join('/')}</td>
+      <td>${esc(a.item)}${a.hospede?`<div style="font-size:11.5px;color:var(--texto-suave)">Hóspede: ${esc(a.hospede)}</div>`:''}${a.obs?`<div style="font-size:11.5px;color:var(--texto-suave)">${esc(a.obs)}</div>`:''}</td>
+      <td>${esc(a.local_encontrado||'—')}</td><td>${esc(a.encontrado_por||'—')}</td>
+      <td>${stLbl[a.status]||a.status}</td>
+      <td>${a.status==='guardado'?`<button class="action-link" onclick="statusAch('${a.id}','devolvido')">Devolver</button> <button class="action-link" onclick="statusAch('${a.id}','descartado')">Descartar</button> `:''}<button class="action-link danger" onclick="removerAch('${a.id}')">✕</button></td>
+    </tr>`).join('')}</tbody></table>`;
+  }catch(e){ el.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+async function statusAch(id,st){ try{ const upd={status:st}; if(st==='devolvido') upd.devolvido_em=hoje(); await supa.from('gov_achados_perdidos').update(upd).eq('id',id); carregarAchados(); }catch(e){ alert('Erro: '+(e.message||e)); } }
+async function removerAch(id){ if(!confirm('Remover este item?')) return; try{ await supa.from('gov_achados_perdidos').delete().eq('id',id); carregarAchados(); }catch(e){ alert('Erro: '+(e.message||e)); } }
+
+// ============================================================
+// EQUIPE (DP) — leitura das tabelas do DP, filtrado por Governança
+// ============================================================
+async function carregarEquipeDP(){
+  const elC=document.getElementById('tabelaColabsDP'), elP=document.getElementById('tabelaPipelineDP');
+  try{
+    const [colabsRes,candRes]=await Promise.all([
+      supa.from('dp_colaboradores').select('*').eq('setor_slug','governanca').neq('status','desligado').order('nome'),
+      supa.from('dp_candidatos').select('*').eq('setor_slug','governanca')
+    ]);
+    const colabs=colabsRes.data||[], cands=candRes.data||[];
+    const ativos=colabs.length;
+    const exp=colabs.filter(c=>c.contrato==='experiencia').length;
+
+    document.getElementById('statColabs').textContent=ativos;
+    document.getElementById('statExperiencia').textContent=exp;
+    document.getElementById('statVagas').textContent=cands.length;
+
+    if(!colabs.length){ elC.innerHTML='<div class="empty">Nenhum colaborador da Governança no DP.</div>'; }
+    else elC.innerHTML=`<table><thead><tr><th>Nome</th><th>Cargo</th><th>Admissão</th><th>Contrato</th></tr></thead><tbody>${colabs.map(c=>`<tr>
+      <td>${esc(c.nome)}</td><td>${esc(c.cargo||'—')}</td><td>${c.adm?c.adm.split('-').reverse().join('/'):'—'}</td>
+      <td>${c.contrato==='experiencia'?'<span class="badge pend">Experiência</span>':'<span class="badge info">'+esc(c.contrato||'—')+'</span>'}</td>
+    </tr>`).join('')}</tbody></table>`;
+
+    if(!cands.length){ elP.innerHTML='<div class="empty">Nenhuma vaga/candidato em processo.</div>'; }
+    else elP.innerHTML=`<table><thead><tr><th>Nome</th><th>Cargo</th><th>Etapa</th></tr></thead><tbody>${cands.map(c=>`<tr>
+      <td>${esc(c.nome)}</td><td>${esc(c.cargo||'—')}</td><td><span class="badge info">${esc(c.etapa||'—')}</span></td>
+    </tr>`).join('')}</tbody></table>`;
+  }catch(e){ elC.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+
+// ============================================================
+// CONFIGURAÇÃO
+// ============================================================
+document.getElementById('cfgUrl').value=config.url||'';
+document.getElementById('cfgKey').value=config.key||'';
+document.getElementById('btnSalvarConfig').addEventListener('click',()=>{
+  config.url=document.getElementById('cfgUrl').value.trim(); config.key=document.getElementById('cfgKey').value.trim();
+  localStorage.setItem(CONFIG_KEY,JSON.stringify(config)); initConn();
+  showMsg('cfgMsg', supa?'Conexão salva.':'Faltam dados de conexão.', supa?'ok':'erro');
+});
+function renderUsuarios(){
+  const el=document.getElementById('listaUsuarios');
+  if(!usuarios.length){ el.innerHTML='<div class="empty">Nenhum usuário.</div>'; return; }
+  el.innerHTML=usuarios.map(u=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)">
+    <div style="flex:1"><b>${esc(u.nome)}</b> <span style="font-size:12px;color:var(--texto-suave)">(${esc(u.login||'')})</span></div>
+    <span class="badge ${u.perfil==='admin'?'ok':'info'}">${u.perfil==='admin'?'Admin':'Operador'}</span>
+    <button class="action-link danger" onclick="removerUsuario('${u.id}')">Remover</button>
+  </div>`).join('');
+}
+document.getElementById('btnAddUsuario').addEventListener('click', async ()=>{
+  const nome=document.getElementById('novoUsrNome').value.trim(), login=document.getElementById('novoUsrLogin').value.trim(), senha=document.getElementById('novoUsrSenha').value.trim(), perfil=document.getElementById('novoUsrPerfil').value;
+  if(!nome||!senha){ alert('Preencha nome e senha.'); return; }
+  const novo={id:uid(),nome,login,senha,perfil};
+  try{ const {error}=await supa.from('gov_usuarios').insert([novo]); if(error) throw error; usuarios.push(novo); ['novoUsrNome','novoUsrLogin','novoUsrSenha'].forEach(i=>document.getElementById(i).value=''); renderUsuarios(); popularLogin(); }
+  catch(e){ alert('Erro: '+(e.message||e)); }
+});
+async function removerUsuario(id){
+  if(usuarios.length<=1){ alert('Não é possível remover o único usuário.'); return; }
+  if(!confirm('Remover este usuário?')) return;
+  try{ await supa.from('gov_usuarios').delete().eq('id',id); usuarios=usuarios.filter(u=>u.id!==id); renderUsuarios(); popularLogin(); }
+  catch(e){ alert('Erro: '+(e.message||e)); }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+initConn();
+iniciarLogin();
+</script>
+</body>
+</html>
