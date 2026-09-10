@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -78,6 +79,17 @@
   .stat{background:var(--card);border:1px solid var(--borda);border-radius:var(--radius);padding:14px 18px;flex:1;min-width:130px;}
   .stat .num{font-size:22px;font-weight:700;color:var(--verde-escuro);}
   .stat .lbl{font-size:11.5px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
+  .cal-table{border-collapse:collapse;font-size:11.5px;}
+  .cal-table th,.cal-table td{border:1px solid var(--borda);padding:5px 6px;text-align:center;white-space:nowrap;}
+  .cal-table thead th{background:#F2F5F2;color:var(--texto-suave);font-weight:600;font-size:10.5px;}
+  .cal-turno-row td{background:var(--verde-claro);color:var(--verde-escuro);font-weight:700;font-size:10.5px;letter-spacing:.04em;text-align:left;padding:6px 8px;}
+  .cal-t,.cal-f{display:inline-block;min-width:18px;border-radius:4px;padding:1px 4px;font-weight:700;font-size:11px;}
+  .cal-t{background:var(--ok-bg);color:var(--verde-mid);}
+  .cal-f{background:var(--alerta-bg);color:var(--alerta);}
+  .cal-sticky{position:sticky;left:0;background:var(--card);text-align:left !important;}
+  .lav-cell{font-size:10.5px;color:var(--texto-suave);}
+  .lav-cell.lav-dif{background:var(--erro-bg);color:var(--erro);font-weight:700;border-radius:3px;}
+  @media print{ .sidebar,.view-header,.btn-primary,.btn-secondary,#btnEscalaMesAnt,#btnEscalaMesProx{display:none !important;} main{padding:0;max-width:none;} }
 </style>
 </head>
 <body>
@@ -148,10 +160,30 @@
           <label><input type="checkbox" value="sex">Sex</label>
           <label><input type="checkbox" value="sab">Sáb</label>
         </div>
+        <label>Domingo de folga (rotativo, opcional)</label>
+        <select id="escDomingoFolga">
+          <option value="">Nenhum — usa só os dias marcados acima</option>
+          <option value="1">1º domingo do mês</option>
+          <option value="2">2º domingo do mês</option>
+          <option value="3">3º domingo do mês</option>
+          <option value="4">4º domingo do mês</option>
+          <option value="5">5º domingo do mês</option>
+        </select>
         <button class="btn-primary full" id="btnAddEscala">Adicionar</button>
         <div class="msg" id="escMsg"></div>
       </div>
-      <div class="card"><h3>Escala atual</h3><div id="tabelaEscala"></div></div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <h3 style="margin:0;">Escala do mês</h3>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn-secondary" type="button" id="btnEscalaMesAnt">‹</button>
+            <div id="escalaMesLabel" style="font-weight:700;color:var(--verde-escuro);min-width:130px;text-align:center;font-size:13px;"></div>
+            <button class="btn-secondary" type="button" id="btnEscalaMesProx">›</button>
+            <button class="btn-secondary" type="button" id="btnEscalaImprimir">Imprimir</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;margin-top:14px;"><div id="tabelaEscala"></div></div>
+      </div>
     </section>
 
     <!-- CALENDÁRIO DE LIMPEZAS -->
@@ -181,7 +213,7 @@
         <h3>Novo registro</h3>
         <div class="row-form">
           <div class="fld"><label>Data</label><input type="date" id="lavData"></div>
-          <div class="fld"><label>Item</label><input type="text" id="lavItem" placeholder="Ex: Lençol casal"></div>
+          <div class="fld"><label>Item</label><select id="lavItem"></select></div>
           <div class="fld"><label>Enviado</label><input type="number" id="lavEnviada" min="0" placeholder="0"></div>
           <div class="fld"><label>Recebido</label><input type="number" id="lavRecebida" min="0" placeholder="0"></div>
         </div>
@@ -191,7 +223,19 @@
         <div class="msg" id="lavMsg"></div>
       </div>
       <div class="card">
-        <h3>Filtrar por período</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <h3 style="margin:0;">Controle mensal por enxoval</h3>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn-secondary" type="button" id="btnLavMesAnt">‹</button>
+            <div id="lavMesLabel" style="font-weight:700;color:var(--verde-escuro);min-width:130px;text-align:center;font-size:13px;"></div>
+            <button class="btn-secondary" type="button" id="btnLavMesProx">›</button>
+          </div>
+        </div>
+        <div class="config-note" style="margin-top:12px;">Cada célula mostra <b>enviado/recebido</b>. Células destacadas em vermelho indicam diferença (excesso ou déficit) naquele dia.</div>
+        <div style="overflow-x:auto;margin-top:14px;"><div id="matrizLavanderia"></div></div>
+      </div>
+      <div class="card">
+        <h3>Filtrar por período (registros individuais)</h3>
         <div class="grid2">
           <div><label style="margin-top:0;">De</label><input type="date" id="lavDe"></div>
           <div><label style="margin-top:0;">Até</label><input type="date" id="lavAte"></div>
@@ -291,6 +335,24 @@ function iniciais(n){ const p=(n||'').trim().split(/\s+/); return ((p[0]?.[0]||'
 function esc(t){ return (t||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
 const DIAS_LBL = {dom:'Dom',seg:'Seg',ter:'Ter',qua:'Qua',qui:'Qui',sex:'Sex',sab:'Sáb'};
+const MESES_LBL=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const TURNO_LBL={manha:'Manhã',tarde:'Tarde',integral:'Integral'};
+const TURNO_ORDEM=['manha','tarde','integral'];
+const ENXOVAL_ITENS=['Lençol Casal','Lençol Solteiro','Fronhas','Toalha de Banho','Toalha de Rosto','Toalha de Piso','Edredom','Capa','Cobertor','Manta','Travesseiro','Capa Travesseiro','Colcha','Toalha Piscina','Fronha de Colchão','Toalha de Mesa','Guardanapo','Saia de Cama','Pezeira','Cortina','Blackout','Roupão','Cobreleito','Almofada','Capa de Almofada','Lençol de Berço','Fronha de Berço','Lençol Elástico','Pilowtop','Outros/Diversos'];
+document.getElementById('lavItem').innerHTML='<option value="">Selecione...</option>'+ENXOVAL_ITENS.map(i=>`<option value="${esc(i)}">${esc(i)}</option>`).join('');
+
+function diasNoMes(ano,mes){ return new Date(ano,mes+1,0).getDate(); }
+function ehFolgaNoDia(colab,dataObj){
+  const wd=dataObj.getDay();
+  const wdKey=['dom','seg','ter','qua','qui','sex','sab'][wd];
+  const diasSet=(colab.dias_folga||'').split(',').filter(Boolean);
+  if(diasSet.includes(wdKey)) return true;
+  if(wd===0 && colab.domingo_folga){
+    const ocorrencia=Math.floor((dataObj.getDate()-1)/7)+1;
+    if(ocorrencia===Number(colab.domingo_folga)) return true;
+  }
+  return false;
+}
 
 // ============================================================
 // LOGIN
@@ -352,7 +414,7 @@ document.querySelectorAll('.sidebar nav button').forEach(btn=>{
 });
 
 function carregarTudo(){
-  carregarEscala(); carregarCalendario(); carregarLavanderia(); carregarAchados();
+  carregarEscala(); carregarCalendario(); carregarLavanderia(); carregarMatrizLavanderia(); carregarAchados();
   document.getElementById('calData').value=hoje();
   document.getElementById('lavData').value=hoje();
   document.getElementById('achData').value=hoje();
@@ -365,24 +427,45 @@ document.getElementById('btnAddEscala').addEventListener('click', async ()=>{
   const nome=document.getElementById('escNome').value.trim();
   if(!nome){ showMsg('escMsg','Digite o nome.','erro'); return; }
   const dias=[...document.querySelectorAll('#escDias input:checked')].map(c=>c.value).join(',');
-  const reg={id:uid(),nome,cargo:document.getElementById('escCargo').value.trim(),turno:document.getElementById('escTurno').value,dias_folga:dias,domingos_folga:'',status:'ativo'};
+  const domingoFolga=document.getElementById('escDomingoFolga').value;
+  const reg={id:uid(),nome,cargo:document.getElementById('escCargo').value.trim(),turno:document.getElementById('escTurno').value,dias_folga:dias,domingo_folga:domingoFolga?parseInt(domingoFolga):null,status:'ativo'};
   try{
     const {error}=await supa.from('gov_escala').insert([reg]); if(error) throw error;
-    document.getElementById('escNome').value=''; document.getElementById('escCargo').value='';
+    document.getElementById('escNome').value=''; document.getElementById('escCargo').value=''; document.getElementById('escDomingoFolga').value='';
     document.querySelectorAll('#escDias input:checked').forEach(c=>c.checked=false);
     showMsg('escMsg','Adicionada à escala.','ok'); carregarEscala();
   }catch(e){ showMsg('escMsg','Erro: '+(e.message||e),'erro'); }
 });
+let escalaMesAtual=new Date(); escalaMesAtual.setDate(1); escalaMesAtual.setHours(0,0,0,0);
+document.getElementById('btnEscalaMesAnt').addEventListener('click',()=>{ escalaMesAtual.setMonth(escalaMesAtual.getMonth()-1); carregarEscala(); });
+document.getElementById('btnEscalaMesProx').addEventListener('click',()=>{ escalaMesAtual.setMonth(escalaMesAtual.getMonth()+1); carregarEscala(); });
+document.getElementById('btnEscalaImprimir').addEventListener('click',()=>window.print());
 async function carregarEscala(){
   const el=document.getElementById('tabelaEscala');
+  document.getElementById('escalaMesLabel').textContent=`${MESES_LBL[escalaMesAtual.getMonth()]} ${escalaMesAtual.getFullYear()}`;
   try{
     const {data,error}=await supa.from('gov_escala').select('*').eq('status','ativo').order('nome'); if(error) throw error;
     if(!data.length){ el.innerHTML='<div class="empty">Ninguém na escala ainda.</div>'; return; }
-    el.innerHTML=`<table><thead><tr><th>Nome</th><th>Cargo</th><th>Turno</th><th>Folgas</th><th></th></tr></thead><tbody>${data.map(e=>`<tr>
-      <td>${esc(e.nome)}</td><td>${esc(e.cargo||'—')}</td><td>${esc(e.turno||'—')}</td>
-      <td>${(e.dias_folga||'').split(',').filter(Boolean).map(d=>`<span class="badge info">${DIAS_LBL[d]||d}</span>`).join(' ')||'—'}</td>
-      <td><button class="action-link danger" onclick="removerEscala('${e.id}')">Remover</button></td>
-    </tr>`).join('')}</tbody></table>`;
+    const ano=escalaMesAtual.getFullYear(), mes=escalaMesAtual.getMonth(), nDias=diasNoMes(ano,mes);
+    const diasArr=[...Array(nDias)].map((_,i)=>new Date(ano,mes,i+1));
+    const wdLbl=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const porTurno={};
+    data.forEach(c=>{ const t=c.turno||'outro'; (porTurno[t]=porTurno[t]||[]).push(c); });
+    const ordem=[...TURNO_ORDEM,...Object.keys(porTurno).filter(t=>!TURNO_ORDEM.includes(t))];
+    let html=`<table class="cal-table"><thead><tr><th class="cal-sticky">Colaborador</th>${diasArr.map(d=>`<th>${d.getDate()}<div style="font-weight:400;font-size:9px;">${wdLbl[d.getDay()]}</div></th>`).join('')}</tr></thead><tbody>`;
+    ordem.forEach(t=>{
+      if(!porTurno[t]||!porTurno[t].length) return;
+      html+=`<tr class="cal-turno-row"><td colspan="${nDias+1}">${(TURNO_LBL[t]||t).toUpperCase()}</td></tr>`;
+      porTurno[t].forEach(c=>{
+        html+=`<tr><td class="cal-sticky"><b>${esc(c.nome)}</b>${c.cargo?`<div style="font-size:10px;color:var(--texto-suave)">${esc(c.cargo)}</div>`:''}</td>`;
+        diasArr.forEach(d=>{ const folga=ehFolgaNoDia(c,d); html+=`<td><span class="${folga?'cal-f':'cal-t'}">${folga?'F':'T'}</span></td>`; });
+        html+='</tr>';
+      });
+    });
+    html+='</tbody></table><div style="margin-top:10px;font-size:12px;color:var(--texto-suave);">T = Trabalho · F = Folga</div>';
+    html+='<div style="margin-top:16px;"><div style="font-size:12px;color:var(--texto-suave);margin-bottom:6px;">Remover da escala:</div>'+
+      data.map(c=>`<span class="badge info" style="margin:0 6px 6px 0;display:inline-flex;align-items:center;gap:6px;">${esc(c.nome)} <button class="action-link danger" style="font-size:11px;" onclick="removerEscala('${c.id}')">✕</button></span>`).join('')+'</div>';
+    el.innerHTML=html;
   }catch(e){ el.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
 }
 async function removerEscala(id){ if(!confirm('Remover da escala?')) return; try{ await supa.from('gov_escala').delete().eq('id',id); carregarEscala(); }catch(e){ alert('Erro: '+(e.message||e)); } }
@@ -429,9 +512,49 @@ document.getElementById('btnAddLav').addEventListener('click', async ()=>{
   try{
     const {error}=await supa.from('gov_lavanderia').insert([reg]); if(error) throw error;
     document.getElementById('lavItem').value=''; document.getElementById('lavEnviada').value=''; document.getElementById('lavRecebida').value=''; document.getElementById('lavObs').value='';
-    showMsg('lavMsg','Registrado.','ok'); carregarLavanderia();
+    showMsg('lavMsg','Registrado.','ok'); carregarLavanderia(); carregarMatrizLavanderia();
   }catch(e){ showMsg('lavMsg','Erro: '+(e.message||e),'erro'); }
 });
+let lavMesAtual=new Date(); lavMesAtual.setDate(1); lavMesAtual.setHours(0,0,0,0);
+document.getElementById('btnLavMesAnt').addEventListener('click',()=>{ lavMesAtual.setMonth(lavMesAtual.getMonth()-1); carregarMatrizLavanderia(); });
+document.getElementById('btnLavMesProx').addEventListener('click',()=>{ lavMesAtual.setMonth(lavMesAtual.getMonth()+1); carregarMatrizLavanderia(); });
+async function carregarMatrizLavanderia(){
+  const el=document.getElementById('matrizLavanderia');
+  document.getElementById('lavMesLabel').textContent=`${MESES_LBL[lavMesAtual.getMonth()]} ${lavMesAtual.getFullYear()}`;
+  const ano=lavMesAtual.getFullYear(), mes=lavMesAtual.getMonth(), nDias=diasNoMes(ano,mes);
+  const ini=`${ano}-${String(mes+1).padStart(2,'0')}-01`, fim=`${ano}-${String(mes+1).padStart(2,'0')}-${String(nDias).padStart(2,'0')}`;
+  try{
+    const {data,error}=await supa.from('gov_lavanderia').select('*').gte('data',ini).lte('data',fim); if(error) throw error;
+    const porItem={}; ENXOVAL_ITENS.forEach(it=>{ porItem[it]={dias:{},totEnv:0,totRec:0}; });
+    (data||[]).forEach(l=>{
+      const item=ENXOVAL_ITENS.includes(l.item)?l.item:'Outros/Diversos';
+      const dia=Number((l.data||'').split('-')[2]);
+      if(!dia) return;
+      if(!porItem[item].dias[dia]) porItem[item].dias[dia]={env:0,rec:0};
+      porItem[item].dias[dia].env+=l.qtd_enviada||0; porItem[item].dias[dia].rec+=l.qtd_recebida||0;
+      porItem[item].totEnv+=l.qtd_enviada||0; porItem[item].totRec+=l.qtd_recebida||0;
+    });
+    const totaisDia={}; for(let d=1;d<=nDias;d++) totaisDia[d]={env:0,rec:0};
+    let granEnv=0,granRec=0;
+    ENXOVAL_ITENS.forEach(it=>{ for(let d=1;d<=nDias;d++){ const c=porItem[it].dias[d]; if(c){ totaisDia[d].env+=c.env; totaisDia[d].rec+=c.rec; } } granEnv+=porItem[it].totEnv; granRec+=porItem[it].totRec; });
+    let html=`<table class="cal-table"><thead><tr><th class="cal-sticky" style="min-width:130px;">Item</th>${[...Array(nDias)].map((_,i)=>`<th>${i+1}</th>`).join('')}<th>Env.</th><th>Rec.</th><th>Dif.</th></tr></thead><tbody>`;
+    ENXOVAL_ITENS.forEach(it=>{
+      const info=porItem[it], dif=info.totRec-info.totEnv;
+      html+=`<tr><td class="cal-sticky">${esc(it)}</td>`;
+      for(let d=1;d<=nDias;d++){
+        const c=info.dias[d];
+        html+= c? `<td class="lav-cell${c.env!==c.rec?' lav-dif':''}">${c.env}/${c.rec}</td>` : '<td class="lav-cell">·</td>';
+      }
+      html+=`<td><b>${info.totEnv}</b></td><td><b>${info.totRec}</b></td><td>${dif===0?'<span class="badge ok">OK</span>':`<span class="badge erro">${dif>0?'+':''}${dif}</span>`}</td></tr>`;
+    });
+    html+='<tr style="font-weight:700;background:var(--verde-escuro);color:var(--verde-claro)"><td class="cal-sticky" style="background:var(--verde-escuro);color:var(--verde-claro);">Totais</td>';
+    for(let d=1;d<=nDias;d++){ const t=totaisDia[d]; html+=`<td>${t.env||t.rec?`${t.env}/${t.rec}`:'·'}</td>`; }
+    const difTot=granRec-granEnv;
+    html+=`<td>${granEnv}</td><td>${granRec}</td><td>${difTot===0?'OK':(difTot>0?'+':'')+difTot}</td></tr>`;
+    html+='</tbody></table>';
+    el.innerHTML=html;
+  }catch(e){ el.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
+}
 document.getElementById('btnFiltrarLav').addEventListener('click',()=>{ filtroLav={de:document.getElementById('lavDe').value,ate:document.getElementById('lavAte').value}; carregarLavanderia(); });
 document.getElementById('btnLimparFiltroLav').addEventListener('click',()=>{ filtroLav=null; document.getElementById('lavDe').value=''; document.getElementById('lavAte').value=''; carregarLavanderia(); });
 async function carregarLavanderia(){
@@ -454,7 +577,7 @@ async function carregarLavanderia(){
       <tfoot><tr style="font-weight:700;background:var(--verde-escuro);color:var(--verde-claro)"><td colspan="2">Total</td><td>${totEnv}</td><td>${totRec}</td><td>${difTot===0?'OK':(difTot>0?'+':'')+difTot}</td><td colspan="2"></td></tr></tfoot></table>`;
   }catch(e){ el.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
 }
-async function removerLav(id){ if(!confirm('Remover este registro?')) return; try{ await supa.from('gov_lavanderia').delete().eq('id',id); carregarLavanderia(); }catch(e){ alert('Erro: '+(e.message||e)); } }
+async function removerLav(id){ if(!confirm('Remover este registro?')) return; try{ await supa.from('gov_lavanderia').delete().eq('id',id); carregarLavanderia(); carregarMatrizLavanderia(); }catch(e){ alert('Erro: '+(e.message||e)); } }
 
 // ============================================================
 // ACHADOS E PERDIDOS
