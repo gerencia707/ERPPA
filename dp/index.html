@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -1642,11 +1643,15 @@ const SETORES_DEFAULT=['Governança','Recepção','A&B Salão','A&B Cozinha','Ma
 function gSetores(){
   return _cache.setores_arr ? _cache.setores_arr.list : SETORES_DEFAULT;
 }
-function sSetores(v){
+async function sSetores(v){
   _cache.setores_arr = {list:v};
   // Sync setores no Supabase — trata separadamente: novo (nunca existiu),
   // reativar (existia mas tinha sido removido antes) e removido.
-  supa.from('dp_setores').select('nome,ativo').then(function(res){
+  // Agora aguarda cada passo e reporta erro (antes falhava em silêncio e o
+  // setor sumia ao recarregar, mesmo com o toast de sucesso aparecendo).
+  try{
+    const res = await supa.from('dp_setores').select('nome,ativo');
+    if(res.error) throw res.error;
     var todos = res.data || [];
     var todosNomes = todos.map(function(s){ return s.nome; });
     var inativos = todos.filter(function(s){ return !s.ativo; }).map(function(s){ return s.nome; });
@@ -1656,10 +1661,24 @@ function sSetores(v){
     var reativar = v.filter(function(n){ return inativos.includes(n); });
     var removidos = ativos.filter(function(n){ return !v.includes(n); });
 
-    if(novos.length) supa.from('dp_setores').insert(novos.map(function(n){ return {nome:n, slug:slugSetor(n), ativo:true}; }));
-    if(reativar.length) supa.from('dp_setores').update({ativo:true}).in('nome', reativar);
-    if(removidos.length) supa.from('dp_setores').update({ativo:false}).in('nome',removidos);
-  }).catch(function(e){ console.warn('Erro ao sincronizar setores:', e.message||e); });
+    if(novos.length){
+      const r1 = await supa.from('dp_setores').insert(novos.map(function(n){ return {nome:n, slug:slugSetor(n), ativo:true}; }));
+      if(r1.error) throw r1.error;
+    }
+    if(reativar.length){
+      const r2 = await supa.from('dp_setores').update({ativo:true}).in('nome', reativar);
+      if(r2.error) throw r2.error;
+    }
+    if(removidos.length){
+      const r3 = await supa.from('dp_setores').update({ativo:false}).in('nome',removidos);
+      if(r3.error) throw r3.error;
+    }
+    return true;
+  }catch(e){
+    console.warn('Erro ao sincronizar setores:', e.message||e);
+    toast('Setor salvo só nesta sessão — falhou ao gravar no banco: '+(e.message||e), true);
+    return false;
+  }
 }
 
 /* ===== UTILS ===== */
@@ -3909,23 +3928,24 @@ function abrirNovoSetor(){
   aMo('m-setor');
 }
 // Sobrescrever salvSetor para atualizar a tela de config também
-function salvSetor(){
+async function salvSetor(){
   const n=document.getElementById('s-nm').value.trim();
   if(!n){toast('Nome obrigatório',true);return;}
   const S=gSetores();
   if(S.includes(n)){toast('Setor já existe',true);return;}
-  S.push(n);sSetores(S);
+  S.push(n);
+  const ok = await sSetores(S);
   fMo('m-setor');
   renderCfgSetores();
   // Atualizar selects de setor em outros modais se abertos
-  toast('Setor "'+n+'" adicionado!');
+  if(ok) toast('Setor "'+n+'" adicionado!');
 }
 function delSetorCfg(btn){
   var nome = btn.dataset.nome;
-  conf('Remover setor "'+nome+'"? Colaboradores vinculados nao serao afetados.',function(){
-    sSetores(gSetores().filter(function(s){return s!==nome;}));
+  conf('Remover setor "'+nome+'"? Colaboradores vinculados nao serao afetados.',async function(){
+    const ok = await sSetores(gSetores().filter(function(s){return s!==nome;}));
     renderCfgSetores();
-    toast('Setor removido');
+    if(ok) toast('Setor removido');
   });
 }
 
