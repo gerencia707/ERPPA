@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -87,6 +88,15 @@
   .cal-t{background:var(--ok-bg);color:var(--verde-mid);}
   .cal-f{background:var(--alerta-bg);color:var(--alerta);}
   .cal-sticky{position:sticky;left:0;background:var(--card);text-align:left !important;}
+  .mini-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .mini-cal .mc-head{font-size:10.5px;color:var(--texto-suave);text-align:center;padding:4px 0;font-weight:600;}
+  .mc-day{min-height:58px;border:1px solid var(--borda);border-radius:6px;padding:4px;font-size:11px;cursor:pointer;background:#fcfdfc;}
+  .mc-day.vazio{background:transparent;border:none;cursor:default;}
+  .mc-day .mc-num{font-weight:700;color:var(--texto-suave);font-size:11px;}
+  .mc-day.selecionado{border-color:var(--verde-escuro);box-shadow:0 0 0 2px rgba(18,59,48,.15);}
+  .mc-chip{display:block;margin-top:2px;padding:1px 4px;border-radius:4px;font-size:9.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mc-chip.interno{background:var(--ok-bg);color:var(--verde-mid);}
+  .mc-chip.externo{background:var(--alerta-bg);color:var(--alerta);}
   @media print{ .sidebar,.view-header,.btn-primary,.btn-secondary,#btnEscalaMesAnt,#btnEscalaMesProx{display:none !important;} main{padding:0;max-width:none;} }
 </style>
 </head>
@@ -122,7 +132,8 @@
       <div><div style="font-weight:600;" id="nomeUser">–</div><div style="font-size:10.5px;color:var(--sage);" id="perfilUser">–</div></div>
     </div>
     <nav>
-      <button data-view="escala" class="active"><span class="ic">📅</span>Escala de Folga</button>
+      <button data-view="dashboard" class="active"><span class="ic">🏠</span>Dashboard</button>
+      <button data-view="escala"><span class="ic">📅</span>Escala de Folga</button>
       <button data-view="eventos"><span class="ic">🎉</span>Eventos</button>
       <button data-view="vouchers"><span class="ic">🎟</span>Vouchers LGM</button>
       <button data-view="equipe"><span class="ic">👥</span>Equipe (DP)</button>
@@ -135,8 +146,24 @@
   </div>
 
   <main>
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="view-header"><h2>Dashboard</h2><div class="desc">Visão geral do A&amp;B.</div></div>
+      <div class="card" id="cardAlertaEventos" style="display:none;">
+        <h3>Eventos chegando</h3>
+        <div id="listaAlertaEventos"></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="dashEventosMes">–</div><div class="lbl">Eventos este mês</div></div>
+        <div class="stat"><div class="num" id="dashColabsCozinha">–</div><div class="lbl">Colaboradores Cozinha</div></div>
+        <div class="stat"><div class="num" id="dashColabsSalao">–</div><div class="lbl">Colaboradores Salão</div></div>
+        <div class="stat"><div class="num" id="dashVagas">–</div><div class="lbl">Vagas em aberto</div></div>
+      </div>
+      <div class="card"><h3>Próximos eventos</h3><div id="tabelaProximosEventos"></div></div>
+    </section>
+
     <!-- ESCALA DE FOLGA -->
-    <section class="view active" id="view-escala">
+    <section class="view" id="view-escala">
       <div class="view-header"><h2>Escala de Folga</h2><div class="desc">Cozinha e Salão — dias de folga na semana.</div></div>
       <div class="card">
         <h3>Adicionar à escala</h3>
@@ -209,7 +236,26 @@
         <button class="btn-primary full" id="btnAddEvento">Registrar evento</button>
         <div class="msg" id="evMsg"></div>
       </div>
-      <div class="card"><h3>Eventos registrados</h3><div id="tabelaEventos"></div></div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <h3 style="margin:0;">Calendário de eventos</h3>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn-secondary" type="button" id="btnEvMesAnt">‹</button>
+            <div id="evMesLabel" style="font-weight:700;color:var(--verde-escuro);min-width:130px;text-align:center;font-size:13px;"></div>
+            <button class="btn-secondary" type="button" id="btnEvMesProx">›</button>
+          </div>
+        </div>
+        <div id="calendarioEventos" style="margin-top:14px;"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <h3 style="margin:0;">Eventos registrados</h3>
+          <div id="filtroDiaEventos" style="display:none;font-size:12px;color:var(--texto-suave);">
+            Filtrado por dia: <b id="filtroDiaTexto"></b> — <button class="action-link" type="button" id="btnLimparFiltroDia">ver todos</button>
+          </div>
+        </div>
+        <div id="tabelaEventos" style="margin-top:14px;"></div>
+      </div>
     </section>
 
     <!-- VOUCHERS LGM (SOMENTE LEITURA) -->
@@ -371,6 +417,9 @@ document.querySelectorAll('.sidebar nav button').forEach(btn=>{
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    if(btn.dataset.view==='dashboard') carregarDashboard();
+    if(btn.dataset.view==='escala') carregarEscala();
+    if(btn.dataset.view==='eventos') carregarEventos();
     if(btn.dataset.view==='equipe'){ carregarEquipeSetor('ab-cozinha','Cozinha'); carregarEquipeSetor('ab-salao','Salao'); }
     if(btn.dataset.view==='vouchers') carregarVouchers();
     if(btn.dataset.view==='config') renderUsuarios();
@@ -378,7 +427,7 @@ document.querySelectorAll('.sidebar nav button').forEach(btn=>{
 });
 
 function carregarTudo(){
-  carregarEscala(); carregarEventos();
+  carregarDashboard();
   document.getElementById('evData').value=hoje();
 }
 
@@ -459,24 +508,121 @@ document.getElementById('btnAddEvento').addEventListener('click', async ()=>{
   }catch(e){ showMsg('evMsg','Erro: '+(e.message||e),'erro'); }
 });
 async function carregarEventos(){
-  const el=document.getElementById('tabelaEventos');
+  document.getElementById('evMesLabel').textContent=`${MESES_LBL[eventosMesAtual.getMonth()]} ${eventosMesAtual.getFullYear()}`;
   try{
     const {data,error}=await supa.from('aeb_eventos').select('*').order('data',{ascending:true}); if(error) throw error;
-    if(!data.length){ el.innerHTML='<div class="empty">Nenhum evento registrado.</div>'; return; }
-    const tipoBadge={interno:'<span class="badge info">Interno</span>',externo:'<span class="badge pend">Externo</span>'};
-    const stBadge={a_confirmar:'<span class="badge pend">A confirmar</span>',confirmado:'<span class="badge ok">Confirmado</span>',concluido:'<span class="badge info">Concluído</span>',cancelado:'<span class="badge erro">Cancelado</span>'};
-    el.innerHTML=`<table><thead><tr><th>Data</th><th>Evento</th><th>Local</th><th>Pessoas</th><th>Responsável</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>${data.map(e=>`<tr>
-      <td>${e.data.split('-').reverse().join('/')}${e.horario?`<div style="font-size:11px;color:var(--texto-suave)">${esc(e.horario)}</div>`:''}</td>
-      <td>${tipoBadge[e.tipo]||''} <b>${esc(e.nome)}</b>${e.observacoes?`<div style="font-size:11px;color:var(--texto-suave)">${esc(e.observacoes)}</div>`:''}</td>
-      <td>${esc(e.local||'—')}</td><td>${e.num_pessoas||'—'}</td><td>${esc(e.responsavel||'—')}</td>
-      <td>${e.valor_fechado?('R$ '+Number(e.valor_fechado).toFixed(2).replace('.',',')):'—'}</td>
-      <td>${stBadge[e.status]||e.status}</td>
-      <td>${e.status==='a_confirmar'?`<button class="action-link" onclick="statusEvento('${e.id}','confirmado')">Confirmar</button> `:''}${e.status==='confirmado'?`<button class="action-link" onclick="statusEvento('${e.id}','concluido')">Concluir</button> `:''}<button class="action-link danger" onclick="removerEvento('${e.id}')">✕</button></td>
-    </tr>`).join('')}</tbody></table>`;
-  }catch(e){ el.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
+    _eventosCache=data||[];
+    diaFiltroEventos=null;
+    document.getElementById('filtroDiaEventos').style.display='none';
+    renderCalendarioEventos();
+    renderEventosLista(_eventosCache);
+  }catch(e){
+    document.getElementById('calendarioEventos').innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`;
+    document.getElementById('tabelaEventos').innerHTML='';
+  }
+}
+let eventosMesAtual=new Date(); eventosMesAtual.setDate(1); eventosMesAtual.setHours(0,0,0,0);
+let _eventosCache=[], diaFiltroEventos=null;
+document.getElementById('btnEvMesAnt').addEventListener('click',()=>{ eventosMesAtual.setMonth(eventosMesAtual.getMonth()-1); carregarEventos(); });
+document.getElementById('btnEvMesProx').addEventListener('click',()=>{ eventosMesAtual.setMonth(eventosMesAtual.getMonth()+1); carregarEventos(); });
+document.getElementById('btnLimparFiltroDia').addEventListener('click',()=>{
+  diaFiltroEventos=null; document.getElementById('filtroDiaEventos').style.display='none';
+  renderCalendarioEventos(); renderEventosLista(_eventosCache);
+});
+function renderCalendarioEventos(){
+  const el=document.getElementById('calendarioEventos');
+  const ano=eventosMesAtual.getFullYear(), mes=eventosMesAtual.getMonth(), nDias=diasNoMes(ano,mes);
+  const primeiroWd=new Date(ano,mes,1).getDay();
+  const prefixoMes=`${ano}-${String(mes+1).padStart(2,'0')}`;
+  const porDia={};
+  _eventosCache.forEach(e=>{
+    if(e.status==='cancelado'||!e.data||!e.data.startsWith(prefixoMes)) return;
+    const dia=Number(e.data.split('-')[2]); (porDia[dia]=porDia[dia]||[]).push(e);
+  });
+  const wdHead=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  let html='<div class="mini-cal">'+wdHead.map(w=>`<div class="mc-head">${w}</div>`).join('');
+  for(let i=0;i<primeiroWd;i++) html+='<div class="mc-day vazio"></div>';
+  for(let d=1;d<=nDias;d++){
+    const evs=porDia[d]||[];
+    html+=`<div class="mc-day${diaFiltroEventos===d?' selecionado':''}" onclick="filtrarDiaEventos(${d})"><div class="mc-num">${d}</div>${evs.slice(0,3).map(e=>`<span class="mc-chip ${e.tipo==='externo'?'externo':'interno'}">${esc(e.nome)}</span>`).join('')}${evs.length>3?`<div style="font-size:9px;color:var(--texto-suave)">+${evs.length-3}</div>`:''}</div>`;
+  }
+  html+='</div>';
+  el.innerHTML=html;
+}
+function filtrarDiaEventos(dia){
+  diaFiltroEventos=dia; renderCalendarioEventos();
+  const ano=eventosMesAtual.getFullYear(), mes=eventosMesAtual.getMonth();
+  const dataStr=`${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+  renderEventosLista(_eventosCache.filter(e=>e.data===dataStr));
+  document.getElementById('filtroDiaEventos').style.display='block';
+  document.getElementById('filtroDiaTexto').textContent=dataStr.split('-').reverse().join('/');
+}
+function renderEventosLista(lista){
+  const el=document.getElementById('tabelaEventos');
+  if(!lista.length){ el.innerHTML='<div class="empty">Nenhum evento registrado.</div>'; return; }
+  const tipoBadge={interno:'<span class="badge info">Interno</span>',externo:'<span class="badge pend">Externo</span>'};
+  const stBadge={a_confirmar:'<span class="badge pend">A confirmar</span>',confirmado:'<span class="badge ok">Confirmado</span>',concluido:'<span class="badge info">Concluído</span>',cancelado:'<span class="badge erro">Cancelado</span>'};
+  const ordenada=[...lista].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  el.innerHTML=`<table><thead><tr><th>Data</th><th>Evento</th><th>Local</th><th>Pessoas</th><th>Responsável</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>${ordenada.map(e=>`<tr>
+    <td>${e.data.split('-').reverse().join('/')}${e.horario?`<div style="font-size:11px;color:var(--texto-suave)">${esc(e.horario)}</div>`:''}</td>
+    <td>${tipoBadge[e.tipo]||''} <b>${esc(e.nome)}</b>${e.observacoes?`<div style="font-size:11px;color:var(--texto-suave)">${esc(e.observacoes)}</div>`:''}</td>
+    <td>${esc(e.local||'—')}</td><td>${e.num_pessoas||'—'}</td><td>${esc(e.responsavel||'—')}</td>
+    <td>${e.valor_fechado?('R$ '+Number(e.valor_fechado).toFixed(2).replace('.',',')):'—'}</td>
+    <td>${stBadge[e.status]||e.status}</td>
+    <td>${e.status==='a_confirmar'?`<button class="action-link" onclick="statusEvento('${e.id}','confirmado')">Confirmar</button> `:''}${e.status==='confirmado'?`<button class="action-link" onclick="statusEvento('${e.id}','concluido')">Concluir</button> `:''}<button class="action-link danger" onclick="removerEvento('${e.id}')">✕</button></td>
+  </tr>`).join('')}</tbody></table>`;
 }
 async function statusEvento(id,st){ try{ await supa.from('aeb_eventos').update({status:st}).eq('id',id); carregarEventos(); }catch(e){ alert('Erro: '+(e.message||e)); } }
 async function removerEvento(id){ if(!confirm('Remover este evento?')) return; try{ await supa.from('aeb_eventos').delete().eq('id',id); carregarEventos(); }catch(e){ alert('Erro: '+(e.message||e)); } }
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function carregarDashboard(){
+  const hojeStr=hoje();
+  const em7=new Date(); em7.setDate(em7.getDate()+7);
+  const em7Str=new Date(em7.getTime()-em7.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  try{
+    const {data,error}=await supa.from('aeb_eventos').select('*').order('data',{ascending:true}); if(error) throw error;
+    const eventos=data||[];
+    const proximos=eventos.filter(e=>e.status!=='cancelado' && e.data>=hojeStr && e.data<=em7Str);
+    const cardAlerta=document.getElementById('cardAlertaEventos'), listaAlerta=document.getElementById('listaAlertaEventos');
+    if(proximos.length){
+      cardAlerta.style.display='block';
+      listaAlerta.innerHTML=proximos.map(e=>{
+        const dias=Math.round((new Date(e.data+'T00:00:00')-new Date(hojeStr+'T00:00:00'))/86400000);
+        const quando=dias<=0?'é hoje':dias===1?'é amanhã':`faltam ${dias} dias`;
+        return `<div class="msg ${dias<=2?'erro':'alerta'}" style="display:block;margin-top:8px;"><b>${esc(e.nome)}</b> — ${e.data.split('-').reverse().join('/')}${e.horario?(' às '+esc(e.horario)):''} (${quando})</div>`;
+      }).join('');
+    } else { cardAlerta.style.display='none'; }
+
+    const prefixoMes=hojeStr.slice(0,7);
+    document.getElementById('dashEventosMes').textContent=eventos.filter(e=>e.status!=='cancelado' && (e.data||'').startsWith(prefixoMes)).length;
+
+    const proxLista=eventos.filter(e=>e.status!=='cancelado' && e.data>=hojeStr).slice(0,8);
+    const elProx=document.getElementById('tabelaProximosEventos');
+    if(!proxLista.length){ elProx.innerHTML='<div class="empty">Nenhum evento futuro registrado.</div>'; }
+    else{
+      const tipoBadge={interno:'<span class="badge info">Interno</span>',externo:'<span class="badge pend">Externo</span>'};
+      elProx.innerHTML=`<table><thead><tr><th>Data</th><th>Evento</th><th>Local</th><th>Pessoas</th></tr></thead><tbody>${proxLista.map(e=>`<tr>
+        <td>${e.data.split('-').reverse().join('/')}</td><td>${tipoBadge[e.tipo]||''} ${esc(e.nome)}</td><td>${esc(e.local||'—')}</td><td>${e.num_pessoas||'—'}</td>
+      </tr>`).join('')}</tbody></table>`;
+    }
+  }catch(e){ /* eventos indisponíveis não travam o resto do dashboard */ }
+
+  try{
+    const [ccRes,csRes,cdRes,sdRes]=await Promise.all([
+      supa.from('dp_colaboradores').select('id').eq('setor_slug','ab-cozinha').neq('status','desligado'),
+      supa.from('dp_colaboradores').select('id').eq('setor_slug','ab-salao').neq('status','desligado'),
+      supa.from('dp_candidatos').select('id').eq('setor_slug','ab-cozinha'),
+      supa.from('dp_candidatos').select('id').eq('setor_slug','ab-salao')
+    ]);
+    document.getElementById('dashColabsCozinha').textContent=(ccRes.data||[]).length;
+    document.getElementById('dashColabsSalao').textContent=(csRes.data||[]).length;
+    document.getElementById('dashVagas').textContent=(cdRes.data||[]).length+(sdRes.data||[]).length;
+  }catch(e){ /* silencioso */ }
+}
+
 
 // ============================================================
 // VOUCHERS LGM (somente leitura, vem do sistema de Voucher)
