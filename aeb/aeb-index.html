@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A&amp;B · Pedras Altas</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --verde-escuro:#0A2A22; --verde-claro:#C7F1C5; --sage:#A1E19C; --verde-mid:#123B30;
+    --bg:#F5F7F4; --card:#FFFFFF; --texto:#152119; --texto-suave:#5B6B62; --borda:#E1E8E2;
+    --erro:#B3432B; --erro-bg:#FBEAE4; --ok-bg:#EAF7E7; --alerta-bg:#FDF3E3; --alerta:#8A5A15;
+    --radius:10px; --mono:'SFMono-Regular',Consolas,Menlo,monospace; --sidebar-w:212px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--texto);}
+  .app{display:flex;min-height:100vh;}
+  .sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--verde-escuro);color:var(--verde-claro);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+  .sidebar .brand{display:flex;align-items:center;gap:10px;padding:20px 18px;border-bottom:1px solid rgba(255,255,255,.08);}
+  .sidebar .brand .mark{width:34px;height:34px;border-radius:8px;background:var(--sage);display:flex;align-items:center;justify-content:center;color:var(--verde-escuro);font-weight:700;font-size:12px;flex-shrink:0;}
+  .sidebar .brand h1{font-size:14.5px;margin:0;font-weight:600;color:#fff;}
+  .sidebar .brand .sub{font-size:11px;color:var(--sage);margin-top:1px;}
+  .sidebar .user-chip{padding:12px 18px;font-size:12px;color:var(--verde-claro);display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.08);}
+  .sidebar .user-chip .avatar{width:26px;height:26px;border-radius:50%;background:var(--verde-mid);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--sage);flex-shrink:0;}
+  .sidebar nav{flex:1;padding:14px 10px;}
+  .sidebar nav button{width:100%;display:flex;align-items:center;gap:10px;background:transparent;border:none;color:var(--verde-claro);padding:11px 12px;font-size:13.5px;cursor:pointer;border-radius:8px;text-align:left;opacity:.75;margin-bottom:2px;}
+  .sidebar nav button .ic{font-size:15px;width:18px;text-align:center;}
+  .sidebar nav button.active{opacity:1;background:var(--verde-mid);font-weight:600;}
+  .sidebar nav button:hover{opacity:1;background:rgba(255,255,255,.06);}
+  .sidebar .conn-status{padding:14px 18px;font-size:11.5px;color:var(--sage);border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;}
+  .conn-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;flex-shrink:0;}
+  .conn-dot.on{background:#5FBF6B;} .conn-dot.off{background:#C9463A;} .conn-dot.test{background:#E8B93F;}
+  main{flex:1;padding:28px 32px 60px;max-width:1180px;}
+  .view{display:none;} .view.active{display:block;}
+  .view-header{margin-bottom:20px;}
+  .view-header h2{font-size:19px;margin:0 0 3px;color:var(--verde-escuro);}
+  .view-header .desc{font-size:13px;color:var(--texto-suave);}
+  .card{background:var(--card);border:1px solid var(--borda);border-radius:var(--radius);padding:20px 22px;margin-bottom:20px;}
+  .card h3{font-size:13px;margin:0 0 16px;color:var(--verde-escuro);text-transform:uppercase;letter-spacing:.04em;}
+  label{display:block;font-size:12.5px;color:var(--texto-suave);margin-bottom:5px;margin-top:14px;}
+  label:first-of-type{margin-top:0;}
+  input[type=text],input[type=date],input[type=number],input[type=url],input[type=password],select,textarea{width:100%;padding:9px 11px;border:1px solid var(--borda);border-radius:7px;font-size:14px;background:#fcfdfc;color:var(--texto);font-family:inherit;}
+  textarea{resize:vertical;min-height:52px;}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--verde-mid);box-shadow:0 0 0 3px rgba(18,59,48,.10);}
+  .btn-primary{padding:11px 18px;background:var(--verde-escuro);color:var(--verde-claro);border:none;border-radius:7px;font-size:13.5px;font-weight:600;cursor:pointer;}
+  .btn-primary.full{width:100%;margin-top:20px;}
+  .btn-primary:hover{background:var(--verde-mid);}
+  .btn-secondary{padding:9px 14px;background:#fff;color:var(--verde-escuro);border:1px solid var(--verde-escuro);border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-secondary:hover{background:var(--verde-claro);}
+  .msg{margin-top:14px;padding:10px 12px;border-radius:7px;font-size:13px;display:none;}
+  .msg.erro{background:var(--erro-bg);color:var(--erro);display:block;}
+  .msg.ok{background:var(--ok-bg);color:var(--verde-mid);display:block;}
+  .msg.alerta{background:var(--alerta-bg);color:var(--alerta);display:block;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--texto-suave);padding:8px 10px;border-bottom:1px solid var(--borda);}
+  td{padding:9px 10px;border-bottom:1px solid var(--borda);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;}
+  .badge.ok{background:var(--ok-bg);color:var(--verde-mid);}
+  .badge.pend{background:var(--alerta-bg);color:var(--alerta);}
+  .badge.info{background:#EFF4EF;color:var(--texto-suave);}
+  .badge.erro{background:var(--erro-bg);color:var(--erro);}
+  .empty{text-align:center;padding:34px 20px;color:var(--texto-suave);font-size:13.5px;}
+  .divider{height:1px;background:var(--borda);margin:20px 0;}
+  .config-note{font-size:12px;color:var(--texto-suave);background:#F2F5F2;border-radius:7px;padding:10px 12px;margin-top:14px;line-height:1.5;}
+  .action-link{background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:12px;text-decoration:underline;padding:0;}
+  .action-link.danger{color:var(--erro);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  @media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr;}}
+  .dias-check{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  .dias-check label{display:flex;align-items:center;gap:4px;margin:0;font-size:12.5px;background:#fcfdfc;border:1px solid var(--borda);padding:6px 10px;border-radius:7px;cursor:pointer;}
+  .dias-check input{width:auto;margin:0;}
+  .row-form{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:14px;}
+  .row-form .fld{flex:1;min-width:120px;}
+  .row-form .fld label{margin-top:0;}
+  .stat-row{display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+  .stat{background:var(--card);border:1px solid var(--borda);border-radius:var(--radius);padding:14px 18px;flex:1;min-width:130px;}
+  .stat .num{font-size:22px;font-weight:700;color:var(--verde-escuro);}
+  .stat .lbl{font-size:11.5px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
+  .cal-table{border-collapse:collapse;font-size:11.5px;}
+  .cal-table th,.cal-table td{border:1px solid var(--borda);padding:5px 6px;text-align:center;white-space:nowrap;}
+  .cal-table thead th{background:#F2F5F2;color:var(--texto-suave);font-weight:600;font-size:10.5px;}
+  .cal-setor-row td{background:var(--verde-escuro);color:var(--verde-claro);font-weight:700;font-size:11px;letter-spacing:.05em;text-align:left;padding:7px 8px;}
+  .cal-turno-row td{background:var(--verde-claro);color:var(--verde-escuro);font-weight:700;font-size:10.5px;letter-spacing:.04em;text-align:left;padding:6px 8px;}
+  .cal-t,.cal-f{display:inline-block;min-width:18px;border-radius:4px;padding:1px 4px;font-weight:700;font-size:11px;}
+  .cal-t{background:var(--ok-bg);color:var(--verde-mid);}
+  .cal-f{background:var(--alerta-bg);color:var(--alerta);}
+  .cal-sticky{position:sticky;left:0;background:var(--card);text-align:left !important;}
+  @media print{ .sidebar,.view-header,.btn-primary,.btn-secondary,#btnEscalaMesAnt,#btnEscalaMesProx{display:none !important;} main{padding:0;max-width:none;} }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="telaLogin" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);">
+  <div style="width:100%;max-width:340px;padding:0 20px;">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="width:52px;height:52px;border-radius:12px;background:var(--sage);display:flex;align-items:center;justify-content:center;color:var(--verde-escuro);font-weight:800;font-size:13px;margin:0 auto 12px;">A&amp;B</div>
+      <h2 style="margin:0;color:var(--verde-escuro);font-size:18px;">A&amp;B</h2>
+      <div style="color:var(--texto-suave);font-size:13px;margin-top:2px;">Entrar no sistema</div>
+    </div>
+    <div class="card">
+      <label style="margin-top:0;">Usuário</label>
+      <select id="loginUsuario"><option value="">Selecione seu usuário...</option></select>
+      <label>Senha</label>
+      <input type="password" id="loginSenha" placeholder="Digite a senha">
+      <button class="btn-primary full" id="btnEntrar">Entrar</button>
+      <div class="msg" id="loginMsg"></div>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="appPrincipal" style="display:none;">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="mark">A&amp;B</div>
+      <div><h1>A&amp;B</h1><div class="sub">Pedras Altas</div></div>
+    </div>
+    <div class="user-chip">
+      <div class="avatar" id="avatarUser">–</div>
+      <div><div style="font-weight:600;" id="nomeUser">–</div><div style="font-size:10.5px;color:var(--sage);" id="perfilUser">–</div></div>
+    </div>
+    <nav>
+      <button data-view="escala" class="active"><span class="ic">📅</span>Escala de Folga</button>
+      <button data-view="eventos"><span class="ic">🎉</span>Eventos</button>
+      <button data-view="vouchers"><span class="ic">🎟</span>Vouchers LGM</button>
+      <button data-view="equipe"><span class="ic">👥</span>Equipe (DP)</button>
+      <button data-view="config"><span class="ic">⚙</span>Configuração</button>
+    </nav>
+    <div class="conn-status"><span class="conn-dot off" id="connDot"></span><span id="connText">Não conectado</span></div>
+    <div style="padding:10px 18px 16px;">
+      <button type="button" onclick="sair()" style="width:100%;background:transparent;border:1px solid rgba(255,255,255,.2);color:var(--verde-claro);padding:8px;border-radius:7px;font-size:12.5px;cursor:pointer;">Sair</button>
+    </div>
+  </div>
+
+  <main>
+    <!-- ESCALA DE FOLGA -->
+    <section class="view active" id="view-escala">
+      <div class="view-header"><h2>Escala de Folga</h2><div class="desc">Cozinha e Salão — dias de folga na semana.</div></div>
+      <div class="card">
+        <h3>Adicionar à escala</h3>
+        <div class="grid3">
+          <div><label style="margin-top:0;">Nome</label><input type="text" id="escNome"></div>
+          <div><label style="margin-top:0;">Cargo</label><input type="text" id="escCargo" placeholder="Ex: Cozinheiro"></div>
+          <div><label style="margin-top:0;">Setor</label>
+            <select id="escSetor"><option value="cozinha">Cozinha</option><option value="salao">Salão</option></select>
+          </div>
+        </div>
+        <label>Turno</label>
+        <select id="escTurno"><option value="manha">Manhã</option><option value="tarde">Tarde</option><option value="noite">Noite</option><option value="integral">Integral</option></select>
+        <label>Dias de folga na semana</label>
+        <div class="dias-check" id="escDias">
+          <label><input type="checkbox" value="dom">Dom</label>
+          <label><input type="checkbox" value="seg">Seg</label>
+          <label><input type="checkbox" value="ter">Ter</label>
+          <label><input type="checkbox" value="qua">Qua</label>
+          <label><input type="checkbox" value="qui">Qui</label>
+          <label><input type="checkbox" value="sex">Sex</label>
+          <label><input type="checkbox" value="sab">Sáb</label>
+        </div>
+        <label>Domingo de folga (rotativo, opcional)</label>
+        <select id="escDomingoFolga">
+          <option value="">Nenhum — usa só os dias marcados acima</option>
+          <option value="1">1º domingo do mês</option>
+          <option value="2">2º domingo do mês</option>
+          <option value="3">3º domingo do mês</option>
+          <option value="4">4º domingo do mês</option>
+          <option value="5">5º domingo do mês</option>
+        </select>
+        <button class="btn-primary full" id="btnAddEscala">Adicionar</button>
+        <div class="msg" id="escMsg"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <h3 style="margin:0;">Escala do mês</h3>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn-secondary" type="button" id="btnEscalaMesAnt">‹</button>
+            <div id="escalaMesLabel" style="font-weight:700;color:var(--verde-escuro);min-width:130px;text-align:center;font-size:13px;"></div>
+            <button class="btn-secondary" type="button" id="btnEscalaMesProx">›</button>
+            <button class="btn-secondary" type="button" id="btnEscalaImprimir">Imprimir</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;margin-top:14px;"><div id="tabelaEscala"></div></div>
+      </div>
+    </section>
+
+    <!-- EVENTOS -->
+    <section class="view" id="view-eventos">
+      <div class="view-header"><h2>Eventos</h2><div class="desc">Eventos internos e externos do A&amp;B.</div></div>
+      <div class="card">
+        <h3>Registrar evento</h3>
+        <div class="grid3">
+          <div><label style="margin-top:0;">Tipo</label><select id="evTipo"><option value="interno">Interno</option><option value="externo">Externo</option></select></div>
+          <div><label style="margin-top:0;">Nome do evento</label><input type="text" id="evNome" placeholder="Ex: Jantar de confraternização"></div>
+          <div><label style="margin-top:0;">Data</label><input type="date" id="evData"></div>
+        </div>
+        <div class="grid3">
+          <div><label>Horário</label><input type="text" id="evHorario" placeholder="Ex: 19h30"></div>
+          <div><label>Local</label><input type="text" id="evLocal" placeholder="Ex: Salão principal"></div>
+          <div><label>Nº de pessoas</label><input type="number" id="evPessoas" min="0" placeholder="0"></div>
+        </div>
+        <div class="grid2">
+          <div><label>Responsável</label><input type="text" id="evResponsavel"></div>
+          <div><label>Valor fechado (R$, opcional)</label><input type="number" id="evValor" min="0" step="0.01" placeholder="0,00"></div>
+        </div>
+        <label>Observações (cardápio, montagem, equipe...)</label>
+        <textarea id="evObs" placeholder="Detalhes do evento..."></textarea>
+        <button class="btn-primary full" id="btnAddEvento">Registrar evento</button>
+        <div class="msg" id="evMsg"></div>
+      </div>
+      <div class="card"><h3>Eventos registrados</h3><div id="tabelaEventos"></div></div>
+    </section>
+
+    <!-- VOUCHERS LGM (SOMENTE LEITURA) -->
+    <section class="view" id="view-vouchers">
+      <div class="view-header"><h2>Vouchers LGM</h2><div class="desc">Movimentação vinda do sistema de Voucher LGM — apenas para controle.</div></div>
+      <div class="config-note">Estes dados pertencem ao sistema de Voucher LGM. Aqui é só consulta — para lançar ou corrigir um fechamento, use o sistema de Voucher.</div>
+      <div class="card" style="margin-top:20px;"><h3>Fechamentos recentes</h3><div id="tabelaVouchers"></div></div>
+    </section>
+
+    <!-- EQUIPE (DP) -->
+    <section class="view" id="view-equipe">
+      <div class="view-header"><h2>Equipe (dados do DP)</h2><div class="desc">Informações da Cozinha e do Salão vindas do sistema de DP (somente leitura).</div></div>
+
+      <h3 style="color:var(--verde-escuro);font-size:13px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 12px;">Cozinha</h3>
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="statColabsCozinha">–</div><div class="lbl">Colaboradores ativos</div></div>
+        <div class="stat"><div class="num" id="statExperienciaCozinha">–</div><div class="lbl">Em experiência</div></div>
+        <div class="stat"><div class="num" id="statVagasCozinha">–</div><div class="lbl">Vagas em aberto</div></div>
+      </div>
+      <div class="card"><h3>Colaboradores da Cozinha</h3><div id="tabelaColabsCozinha"></div></div>
+      <div class="card"><h3>Pipeline de contratação (Cozinha)</h3><div id="tabelaPipelineCozinha"></div></div>
+
+      <div class="divider"></div>
+
+      <h3 style="color:var(--verde-escuro);font-size:13px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 12px;">Salão</h3>
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="statColabsSalao">–</div><div class="lbl">Colaboradores ativos</div></div>
+        <div class="stat"><div class="num" id="statExperienciaSalao">–</div><div class="lbl">Em experiência</div></div>
+        <div class="stat"><div class="num" id="statVagasSalao">–</div><div class="lbl">Vagas em aberto</div></div>
+      </div>
+      <div class="card"><h3>Colaboradores do Salão</h3><div id="tabelaColabsSalao"></div></div>
+      <div class="card"><h3>Pipeline de contratação (Salão)</h3><div id="tabelaPipelineSalao"></div></div>
+    </section>
+
+    <!-- CONFIGURAÇÃO -->
+    <section class="view" id="view-config">
+      <div class="view-header"><h2>Configuração</h2><div class="desc">Conexão e usuários.</div></div>
+      <div class="grid2">
+        <div class="card">
+          <h3>Conexão Supabase</h3>
+          <label style="margin-top:0;">URL do projeto</label>
+          <input type="text" id="cfgUrl" placeholder="https://xxxxx.supabase.co">
+          <label>Chave anon (public)</label>
+          <input type="text" id="cfgKey" placeholder="eyJhbGciOi...">
+          <div class="config-note">Já vem pré-configurado com o banco central. Só mexa aqui se souber o que está fazendo.</div>
+          <button class="btn-primary full" id="btnSalvarConfig">Salvar conexão</button>
+          <div class="msg" id="cfgMsg"></div>
+        </div>
+        <div class="card" id="cardUsuarios">
+          <h3>Usuários e senhas</h3>
+          <div id="listaUsuarios"></div>
+          <div class="row-form">
+            <div class="fld"><label>Nome</label><input type="text" id="novoUsrNome"></div>
+            <div class="fld"><label>Login</label><input type="text" id="novoUsrLogin"></div>
+            <div class="fld"><label>Senha</label><input type="text" id="novoUsrSenha"></div>
+            <div class="fld"><label>Perfil</label><select id="novoUsrPerfil"><option value="operador">Operador</option><option value="admin">Administrador</option></select></div>
+          </div>
+          <button class="btn-secondary" id="btnAddUsuario" style="margin-top:12px;">Adicionar usuário</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+// ============================================================
+// CONFIG E CONEXÃO
+// ============================================================
+const CONFIG_KEY = 'aebLGM_config_v1';
+let config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+if(!config.url) config.url = 'https://xdnnngifpbrbhxyluans.supabase.co';
+if(!config.key) config.key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhkbm5uZ2lmcGJyYmh4eWx1YW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODgwODQsImV4cCI6MjA5NjI2NDA4NH0.1HmvUOo56BhCdLTjJH3UfTMkq8uO7-EK_zg3W0hX46A';
+localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+
+let supa = null;
+function initConn(){
+  const dot=document.getElementById('connDot'), txt=document.getElementById('connText');
+  if(config.url && config.key){
+    try{ supa = supabase.createClient(config.url, config.key); dot.className='conn-dot on'; txt.textContent='Conectado'; }
+    catch(e){ supa=null; dot.className='conn-dot off'; txt.textContent='Erro na conexão'; }
+  } else { supa=null; dot.className='conn-dot test'; txt.textContent='Sem conexão'; }
+}
+function uid(){ return crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now()+'-'+Math.random().toString(16).slice(2); }
+function hoje(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function showMsg(id,txt,tipo){ const el=document.getElementById(id); el.textContent=txt; el.className='msg '+tipo; }
+function iniciais(n){ const p=(n||'').trim().split(/\s+/); return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase()||'–'; }
+function esc(t){ return (t||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+const MESES_LBL=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const TURNO_LBL={manha:'Manhã',tarde:'Tarde',noite:'Noite',integral:'Integral'};
+const TURNO_ORDEM=['manha','tarde','noite','integral'];
+const SETOR_LBL={cozinha:'Cozinha',salao:'Salão'};
+const SETOR_ORDEM=['cozinha','salao'];
+
+function diasNoMes(ano,mes){ return new Date(ano,mes+1,0).getDate(); }
+function ehFolgaNoDia(colab,dataObj){
+  const wd=dataObj.getDay();
+  const wdKey=['dom','seg','ter','qua','qui','sex','sab'][wd];
+  const diasSet=(colab.dias_folga||'').split(',').filter(Boolean);
+  if(diasSet.includes(wdKey)) return true;
+  if(wd===0 && colab.domingo_folga){
+    const ocorrencia=Math.floor((dataObj.getDate()-1)/7)+1;
+    if(ocorrencia===Number(colab.domingo_folga)) return true;
+  }
+  return false;
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+const UID_KEY='aebLGM_uid';
+let usuarios=[], usuarioLogado=null;
+
+async function carregarUsuarios(){
+  try{
+    const {data,error}=await supa.from('aeb_usuarios').select('*').order('nome');
+    if(error) throw error;
+    if(!data||!data.length){
+      const p={id:uid(),nome:'Administrador',login:'ADM',senha:'ADM',perfil:'admin'};
+      await supa.from('aeb_usuarios').insert([p]); usuarios=[p];
+    } else usuarios=data;
+  }catch(e){ console.warn('users',e.message); usuarios=[{id:'fb',nome:'Administrador',login:'ADM',senha:'ADM',perfil:'admin'}]; }
+}
+function popularLogin(){
+  document.getElementById('loginUsuario').innerHTML='<option value="">Selecione seu usuário...</option>'+usuarios.map(u=>`<option value="${u.id}">${esc(u.nome)}</option>`).join('');
+}
+function ehAdmin(){ return usuarioLogado && usuarioLogado.perfil==='admin'; }
+function aplicarPerfil(){
+  const nav=document.querySelector('.sidebar nav button[data-view="config"]');
+  if(nav) nav.style.display = ehAdmin()?'flex':'none';
+  document.getElementById('nomeUser').textContent=usuarioLogado?usuarioLogado.nome:'–';
+  document.getElementById('perfilUser').textContent=usuarioLogado?(usuarioLogado.perfil==='admin'?'Administrador':'Operador'):'–';
+  document.getElementById('avatarUser').textContent=usuarioLogado?iniciais(usuarioLogado.nome):'–';
+}
+function mostrarApp(){ document.getElementById('telaLogin').style.display='none'; document.getElementById('appPrincipal').style.display='flex'; aplicarPerfil(); carregarTudo(); }
+function fazerLogin(){
+  const id=document.getElementById('loginUsuario').value, senha=document.getElementById('loginSenha').value, m=document.getElementById('loginMsg');
+  if(!id){ m.textContent='Selecione um usuário.'; m.className='msg erro'; return; }
+  const u=usuarios.find(x=>x.id===id);
+  if(!u||String(u.senha||'')!==String(senha)){ m.textContent='Usuário ou senha incorretos.'; m.className='msg erro'; document.getElementById('loginSenha').value=''; return; }
+  usuarioLogado=u; localStorage.setItem(UID_KEY,u.id); m.className='msg'; document.getElementById('loginSenha').value=''; mostrarApp();
+}
+function sair(){ localStorage.removeItem(UID_KEY); usuarioLogado=null; document.getElementById('appPrincipal').style.display='none'; document.getElementById('telaLogin').style.display='flex'; }
+document.getElementById('btnEntrar').addEventListener('click',fazerLogin);
+document.getElementById('loginSenha').addEventListener('keydown',e=>{ if(e.key==='Enter') fazerLogin(); });
+
+async function iniciarLogin(){
+  await carregarUsuarios(); popularLogin();
+  const sid=localStorage.getItem(UID_KEY), su=sid?usuarios.find(u=>u.id===sid):null;
+  if(su){ usuarioLogado=su; mostrarApp(); } else document.getElementById('telaLogin').style.display='flex';
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+document.querySelectorAll('.sidebar nav button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.sidebar nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    if(btn.dataset.view==='equipe'){ carregarEquipeSetor('ab-cozinha','Cozinha'); carregarEquipeSetor('ab-salao','Salao'); }
+    if(btn.dataset.view==='vouchers') carregarVouchers();
+    if(btn.dataset.view==='config') renderUsuarios();
+  });
+});
+
+function carregarTudo(){
+  carregarEscala(); carregarEventos();
+  document.getElementById('evData').value=hoje();
+}
+
+// ============================================================
+// ESCALA DE FOLGA (Cozinha + Salão)
+// ============================================================
+let escalaMesAtual=new Date(); escalaMesAtual.setDate(1); escalaMesAtual.setHours(0,0,0,0);
+document.getElementById('btnAddEscala').addEventListener('click', async ()=>{
+  const nome=document.getElementById('escNome').value.trim();
+  if(!nome){ showMsg('escMsg','Digite o nome.','erro'); return; }
+  const dias=[...document.querySelectorAll('#escDias input:checked')].map(c=>c.value).join(',');
+  const domingoFolga=document.getElementById('escDomingoFolga').value;
+  const reg={id:uid(),nome,cargo:document.getElementById('escCargo').value.trim(),setor:document.getElementById('escSetor').value,turno:document.getElementById('escTurno').value,dias_folga:dias,domingo_folga:domingoFolga?parseInt(domingoFolga):null,status:'ativo'};
+  try{
+    const {error}=await supa.from('aeb_escala').insert([reg]); if(error) throw error;
+    document.getElementById('escNome').value=''; document.getElementById('escCargo').value=''; document.getElementById('escDomingoFolga').value='';
+    document.querySelectorAll('#escDias input:checked').forEach(c=>c.checked=false);
+    showMsg('escMsg','Adicionada à escala.','ok'); carregarEscala();
+  }catch(e){ showMsg('escMsg','Erro: '+(e.message||e),'erro'); }
+});
+document.getElementById('btnEscalaMesAnt').addEventListener('click',()=>{ escalaMesAtual.setMonth(escalaMesAtual.getMonth()-1); carregarEscala(); });
+document.getElementById('btnEscalaMesProx').addEventListener('click',()=>{ escalaMesAtual.setMonth(escalaMesAtual.getMonth()+1); carregarEscala(); });
+document.getElementById('btnEscalaImprimir').addEventListener('click',()=>window.print());
+async function carregarEscala(){
+  const el=document.getElementById('tabelaEscala');
+  document.getElementById('escalaMesLabel').textContent=`${MESES_LBL[escalaMesAtual.getMonth()]} ${escalaMesAtual.getFullYear()}`;
+  try{
+    const {data,error}=await supa.from('aeb_escala').select('*').eq('status','ativo').order('nome'); if(error) throw error;
+    if(!data.length){ el.innerHTML='<div class="empty">Ninguém na escala ainda.</div>'; return; }
+    const ano=escalaMesAtual.getFullYear(), mes=escalaMesAtual.getMonth(), nDias=diasNoMes(ano,mes);
+    const diasArr=[...Array(nDias)].map((_,i)=>new Date(ano,mes,i+1));
+    const wdLbl=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const porSetor={};
+    data.forEach(c=>{ const s=c.setor||'cozinha'; (porSetor[s]=porSetor[s]||[]).push(c); });
+    let html=`<table class="cal-table"><thead><tr><th class="cal-sticky">Colaborador</th>${diasArr.map(d=>`<th>${d.getDate()}<div style="font-weight:400;font-size:9px;">${wdLbl[d.getDay()]}</div></th>`).join('')}</tr></thead><tbody>`;
+    SETOR_ORDEM.forEach(s=>{
+      if(!porSetor[s]||!porSetor[s].length) return;
+      html+=`<tr class="cal-setor-row"><td colspan="${nDias+1}">${SETOR_LBL[s].toUpperCase()}</td></tr>`;
+      const porTurno={};
+      porSetor[s].forEach(c=>{ const t=c.turno||'outro'; (porTurno[t]=porTurno[t]||[]).push(c); });
+      const ordemT=[...TURNO_ORDEM,...Object.keys(porTurno).filter(t=>!TURNO_ORDEM.includes(t))];
+      ordemT.forEach(t=>{
+        if(!porTurno[t]||!porTurno[t].length) return;
+        html+=`<tr class="cal-turno-row"><td colspan="${nDias+1}">${(TURNO_LBL[t]||t).toUpperCase()}</td></tr>`;
+        porTurno[t].forEach(c=>{
+          html+=`<tr><td class="cal-sticky"><b>${esc(c.nome)}</b>${c.cargo?`<div style="font-size:10px;color:var(--texto-suave)">${esc(c.cargo)}</div>`:''}</td>`;
+          diasArr.forEach(d=>{ const folga=ehFolgaNoDia(c,d); html+=`<td><span class="${folga?'cal-f':'cal-t'}">${folga?'F':'T'}</span></td>`; });
+          html+='</tr>';
+        });
+      });
+    });
+    html+='</tbody></table><div style="margin-top:10px;font-size:12px;color:var(--texto-suave);">T = Trabalho · F = Folga</div>';
+    html+='<div style="margin-top:16px;"><div style="font-size:12px;color:var(--texto-suave);margin-bottom:6px;">Remover da escala:</div>'+
+      data.map(c=>`<span class="badge info" style="margin:0 6px 6px 0;display:inline-flex;align-items:center;gap:6px;">${esc(c.nome)} · ${SETOR_LBL[c.setor]||c.setor} <button class="action-link danger" style="font-size:11px;" onclick="removerEscala('${c.id}')">✕</button></span>`).join('')+'</div>';
+    el.innerHTML=html;
+  }catch(e){ el.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+async function removerEscala(id){ if(!confirm('Remover da escala?')) return; try{ await supa.from('aeb_escala').delete().eq('id',id); carregarEscala(); }catch(e){ alert('Erro: '+(e.message||e)); } }
+
+// ============================================================
+// EVENTOS (internos e externos)
+// ============================================================
+document.getElementById('btnAddEvento').addEventListener('click', async ()=>{
+  const nome=document.getElementById('evNome').value.trim(), data=document.getElementById('evData').value;
+  if(!nome||!data){ showMsg('evMsg','Preencha nome e data.','erro'); return; }
+  const reg={
+    id:uid(), tipo:document.getElementById('evTipo').value, nome, data,
+    horario:document.getElementById('evHorario').value.trim(), local:document.getElementById('evLocal').value.trim(),
+    num_pessoas:parseInt(document.getElementById('evPessoas').value)||null,
+    responsavel:document.getElementById('evResponsavel').value.trim(),
+    valor_fechado:parseFloat(document.getElementById('evValor').value)||null,
+    status:'a_confirmar', observacoes:document.getElementById('evObs').value.trim()
+  };
+  try{
+    const {error}=await supa.from('aeb_eventos').insert([reg]); if(error) throw error;
+    ['evNome','evHorario','evLocal','evPessoas','evResponsavel','evValor','evObs'].forEach(i=>document.getElementById(i).value='');
+    showMsg('evMsg','Evento registrado.','ok'); carregarEventos();
+  }catch(e){ showMsg('evMsg','Erro: '+(e.message||e),'erro'); }
+});
+async function carregarEventos(){
+  const el=document.getElementById('tabelaEventos');
+  try{
+    const {data,error}=await supa.from('aeb_eventos').select('*').order('data',{ascending:true}); if(error) throw error;
+    if(!data.length){ el.innerHTML='<div class="empty">Nenhum evento registrado.</div>'; return; }
+    const tipoBadge={interno:'<span class="badge info">Interno</span>',externo:'<span class="badge pend">Externo</span>'};
+    const stBadge={a_confirmar:'<span class="badge pend">A confirmar</span>',confirmado:'<span class="badge ok">Confirmado</span>',concluido:'<span class="badge info">Concluído</span>',cancelado:'<span class="badge erro">Cancelado</span>'};
+    el.innerHTML=`<table><thead><tr><th>Data</th><th>Evento</th><th>Local</th><th>Pessoas</th><th>Responsável</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>${data.map(e=>`<tr>
+      <td>${e.data.split('-').reverse().join('/')}${e.horario?`<div style="font-size:11px;color:var(--texto-suave)">${esc(e.horario)}</div>`:''}</td>
+      <td>${tipoBadge[e.tipo]||''} <b>${esc(e.nome)}</b>${e.observacoes?`<div style="font-size:11px;color:var(--texto-suave)">${esc(e.observacoes)}</div>`:''}</td>
+      <td>${esc(e.local||'—')}</td><td>${e.num_pessoas||'—'}</td><td>${esc(e.responsavel||'—')}</td>
+      <td>${e.valor_fechado?('R$ '+Number(e.valor_fechado).toFixed(2).replace('.',',')):'—'}</td>
+      <td>${stBadge[e.status]||e.status}</td>
+      <td>${e.status==='a_confirmar'?`<button class="action-link" onclick="statusEvento('${e.id}','confirmado')">Confirmar</button> `:''}${e.status==='confirmado'?`<button class="action-link" onclick="statusEvento('${e.id}','concluido')">Concluir</button> `:''}<button class="action-link danger" onclick="removerEvento('${e.id}')">✕</button></td>
+    </tr>`).join('')}</tbody></table>`;
+  }catch(e){ el.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+async function statusEvento(id,st){ try{ await supa.from('aeb_eventos').update({status:st}).eq('id',id); carregarEventos(); }catch(e){ alert('Erro: '+(e.message||e)); } }
+async function removerEvento(id){ if(!confirm('Remover este evento?')) return; try{ await supa.from('aeb_eventos').delete().eq('id',id); carregarEventos(); }catch(e){ alert('Erro: '+(e.message||e)); } }
+
+// ============================================================
+// VOUCHERS LGM (somente leitura, vem do sistema de Voucher)
+// ============================================================
+async function carregarVouchers(){
+  const el=document.getElementById('tabelaVouchers');
+  el.innerHTML='<div class="empty">Carregando...</div>';
+  try{
+    const {data,error}=await supa.from('fechamentos_sem_lancamento').select('*').order('data',{ascending:false}).limit(60); if(error) throw error;
+    if(!data||!data.length){ el.innerHTML='<div class="empty">Nenhum fechamento encontrado.</div>'; return; }
+    el.innerHTML=`<table><thead><tr><th>Data</th><th>Rodízio (scan)</th><th>Fondue (scan)</th><th>Rodízio (caixa)</th><th>Fondue (caixa)</th><th>Bateu?</th><th>Valor total</th></tr></thead><tbody>${data.map(f=>`<tr>
+      <td>${(f.data||'').split('-').reverse().join('/')}</td>
+      <td>${f.qtd_rodizio_ocr??'—'}</td><td>${f.qtd_fondue_ocr??'—'}</td>
+      <td>${f.qtd_rodizio_caixa??'—'}</td><td>${f.qtd_fondue_caixa??'—'}</td>
+      <td>${f.bateu===true?'<span class="badge ok">Sim</span>':(f.bateu===false?'<span class="badge erro">Não</span>':'—')}</td>
+      <td>${f.valor_total!=null?('R$ '+Number(f.valor_total).toFixed(2).replace('.',',')):'—'}</td>
+    </tr>`).join('')}</tbody></table>`;
+  }catch(e){ el.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+
+// ============================================================
+// EQUIPE (DP) — leitura das tabelas do DP, Cozinha e Salão
+// ============================================================
+async function carregarEquipeSetor(setorSlug,sufixo){
+  const elC=document.getElementById('tabelaColabs'+sufixo), elP=document.getElementById('tabelaPipeline'+sufixo);
+  try{
+    const [colabsRes,candRes]=await Promise.all([
+      supa.from('dp_colaboradores').select('*').eq('setor_slug',setorSlug).neq('status','desligado').order('nome'),
+      supa.from('dp_candidatos').select('*').eq('setor_slug',setorSlug)
+    ]);
+    const colabs=colabsRes.data||[], cands=candRes.data||[];
+    document.getElementById('statColabs'+sufixo).textContent=colabs.length;
+    document.getElementById('statExperiencia'+sufixo).textContent=colabs.filter(c=>c.contrato==='experiencia').length;
+    document.getElementById('statVagas'+sufixo).textContent=cands.length;
+
+    if(!colabs.length){ elC.innerHTML='<div class="empty">Nenhum colaborador cadastrado.</div>'; }
+    else elC.innerHTML=`<table><thead><tr><th>Nome</th><th>Cargo</th><th>Admissão</th><th>Contrato</th></tr></thead><tbody>${colabs.map(c=>`<tr>
+      <td>${esc(c.nome)}</td><td>${esc(c.cargo||'—')}</td><td>${c.adm?c.adm.split('-').reverse().join('/'):'—'}</td>
+      <td>${c.contrato==='experiencia'?'<span class="badge pend">Experiência</span>':'<span class="badge info">'+esc(c.contrato||'—')+'</span>'}</td>
+    </tr>`).join('')}</tbody></table>`;
+
+    if(!cands.length){ elP.innerHTML='<div class="empty">Nenhuma vaga/candidato em processo.</div>'; }
+    else elP.innerHTML=`<table><thead><tr><th>Nome</th><th>Cargo</th><th>Etapa</th></tr></thead><tbody>${cands.map(c=>`<tr>
+      <td>${esc(c.nome)}</td><td>${esc(c.cargo||'—')}</td><td><span class="badge info">${esc(c.etapa||'—')}</span></td>
+    </tr>`).join('')}</tbody></table>`;
+  }catch(e){ elC.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+
+// ============================================================
+// CONFIGURAÇÃO
+// ============================================================
+document.getElementById('cfgUrl').value=config.url||'';
+document.getElementById('cfgKey').value=config.key||'';
+document.getElementById('btnSalvarConfig').addEventListener('click',()=>{
+  config.url=document.getElementById('cfgUrl').value.trim(); config.key=document.getElementById('cfgKey').value.trim();
+  localStorage.setItem(CONFIG_KEY,JSON.stringify(config)); initConn();
+  showMsg('cfgMsg', supa?'Conexão salva.':'Faltam dados de conexão.', supa?'ok':'erro');
+});
+function renderUsuarios(){
+  const el=document.getElementById('listaUsuarios');
+  if(!usuarios.length){ el.innerHTML='<div class="empty">Nenhum usuário.</div>'; return; }
+  el.innerHTML=usuarios.map(u=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)">
+    <div style="flex:1"><b>${esc(u.nome)}</b> <span style="font-size:12px;color:var(--texto-suave)">(${esc(u.login||'')})</span></div>
+    <span class="badge ${u.perfil==='admin'?'ok':'info'}">${u.perfil==='admin'?'Admin':'Operador'}</span>
+    <button class="action-link danger" onclick="removerUsuario('${u.id}')">Remover</button>
+  </div>`).join('');
+}
+document.getElementById('btnAddUsuario').addEventListener('click', async ()=>{
+  const nome=document.getElementById('novoUsrNome').value.trim(), login=document.getElementById('novoUsrLogin').value.trim(), senha=document.getElementById('novoUsrSenha').value.trim(), perfil=document.getElementById('novoUsrPerfil').value;
+  if(!nome||!senha){ alert('Preencha nome e senha.'); return; }
+  const novo={id:uid(),nome,login,senha,perfil};
+  try{ const {error}=await supa.from('aeb_usuarios').insert([novo]); if(error) throw error; usuarios.push(novo); ['novoUsrNome','novoUsrLogin','novoUsrSenha'].forEach(i=>document.getElementById(i).value=''); renderUsuarios(); popularLogin(); }
+  catch(e){ alert('Erro: '+(e.message||e)); }
+});
+async function removerUsuario(id){
+  if(usuarios.length<=1){ alert('Não é possível remover o único usuário.'); return; }
+  if(!confirm('Remover este usuário?')) return;
+  try{ await supa.from('aeb_usuarios').delete().eq('id',id); usuarios=usuarios.filter(u=>u.id!==id); renderUsuarios(); popularLogin(); }
+  catch(e){ alert('Erro: '+(e.message||e)); }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+initConn();
+iniciarLogin();
+</script>
+</body>
+</html>
