@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -175,7 +176,7 @@ const SETORES = {
     url: './dp/',
     submenus: []
   },
-  aeb: {
+  voucher: {
     nome: 'Voucher LGM',
     ativo: true,
     url: './voucher/',
@@ -193,6 +194,12 @@ const SETORES = {
     nome: 'Governança',
     ativo: true,
     url: './governanca/',
+    submenus: []
+  },
+  aeb: {
+    nome: 'A&B',
+    ativo: true,
+    url: './aeb/',
     submenus: []
   }
 };
@@ -423,9 +430,9 @@ function carregarUsuarios(){ return JSON.parse(localStorage.getItem(USERS_KEY) |
 function salvarUsuarios(arr){ localStorage.setItem(USERS_KEY, JSON.stringify(arr)); }
 if(carregarUsuarios().length === 0){
   salvarUsuarios([
-    {nome:'Eduardo Rohden', nivel:5, menus:['gerencia','manutencao','dp','aeb','recepcao','governanca']},
+    {nome:'Eduardo Rohden', nivel:5, menus:['gerencia','manutencao','dp','voucher','recepcao','governanca','aeb']},
     {nome:'Encarregada de Governança', nivel:2, menus:['governanca']},
-    {nome:'Controlista A&B', nivel:2, menus:['aeb']},
+    {nome:'Controlista A&B', nivel:2, menus:['voucher']},
   ]);
 }
 
