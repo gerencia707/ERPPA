@@ -393,7 +393,7 @@
           <label>ID da pasta no Google Drive</label>
           <input type="text" id="cfgGoogleFolderId" placeholder="Cole aqui o trecho depois de /folders/ na URL da pasta">
           <div class="config-note">
-            Configuração única — veja o passo a passo que te mandei junto com este arquivo. O sistema organiza os PDFs em subpastas por mês (ex: "Setembro 2026") dentro dessa pasta raiz, criando a subpasta sozinho quando o mês muda. Depois de preencher, clique em "Conectar Google Drive" na tela de fechamento (aparece um pop-up do Google na primeira vez).
+            Configuração única — veja o passo a passo que te mandei junto com este arquivo. O sistema organiza os PDFs em Ano (ex: "2026") e, dentro dele, Mês (ex: "Setembro") — reaproveitando pastas que já existirem com esses nomes, e criando as que faltarem. Depois de preencher, clique em "Conectar Google Drive" na tela de fechamento (aparece um pop-up do Google na primeira vez).
           </div>
         </div>
 
@@ -1368,29 +1368,34 @@ document.getElementById('btnConectarDrive').addEventListener('click', ()=>{
     alert(e.message || e);
   }
 });
-async function pastaDoMes(dataFechamento){
-  // dataFechamento no formato YYYY-MM-DD. Sem pasta raiz configurada,
-  // não dá pra organizar por mês — sobe direto (comportamento antigo).
-  if(!config.google_folder_id) return null;
-  const partes = dataFechamento.split('-');
-  const nomePasta = MESES_LBL[parseInt(partes[1],10)-1] + ' ' + partes[0];
-  const q = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${nomePasta}' and '${config.google_folder_id}' in parents and trashed=false`);
+async function obterOuCriarPasta(nome, parentId){
+  const q = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${nome}' and '${parentId}' in parents and trashed=false`);
   const respBusca = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
     headers: {'Authorization': 'Bearer ' + googleAccessToken}
   });
   const jsonBusca = await respBusca.json();
-  if(!respBusca.ok) throw new Error((jsonBusca.error && jsonBusca.error.message) || 'Falha ao procurar a pasta do mês no Drive');
+  if(!respBusca.ok) throw new Error((jsonBusca.error && jsonBusca.error.message) || ('Falha ao procurar a pasta "'+nome+'" no Drive'));
   if(jsonBusca.files && jsonBusca.files.length) return jsonBusca.files[0].id;
 
-  // Não existe ainda — cria a pasta do mês dentro da pasta raiz
   const respCriar = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
     method: 'POST',
     headers: {'Authorization': 'Bearer ' + googleAccessToken, 'Content-Type': 'application/json'},
-    body: JSON.stringify({name: nomePasta, mimeType: 'application/vnd.google-apps.folder', parents: [config.google_folder_id]})
+    body: JSON.stringify({name: nome, mimeType: 'application/vnd.google-apps.folder', parents: [parentId]})
   });
   const jsonCriar = await respCriar.json();
-  if(!respCriar.ok) throw new Error((jsonCriar.error && jsonCriar.error.message) || 'Falha ao criar a pasta do mês no Drive');
+  if(!respCriar.ok) throw new Error((jsonCriar.error && jsonCriar.error.message) || ('Falha ao criar a pasta "'+nome+'" no Drive'));
   return jsonCriar.id;
+}
+async function pastaDoMes(dataFechamento){
+  // dataFechamento no formato YYYY-MM-DD. Sem pasta raiz configurada,
+  // não dá pra organizar por ano/mês — sobe direto (comportamento antigo).
+  if(!config.google_folder_id) return null;
+  const partes = dataFechamento.split('-');
+  const ano = partes[0];
+  const nomeMes = MESES_LBL[parseInt(partes[1],10)-1];
+  const idAno = await obterOuCriarPasta(ano, config.google_folder_id);
+  const idMes = await obterOuCriarPasta(nomeMes, idAno);
+  return idMes;
 }
 function subirParaDrive(file, nomeArquivo, dataFechamento){
   return new Promise(function(resolve, reject){
