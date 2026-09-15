@@ -215,12 +215,11 @@
 
         <div class="divider"></div>
 
-        <label style="margin-top:0;">Link do scan (opcional)</label>
-        <input type="url" id="fechLink" placeholder="Deixe em branco — o PDF é enviado ao Drive e o link é gerado automaticamente">
-        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
           <button class="btn-secondary" type="button" id="btnConectarDrive">Conectar Google Drive</button>
           <span id="driveStatus" style="font-size:12.5px;color:var(--texto-suave);">Não conectado</span>
         </div>
+        <div class="config-note">O PDF do scan é enviado ao Drive e renomeado com a data do fechamento automaticamente ao salvar.</div>
 
         <label>Observação (opcional)</label>
         <textarea id="fechObs" placeholder="Ex: 2 vouchers rasurados, contados manualmente"></textarea>
@@ -894,6 +893,21 @@ function tipoDoTexto(texto){
   return null;
 }
 
+// Data de emissão: fica logo acima da linha do brinde, no mesmo recorte
+// de cabeçalho já lido pro tipo/número. Formato esperado DD/MM/AAAA (ou
+// AA), tolerante a separador escrito errado pelo OCR (. ou - no lugar de /).
+function extrairDataEmissao(texto){
+  const m = texto.match(/(\d{1,2})\s?[\/\.\-]\s?(\d{1,2})\s?[\/\.\-]\s?(\d{2,4})/);
+  if(!m) return null;
+  let dia = m[1].padStart(2,'0');
+  let mes = m[2].padStart(2,'0');
+  let ano = m[3];
+  if(ano.length===2) ano = '20'+ano;
+  const di = parseInt(dia,10), mi = parseInt(mes,10);
+  if(di<1 || di>31 || mi<1 || mi>12) return null;
+  return `${dia}/${mes}/${ano}`;
+}
+
 // Confirma o número por QUALQUER um dos dois caminhos: o recorte dedicado
 // (mais direto) OU achar "MERO" perto de dígitos no texto do cabeçalho
 // (funciona quando o Tesseract não embaralha as colunas do cabeçalho).
@@ -1028,6 +1042,7 @@ document.getElementById('btnLerContar').addEventListener('click', async ()=>{
 
       let codigo = null;
       let tipoDetectado = null;
+      let dataEmissao = null;
       let rotacaoUsada = 0;
       let textoAceito = '';
       let imagemAceita = null;
@@ -1058,6 +1073,7 @@ document.getElementById('btnLerContar').addEventListener('click', async ()=>{
         if(temBrindeReconhecivel(texto)){
           tipoDetectado = tipoDoTexto(texto);
           codigo = extrairCodigo(texto, digitosNoRecorte);
+          dataEmissao = extrairDataEmissao(texto);
           rotacaoUsada = graus;
           textoAceito = texto;
           imagemAceita = img;
@@ -1086,6 +1102,7 @@ document.getElementById('btnLerContar').addEventListener('click', async ()=>{
             if(temBrindeReconhecivel(textoFino)){
               tipoDetectado = tipoDoTexto(textoFino);
               codigo = extrairCodigo(textoFino, digitosFino);
+              dataEmissao = extrairDataEmissao(textoFino);
               rotacaoUsada = anguloTotal;
               textoAceito = textoFino;
               try{ imagemAceita = canvasCabecalhoFino.toDataURL('image/png'); }catch(e){}
@@ -1119,7 +1136,7 @@ document.getElementById('btnLerContar').addEventListener('click', async ()=>{
       temposPorPagina.push((performance.now() - inicioPagina) / 1000);
       barFill.style.width = Math.round((p/pdf.numPages)*100) + '%';
 
-      paginas.push({pagina:p, codigo, tipoDetectado, rotacaoUsada, tentativas});
+      paginas.push({pagina:p, codigo, tipoDetectado, dataEmissao, rotacaoUsada, tentativas});
       if(ocrCancelado){ interrompido = true; break; }
     }
 
@@ -1142,7 +1159,7 @@ document.getElementById('btnLerContar').addEventListener('click', async ()=>{
     html += `<details style="margin-top:12px;font-size:12.5px;color:var(--texto-suave);">
       <summary style="cursor:pointer;">Ver detalhe de cada página (depuração)</summary>
       ${paginas.map(pg => `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--borda);">
-        <b>Página ${pg.pagina}</b> — código: ${pg.codigo || '(nenhum)'}, tipo: ${pg.tipoDetectado ? nomeTipoConsumo(pg.tipoDetectado) : '(não identificado)'}, rotação usada: ${pg.rotacaoUsada}°
+        <b>Página ${pg.pagina}</b> — código: ${pg.codigo || '(nenhum)'}, tipo: ${pg.tipoDetectado ? nomeTipoConsumo(pg.tipoDetectado) : '(não identificado)'}, data de emissão: ${pg.dataEmissao || '(nenhuma)'}, rotação usada: ${pg.rotacaoUsada}°
         ${pg.tentativas.map(t => `<details style="margin-top:6px;margin-left:8px;">
           <summary style="cursor:pointer;">Tentativa em ${t.graus}° ${t.aceita?'— ACEITA ✓':''}</summary>
           <div style="margin-top:4px;"><b>Recorte do NÚMERO:</b></div>
@@ -1191,10 +1208,11 @@ function renderTabelaVouchersOcr(){
   });
 
   wrap.innerHTML = `<table id="tabelaVouchersOcr">
-    <thead><tr><th>Página</th><th>Código</th><th>Tipo</th><th>Situação</th><th></th></tr></thead>
+    <thead><tr><th>Página</th><th>Código</th><th>Tipo</th><th>Data de emissão</th><th>Situação</th><th></th></tr></thead>
     <tbody>${paginas.map((pg,idx)=>{
       const semCodigo = !pg.codigo;
       const semTipo = !pg.tipoDetectado;
+      const semData = !pg.dataEmissao;
       const dupes = pg.codigo && ocorrencias[pg.codigo].length > 1;
       const codNormalizado = pg.codigo ? String(pg.codigo).trim() : null;
       const jaUsadoOutroDia = codNormalizado && codigosHistoricos[codNormalizado];
@@ -1208,12 +1226,13 @@ function renderTabelaVouchersOcr(){
       } else if(jaUsadoOutroDia){
         corLinha = 'background:var(--erro-bg);';
         situacao = `<span class="badge naobate">Já usado</span> <span style="font-size:11.5px;color:var(--erro);">no fechamento de ${jaUsadoOutroDia}</span>`;
-      } else if(semCodigo || semTipo){
+      } else if(semCodigo || semTipo || semData){
         corLinha = 'background:var(--alerta-bg);';
         const faltas = [];
         if(semCodigo) faltas.push('sem código');
         if(semTipo) faltas.push('sem tipo');
-        situacao = `<span class="badge" style="background:#F5E6C8;color:var(--alerta);">${faltas.join(' e ')}</span>`;
+        if(semData) faltas.push('sem data de emissão');
+        situacao = `<span class="badge" style="background:#F5E6C8;color:var(--alerta);">${faltas.join(', ')}</span>`;
       }
 
       return `<tr style="${corLinha}">
@@ -1226,6 +1245,7 @@ function renderTabelaVouchersOcr(){
             <option value="rodizio_fondue" ${pg.tipoDetectado==='rodizio_fondue'?'selected':''}>Rodízio + Fondue</option>
           </select>
         </td>
+        <td><input type="text" class="edit-data-emissao" data-idx="${idx}" value="${pg.dataEmissao || ''}" placeholder="DD/MM/AAAA" style="width:100px;padding:6px 8px;${semData?'border-color:var(--alerta);':''}"></td>
         <td>${situacao}</td>
         <td><button class="btn-excluir-voucher" data-idx="${idx}" title="Excluir este voucher" style="background:none;border:none;cursor:pointer;color:var(--erro);font-size:16px;padding:2px 6px;">✕</button></td>
       </tr>`;
@@ -1242,7 +1262,7 @@ function renderTabelaVouchersOcr(){
         ? Math.max(...ultimoResultadoOcr.paginas.map(p=>p.pagina||0)) + 1
         : 1;
       ultimoResultadoOcr.paginas.push({
-        pagina: proxPagina, codigo: null, tipoDetectado: null,
+        pagina: proxPagina, codigo: null, tipoDetectado: null, dataEmissao: null,
         rotacaoUsada: 0, tentativas: [], manual: true
       });
       renderTabelaVouchersOcr();
@@ -1267,6 +1287,13 @@ function renderTabelaVouchersOcr(){
       recalcularContagemOcr();
       renderTabelaVouchersOcr();
     });
+  });
+  document.querySelectorAll('.edit-data-emissao').forEach(inp=>{
+    inp.addEventListener('input', (e)=>{
+      const idx = parseInt(e.target.dataset.idx);
+      ultimoResultadoOcr.paginas[idx].dataEmissao = e.target.value.trim() || null;
+    });
+    inp.addEventListener('blur', ()=>{ renderTabelaVouchersOcr(); });
   });
   document.querySelectorAll('.btn-excluir-voucher').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
@@ -1445,20 +1472,19 @@ document.getElementById('btnSalvarFechamento').addEventListener('click', async (
 
   const data = document.getElementById('fechData').value || hoje();
   const valorTotal = ultimoResultadoOcr.rodizio*valorVoucher('rodizio') + ultimoResultadoOcr.fondue*valorVoucher('rodizio_fondue');
-  const listaVouchers = ultimoResultadoOcr.paginas.map(pg=>({codigo: pg.codigo, tipo: pg.tipoDetectado}));
+  const listaVouchers = ultimoResultadoOcr.paginas.map(pg=>({codigo: pg.codigo, tipo: pg.tipoDetectado, data_emissao: pg.dataEmissao || null}));
 
-  // Se não tiver um link colado na mão, e o PDF do scan ainda estiver
-  // selecionado, envia ele pro Google Drive renomeado com a data do
-  // fechamento e usa o link gerado — sem precisar colar o link na mão.
-  let linkScan = document.getElementById('fechLink').value.trim() || null;
+  // O PDF do scan, se ainda estiver selecionado, é enviado automaticamente
+  // pro Google Drive renomeado com a data do fechamento.
+  let linkScan = null;
   const arquivoPdf = document.getElementById('fechPdfFile').files[0];
-  if(!linkScan && arquivoPdf){
+  if(arquivoPdf){
     showMsg('salvarMsg', 'Enviando o PDF para o Google Drive...', 'ok');
     try{
       const nomeArquivo = `fechamento-${data}.pdf`;
       linkScan = await subirParaDrive(arquivoPdf, nomeArquivo, data);
     }catch(e){
-      showMsg('salvarMsg', 'Não consegui enviar ao Drive (' + (e.message||e) + '). Cole o link manualmente no campo acima ou tente salvar de novo.', 'erro');
+      showMsg('salvarMsg', 'Não consegui enviar ao Drive (' + (e.message||e) + '). Tente salvar de novo.', 'erro');
       return;
     }
   }
