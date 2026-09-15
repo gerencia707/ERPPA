@@ -8,7 +8,6 @@
 <title>Voucher LGM · Contagem por Scan</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
@@ -215,11 +214,8 @@
 
         <div class="divider"></div>
 
-        <div style="display:flex;align-items:center;gap:10px;">
-          <button class="btn-secondary" type="button" id="btnConectarDrive">Conectar Google Drive</button>
-          <span id="driveStatus" style="font-size:12.5px;color:var(--texto-suave);">Não conectado</span>
-        </div>
-        <div class="config-note">O PDF do scan é enviado ao Drive e renomeado com a data do fechamento automaticamente ao salvar.</div>
+        <label style="margin-top:0;">Link do scan (opcional)</label>
+        <input type="url" id="fechLink" placeholder="https://drive.google.com/...">
 
         <label>Observação (opcional)</label>
         <textarea id="fechObs" placeholder="Ex: 2 vouchers rasurados, contados manualmente"></textarea>
@@ -383,16 +379,6 @@
           <input type="text" id="cfgTabelaDanfe" placeholder="danfe_emissoes">
           <div class="config-note">
             Sem conexão configurada, o sistema funciona em <b>modo teste</b>: os dados ficam salvos só neste navegador.
-          </div>
-        </div>
-        <div class="card">
-          <h3>Google Drive (PDFs de scan)</h3>
-          <label style="margin-top:0;">Google OAuth Client ID</label>
-          <input type="text" id="cfgGoogleClientId" placeholder="xxxxxxxxxxxx.apps.googleusercontent.com">
-          <label>ID da pasta no Google Drive</label>
-          <input type="text" id="cfgGoogleFolderId" placeholder="Cole aqui o trecho depois de /folders/ na URL da pasta">
-          <div class="config-note">
-            Configuração única — veja o passo a passo que te mandei junto com este arquivo. O sistema organiza os PDFs em Ano (ex: "2026") e, dentro dele, Mês (ex: "Setembro") — reaproveitando pastas que já existirem com esses nomes, e criando as que faltarem. Depois de preencher, clique em "Conectar Google Drive" na tela de fechamento (aparece um pop-up do Google na primeira vez).
           </div>
         </div>
 
@@ -1359,112 +1345,6 @@ document.getElementById('btnConferir').addEventListener('click', ()=>{
   }
 });
 
-// ---- Google Drive: conectar e enviar o PDF ----
-let googleAccessToken = null;
-let googleTokenClient = null;
-const MESES_LBL=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-function initGoogleDrive(){
-  if(typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2){
-    throw new Error('Google Identity Services ainda não carregou — aguarde alguns segundos e tente de novo.');
-  }
-  if(!config.google_client_id){
-    throw new Error('Configure o "Google OAuth Client ID" em Configuração antes de conectar.');
-  }
-  googleTokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: config.google_client_id,
-    // Precisa do escopo completo (não só drive.file) porque o sistema
-    // busca e cria subpastas por mês dentro da pasta raiz que você mesmo
-    // criou no Drive — com drive.file ele só enxergaria pastas/arquivos
-    // que o próprio app tivesse criado.
-    scope: 'https://www.googleapis.com/auth/drive',
-    callback: function(resp){
-      if(resp && resp.access_token){
-        googleAccessToken = resp.access_token;
-        document.getElementById('driveStatus').textContent = 'Conectado';
-      }
-    }
-  });
-}
-document.getElementById('btnConectarDrive').addEventListener('click', ()=>{
-  try{
-    if(!googleTokenClient) initGoogleDrive();
-    document.getElementById('driveStatus').textContent = 'Conectando...';
-    googleTokenClient.requestAccessToken({prompt: googleAccessToken ? '' : 'consent'});
-  }catch(e){
-    document.getElementById('driveStatus').textContent = 'Não conectado';
-    alert(e.message || e);
-  }
-});
-async function obterOuCriarPasta(nome, parentId){
-  const q = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${nome}' and '${parentId}' in parents and trashed=false`);
-  const respBusca = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
-    headers: {'Authorization': 'Bearer ' + googleAccessToken}
-  });
-  const jsonBusca = await respBusca.json();
-  if(!respBusca.ok) throw new Error((jsonBusca.error && jsonBusca.error.message) || ('Falha ao procurar a pasta "'+nome+'" no Drive'));
-  if(jsonBusca.files && jsonBusca.files.length) return jsonBusca.files[0].id;
-
-  const respCriar = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
-    method: 'POST',
-    headers: {'Authorization': 'Bearer ' + googleAccessToken, 'Content-Type': 'application/json'},
-    body: JSON.stringify({name: nome, mimeType: 'application/vnd.google-apps.folder', parents: [parentId]})
-  });
-  const jsonCriar = await respCriar.json();
-  if(!respCriar.ok) throw new Error((jsonCriar.error && jsonCriar.error.message) || ('Falha ao criar a pasta "'+nome+'" no Drive'));
-  return jsonCriar.id;
-}
-async function pastaDoMes(dataFechamento){
-  // dataFechamento no formato YYYY-MM-DD. Sem pasta raiz configurada,
-  // não dá pra organizar por ano/mês — sobe direto (comportamento antigo).
-  if(!config.google_folder_id) return null;
-  const partes = dataFechamento.split('-');
-  const ano = partes[0];
-  const nomeMes = MESES_LBL[parseInt(partes[1],10)-1];
-  const idAno = await obterOuCriarPasta(ano, config.google_folder_id);
-  const idMes = await obterOuCriarPasta(nomeMes, idAno);
-  return idMes;
-}
-function subirParaDrive(file, nomeArquivo, dataFechamento){
-  return new Promise(function(resolve, reject){
-    async function fazerUpload(){
-      try{
-        const pastaId = await pastaDoMes(dataFechamento);
-        const metadata = { name: nomeArquivo };
-        if(pastaId) metadata.parents = [pastaId];
-        const form = new FormData();
-        form.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
-        form.append('file', file);
-        const resp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
-          method: 'POST',
-          headers: {'Authorization': 'Bearer ' + googleAccessToken},
-          body: form
-        });
-        const json = await resp.json();
-        if(!resp.ok) throw new Error((json.error && json.error.message) || 'Falha no upload ao Drive');
-        resolve(json.webViewLink || ('https://drive.google.com/file/d/' + json.id + '/view'));
-      }catch(e){ reject(e); }
-    }
-    if(!googleAccessToken){
-      try{
-        if(!googleTokenClient) initGoogleDrive();
-      }catch(e){ reject(e); return; }
-      // pede o token e só então sobe o arquivo
-      googleTokenClient.callback = function(resp){
-        if(resp && resp.access_token){
-          googleAccessToken = resp.access_token;
-          document.getElementById('driveStatus').textContent = 'Conectado';
-          fazerUpload();
-        } else {
-          reject(new Error('Não foi possível autorizar o Google Drive.'));
-        }
-      };
-      googleTokenClient.requestAccessToken({prompt: 'consent'});
-    } else {
-      fazerUpload();
-    }
-  });
-}
-
 // ---- salvar fechamento ----
 document.getElementById('btnSalvarFechamento').addEventListener('click', async ()=>{
   if(!ultimoResultadoOcr){ showMsg('salvarMsg', 'Rode a leitura do scan primeiro.', 'erro'); return; }
@@ -1473,21 +1353,7 @@ document.getElementById('btnSalvarFechamento').addEventListener('click', async (
   const data = document.getElementById('fechData').value || hoje();
   const valorTotal = ultimoResultadoOcr.rodizio*valorVoucher('rodizio') + ultimoResultadoOcr.fondue*valorVoucher('rodizio_fondue');
   const listaVouchers = ultimoResultadoOcr.paginas.map(pg=>({codigo: pg.codigo, tipo: pg.tipoDetectado, data_emissao: pg.dataEmissao || null}));
-
-  // O PDF do scan, se ainda estiver selecionado, é enviado automaticamente
-  // pro Google Drive renomeado com a data do fechamento.
-  let linkScan = null;
-  const arquivoPdf = document.getElementById('fechPdfFile').files[0];
-  if(arquivoPdf){
-    showMsg('salvarMsg', 'Enviando o PDF para o Google Drive...', 'ok');
-    try{
-      const nomeArquivo = `fechamento-${data}.pdf`;
-      linkScan = await subirParaDrive(arquivoPdf, nomeArquivo, data);
-    }catch(e){
-      showMsg('salvarMsg', 'Não consegui enviar ao Drive (' + (e.message||e) + '). Tente salvar de novo.', 'erro');
-      return;
-    }
-  }
+  const linkScan = document.getElementById('fechLink').value.trim() || null;
 
   const registro = {
     data,
@@ -1903,8 +1769,6 @@ function preencherConfig(){
   document.getElementById('cfgKey').value = config.key || '';
   document.getElementById('cfgTabelaFechamentos').value = config.tabela_fechamentos || 'fechamentos_sem_lancamento';
   document.getElementById('cfgTabelaDanfe').value = config.tabela_danfe || 'danfe_emissoes';
-  document.getElementById('cfgGoogleClientId').value = config.google_client_id || '';
-  document.getElementById('cfgGoogleFolderId').value = config.google_folder_id || '';
   document.getElementById('cfgControlista').value = config.controlista || '';
   document.getElementById('cfgValorRodizio').value = config.valor_rodizio || '';
   document.getElementById('cfgValorFondue').value = config.valor_fondue || '';
@@ -1923,8 +1787,6 @@ document.getElementById('btnSalvarConfig').addEventListener('click', ()=>{
   config.key = document.getElementById('cfgKey').value.trim();
   config.tabela_fechamentos = document.getElementById('cfgTabelaFechamentos').value.trim() || 'fechamentos_sem_lancamento';
   config.tabela_danfe = document.getElementById('cfgTabelaDanfe').value.trim() || 'danfe_emissoes';
-  config.google_client_id = document.getElementById('cfgGoogleClientId').value.trim();
-  config.google_folder_id = document.getElementById('cfgGoogleFolderId').value.trim();
   config.controlista = document.getElementById('cfgControlista').value.trim();
   config.valor_rodizio = document.getElementById('cfgValorRodizio').value.trim();
   config.valor_fondue = document.getElementById('cfgValorFondue').value.trim();
