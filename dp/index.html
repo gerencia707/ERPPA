@@ -1,6 +1,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -555,9 +556,19 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
         <div class="shl">
           <select id="org-setor" style="width:180px" onchange="renderOrganograma()"><option value="">Todos os setores</option></select>
         </div>
-        <button class="btn btn-s btn-sm" onclick="window.print()">&#128438; Imprimir</button>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn btn-s btn-sm" onclick="zoomOrg(-1)" title="Diminuir zoom">&minus;</button>
+          <span id="org-zoom-label" style="font-size:12px;color:var(--text3);min-width:40px;text-align:center;display:inline-block">100%</span>
+          <button class="btn btn-s btn-sm" onclick="zoomOrg(1)" title="Aumentar zoom">+</button>
+          <button class="btn btn-s btn-sm" onclick="zoomOrg(0)" title="Voltar ao normal">Ajustar</button>
+          <button class="btn btn-s btn-sm" onclick="window.print()">&#128438; Imprimir</button>
+        </div>
       </div>
-      <div id="org-container" style="padding:16px 0;overflow-x:auto"></div>
+      <div id="org-zoom-wrap" style="padding:16px 0;overflow:auto;max-height:74vh;border:1px solid var(--border);border-radius:10px">
+        <div id="org-zoom-inner" style="transform-origin:top center">
+          <div id="org-container"></div>
+        </div>
+      </div>
     </div>
 
     <!-- CONFIGURAÇÕES -->
@@ -3185,7 +3196,6 @@ function renderOrganograma(){
     +'<div class="org-card-nome">'+gmExibir+'</div>'
     +'<div class="org-card-cargo">'+gmCargo+'</div>'
     +'</div></div>';
-  html += '<div class="org-connector"><div class="org-connector-line"></div></div>';
 
   // Qual bloco cada pessoa pertence: decidido pelo SETOR DO CARGO (via
   // HIERARQUIA) — assim quem tem cargo "Gerente de A&B" cai no bloco A&B
@@ -3194,16 +3204,29 @@ function renderOrganograma(){
   function setorDoCargo(c){
     var h = c.cargo ? hierCargo(c.cargo) : null;
     if(h && h.setor) return h.setor === 'A&B' ? 'A&B' : h.setor;
-    // reserva: setor cadastrado (A&B Salão/Cozinha viram bloco 'A&B')
     if(c.setor === 'A&B Salão' || c.setor === 'A&B Cozinha') return 'A&B';
     return c.setor;
+  }
+  // Rótulo exibido no topo de cada coluna dentro da linha do nível —
+  // A&B se divide em Salão/Cozinha pelo GRUPO do cargo (quando souber).
+  function rotuloBloco(bloco, c){
+    if(bloco === 'A&B'){
+      var g = grupoCargo(c.cargo);
+      if(g === 'salao') return 'A&B · Salão';
+      if(g === 'cozinha') return 'A&B · Cozinha';
+      return 'A&B';
+    }
+    return bloco || 'Sem setor';
   }
 
   var ehGM = function(c){ return c.cargo && (c.cargo.toLowerCase().includes('gerente geral') || c.cargo.toLowerCase() === 'gm'); };
 
-  // Monta os blocos a partir de TODOS os colaboradores (exceto o GM),
-  // agrupando pelo setor do cargo.
-  var blocosPorSetor = {};
+  // Formato em PIRÂMIDE: agrupa por NÍVEL hierárquico do cargo — todo
+  // mundo de nível 1 (chefias) numa linha só, nível 2 na linha de baixo,
+  // e assim por diante — em vez de uma coluna por setor. Dentro de cada
+  // linha, ainda agrupa por setor/A&B-Salão/A&B-Cozinha, com uma
+  // etiqueta em cima de cada grupinho, pra manter claro de onde é cada um.
+  var porNivel = {};
   colabs.forEach(function(c){
     if(ehGM(c)) return;
     var bloco = setorDoCargo(c);
@@ -3211,31 +3234,57 @@ function renderOrganograma(){
       var alvo = setorFiltro.startsWith('A&B') ? 'A&B' : setorFiltro;
       if(bloco !== alvo) return;
     }
-    if(!blocosPorSetor[bloco]) blocosPorSetor[bloco] = [];
-    blocosPorSetor[bloco].push(c);
+    var niv = nivelCargo(c.cargo);
+    var rot = rotuloBloco(bloco, c);
+    if(!porNivel[niv]) porNivel[niv] = {};
+    if(!porNivel[niv][rot]) porNivel[niv][rot] = [];
+    porNivel[niv][rot].push(c);
   });
 
-  var outrosBlocos = [];
-  Object.keys(blocosPorSetor).forEach(function(setor){
-    if(setor === 'A&B'){
-      outrosBlocos.push({ tipo:'ab', membros: blocosPorSetor[setor] });
-    } else {
-      outrosBlocos.push({ setor:setor, membros: blocosPorSetor[setor] });
+  var niveisOrdenados = Object.keys(porNivel).map(Number).sort(function(a,b){return a-b;});
+
+  if(niveisOrdenados.length){
+    html += '<div class="org-connector"><div class="org-connector-line"></div></div>';
+  }
+
+  niveisOrdenados.forEach(function(niv, idx){
+    var blocos = porNivel[niv];
+    var rotulos = Object.keys(blocos).sort();
+    var cls = niv === 1 ? 'lider' : niv === 2 ? 'sub' : 'op';
+
+    html += '<div class="org-connector-h" style="gap:28px;padding-top:16px;margin-bottom:4px;flex-wrap:nowrap">';
+    rotulos.forEach(function(rot){
+      html += '<div style="display:flex;flex-direction:column;align-items:center;gap:8px">';
+      html += '<div class="org-setor-titulo">'+rot+'</div>';
+      html += '<div style="display:flex;gap:8px;flex-wrap:nowrap">';
+      blocos[rot].forEach(function(m){ html += cardOrg(m, cls); });
+      html += '</div></div>';
+    });
+    html += '</div>';
+
+    if(idx < niveisOrdenados.length - 1){
+      html += '<div class="org-connector"><div class="org-connector-line"></div></div>';
     }
   });
 
-  html += '<div style="display:flex;gap:32px;flex-wrap:wrap;justify-content:center;align-items:flex-start;padding:8px 16px">';
-
-  outrosBlocos.forEach(function(bloco){
-    if(bloco.tipo === 'ab'){
-      html += renderBlocoAB(bloco.membros);
-    } else {
-      html += renderBlocoSetor(bloco.setor, bloco.membros);
-    }
-  });
-
-  html += '</div></div>';
+  html += '</div>';
   container.innerHTML = html;
+  aplicarZoomOrg();
+}
+
+function zoomOrg(dir){
+  if(!ST.orgZoom) ST.orgZoom = 1;
+  if(dir === 0) ST.orgZoom = 1;
+  else ST.orgZoom = Math.max(0.4, Math.min(1.6, +(ST.orgZoom + dir*0.1).toFixed(2)));
+  aplicarZoomOrg();
+}
+function aplicarZoomOrg(){
+  var inner = document.getElementById('org-zoom-inner');
+  if(!inner) return;
+  var z = ST.orgZoom || 1;
+  inner.style.zoom = z;
+  var label = document.getElementById('org-zoom-label');
+  if(label) label.textContent = Math.round(z*100)+'%';
 }
 
 function cardOrg(c, classe){
