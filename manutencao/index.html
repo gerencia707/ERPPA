@@ -1,6 +1,7 @@
 
 
 
+
 <html>
 <head>
 <meta charset="UTF-8">
@@ -1569,9 +1570,11 @@ function renderAptsProg(ch){
         '<i class="ti ti-calendar-event"></i> Manutencoes programadas ('+progs.length+')'+
       '</div>'+
       progs.map(function(x){
+        var rotulo = x.tipoLocal==='apartamento' ? 'Apto '+esc(x.local||'') : esc(x.local||'');
+        var icone = x.tipoLocal==='apartamento' ? 'ti-door' : 'ti-map-pin';
         return '<div style="padding:12px 14px;border-bottom:1px solid #E0E8E2;display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
           '<div style="flex:1;min-width:140px">'+
-            '<div style="font-weight:700;font-size:15px;color:#1B4332"><i class="ti ti-door"></i> Apto '+esc(x.local||'')+'</div>'+
+            '<div style="font-weight:700;font-size:15px;color:#1B4332"><i class="ti '+icone+'"></i> '+rotulo+'</div>'+
             '<div style="font-size:12px;color:#6b7770;margin-top:2px">'+esc(x.areaTecnica||'')+'</div>'+
             (x.descricao?'<div style="font-size:13px;color:#333;margin-top:4px">'+esc(x.descricao)+'</div>':'')+
             (x.motivo_pendencia?'<div style="margin-top:5px"><span style="background:#fff3cd;color:#a04000;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600">'+esc(x.motivo_pendencia)+'</span></div>':'')+
@@ -1594,18 +1597,31 @@ function renderAptsProg(ch){
     '</div>';
   }
 
-  // 2. GRADE EMBAIXO
-  var gradeHtml='<div style="font-size:13px;color:#6b7770;margin-bottom:10px">'+
-    'Clique em um apartamento para programar uma manutencao'+
-  '</div>'+
+  // 2. GRADE DE APARTAMENTOS
+  var gradeAptos='<div style="font-size:13px;font-weight:700;color:#1B4332;margin:6px 0 8px"><i class="ti ti-building"></i> Apartamentos</div>'+
+  '<div style="font-size:12px;color:#6b7770;margin-bottom:10px">Clique em um apartamento para programar uma manutencao</div>'+
   '<div class="aparts">'+ST.data.apartamentos.map(function(n){
-    var prog=progs.filter(function(x){return String(x.local)===String(n);});
-    return '<div class="apart'+(prog.length?' programado':'')+'" data-apt="'+n+'" onclick="abrirProgEl(this)">'+
-      n+(prog.length?'<div style="font-size:8px;margin-top:1px">'+prog.length+'x</div>':'')+
+    var prog=progs.filter(function(x){return x.tipoLocal==='apartamento'&&String(x.local)===String(n);});
+    return '<div class="apart'+(prog.length?' programado':'')+'" data-apt="'+esc(n)+'" data-tipo="apartamento" onclick="abrirProgEl(this)">'+
+      esc(n)+(prog.length?'<div style="font-size:8px;margin-top:1px">'+prog.length+'x</div>':'')+
     '</div>';
   }).join('')+'</div>';
 
-  return listaHtml+gradeHtml;
+  // 3. GRADE DE AREAS COMUNS
+  var areasComuns=(ST.data.config&&ST.data.config.areasComuns)||[];
+  var gradeAreas='';
+  if(areasComuns.length){
+    gradeAreas='<div style="font-size:13px;font-weight:700;color:#1B4332;margin:20px 0 8px"><i class="ti ti-map-pin"></i> Areas Comuns</div>'+
+    '<div style="font-size:12px;color:#6b7770;margin-bottom:10px">Clique em uma area comum para programar uma manutencao</div>'+
+    '<div class="aparts">'+areasComuns.map(function(n){
+      var prog=progs.filter(function(x){return x.tipoLocal!=='apartamento'&&String(x.local)===String(n);});
+      return '<div class="apart'+(prog.length?' programado':'')+'" data-apt="'+esc(n)+'" data-tipo="comum" onclick="abrirProgEl(this)">'+
+        esc(n)+(prog.length?'<div style="font-size:8px;margin-top:1px">'+prog.length+'x</div>':'')+
+      '</div>';
+    }).join('')+'</div>';
+  }
+
+  return listaHtml+gradeAptos+gradeAreas;
 }
 
 function setAptTab(el){
@@ -1616,16 +1632,18 @@ function setAptTab(el){
   render();
 }
 function verAptEl(el){verApt(el.getAttribute('data-apt'));}
-function abrirProgEl(el){abrirProg(el.getAttribute('data-apt'));}
+function abrirProgEl(el){abrirProg(el.getAttribute('data-apt'), el.getAttribute('data-tipo')||'apartamento');}
 function iniciarProgEl(el){
   var id=el.getAttribute('data-id');
   call('updateChamado',{id:id,status:'Aberto'},reload);
 }
 
-function abrirProg(n){
+function abrirProg(n, tipo){
+  tipo = tipo || 'apartamento';
   var cfg=ST.data.config||{};
   var equipe=ST.data.equipe||[];
-  openModal('Programar manutencao - Apto '+n,
+  var titulo = tipo==='apartamento' ? 'Programar manutencao - Apto '+n : 'Programar manutencao - '+n;
+  openModal(titulo,
     '<div class="form-grid">'+
     '<div><label>Area tecnica</label><select id="pg-ar">'+
       (cfg.areasTecnicas||[]).map(function(a){return '<option>'+esc(a)+'</option>';}).join('')+
@@ -1642,7 +1660,7 @@ function abrirProg(n){
       var desc=document.getElementById('pg-ds').value.trim();
       if(!desc){alert('Informe a descricao do servico');return;}
       call('addChamadoProgramado',{
-        tipoLocal:'apartamento', local:n,
+        tipoLocal:tipo, local:n,
         areaTecnica:document.getElementById('pg-ar').value,
         prioridade:document.getElementById('pg-pr').value,
         descricao:desc,
