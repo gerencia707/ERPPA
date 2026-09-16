@@ -1602,11 +1602,12 @@ async function carregarRelatorio(){
 
 function renderListaVouchersHtml(lista){
   if(!lista || lista.length===0) return '<div class="empty">Sem lista de vouchers registrada para este dia.</div>';
-  return `<table style="margin:6px 0;"><thead><tr><th>Página</th><th>Código</th><th>Tipo</th></tr></thead>
+  return `<table style="margin:6px 0;"><thead><tr><th>Página</th><th>Código</th><th>Tipo</th><th>Data de emissão</th></tr></thead>
     <tbody>${lista.map((v,idx)=>`<tr>
       <td>${idx+1}</td>
       <td class="codigo">${v.codigo || '—'}</td>
       <td>${v.tipo ? `<span class="badge bate">${nomeTipoConsumo(v.tipo)}</span>` : '<span class="badge naobate">Não identificado</span>'}</td>
+      <td>${v.data_emissao || '--'}</td>
     </tr>`).join('')}</tbody></table>`;
 }
 
