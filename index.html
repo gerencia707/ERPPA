@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -95,8 +96,9 @@
   .card h3{font-size:13px;margin:0 0 16px;color:var(--verde-escuro);text-transform:uppercase;letter-spacing:.04em;}
   label{display:block;font-size:12.5px;color:var(--texto-suave);margin-bottom:5px;margin-top:14px;}
   label:first-of-type{margin-top:0;}
-  input[type=text], select{width:100%;padding:9px 11px;border:1px solid var(--borda);border-radius:7px;font-size:14px;background:#fcfdfc;color:var(--texto);font-family:inherit;}
-  input:focus, select:focus{outline:none;border-color:var(--verde-mid);box-shadow:0 0 0 3px rgba(18,59,48,.10);}
+  input[type=text], input[type=password], select, textarea{width:100%;padding:9px 11px;border:1px solid var(--borda);border-radius:7px;font-size:14px;background:#fcfdfc;color:var(--texto);font-family:inherit;}
+  textarea{resize:vertical;min-height:70px;}
+  input:focus, select:focus, textarea:focus{outline:none;border-color:var(--verde-mid);box-shadow:0 0 0 3px rgba(18,59,48,.10);}
   .nivel-row{display:flex;gap:8px;margin-top:6px;}
   .nivel-row button{
     flex:1;padding:10px 4px;border:1px solid var(--borda);background:#fcfdfc;border-radius:7px;
@@ -125,6 +127,22 @@
   .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;margin:1px 3px 1px 0;}
   .badge.nivel{background:var(--verde-claro);color:var(--verde-escuro);}
   .badge.menu-ok{background:#EFF4EF;color:var(--verde-mid);}
+  .badge.ok{background:var(--ok-bg);color:var(--verde-mid);}
+  .badge.pend{background:var(--alerta-bg);color:var(--alerta);}
+  .badge.erro{background:var(--erro-bg);color:var(--erro);}
+  .badge.info{background:#EFF4EF;color:var(--texto-suave);}
+  .stat-row{display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;}
+  .stat{background:var(--card);border:1px solid var(--borda);border-radius:var(--radius);padding:14px 18px;flex:1;min-width:140px;}
+  .stat .num{font-size:22px;font-weight:700;color:var(--verde-escuro);}
+  .stat .lbl{font-size:11.5px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
+  .login-wrap{min-height:calc(100vh - var(--topbar-h) - 60px);display:flex;align-items:center;justify-content:center;}
+  .login-box{width:100%;max-width:320px;}
+  .nota-card{border:1px solid var(--borda);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;background:var(--card);}
+  .nota-texto{font-size:14px;white-space:pre-wrap;margin-bottom:8px;}
+  .nota-rodape{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+  .kvtoggle{display:flex;gap:4px;background:#EFF4EF;padding:4px;border-radius:9px;margin-bottom:16px;width:fit-content;}
+  .kvtoggle button{background:transparent;border:none;padding:8px 14px;font-size:13px;border-radius:6px;cursor:pointer;color:var(--texto-suave);font-weight:600;}
+  .kvtoggle button.active{background:var(--card);color:var(--verde-escuro);box-shadow:0 1px 2px rgba(0,0,0,.08);}
   .empty{text-align:center;padding:30px 20px;color:var(--texto-suave);font-size:13.5px;}
   .action-link{background:none;border:none;cursor:pointer;color:var(--texto-suave);font-size:12px;text-decoration:underline;padding:0;}
   .action-link.danger{color:var(--erro);}
@@ -161,6 +179,10 @@ const SETORES = {
     submenus: [
       {id:'usuarios', nome:'Usuários e Permissões', ativo:true},
       {id:'dashboard', nome:'Dashboard Geral', ativo:true},
+      {id:'notas', nome:'Bloco de Notas', ativo:true},
+      {id:'dash_dp', nome:'Dashboard DP', ativo:true},
+      {id:'dash_manutencao', nome:'Dashboard Manutenção', ativo:true},
+      {id:'dash_voucher', nome:'Dashboard Voucher', ativo:true},
       {id:'relatorio_consolidado', nome:'Relatório Consolidado', ativo:false},
     ]
   },
@@ -423,6 +445,306 @@ async function carregarUsoBanco(){
 }
 
 // ============================================================
+// LOGIN DA GERÊNCIA (real — só quem tiver a senha entra)
+// ============================================================
+// Diferente do resto do Portal (que ainda não tem trava nenhuma), a
+// Gerência agora exige login de verdade, porque é aqui que ficam as
+// ferramentas mais sensíveis (limpeza de dados, notas, dashboards).
+const GERENCIA_UID_KEY = 'portalErppa_gerencia_uid';
+let gerenciaUsuarios = [];
+let gerenciaLogado = null;
+
+async function carregarGerenciaUsuarios(){
+  try{
+    const {data, error} = await supaPortal.from('gerencia_usuarios').select('*');
+    if(error) throw error;
+    if(!data || !data.length){
+      const seed = {id:crypto.randomUUID?crypto.randomUUID():'seed-'+Date.now(), nome:'Eduardo Rohden', login:'ADM', senha:'ADM'};
+      await supaPortal.from('gerencia_usuarios').insert([seed]);
+      gerenciaUsuarios = [seed];
+    } else {
+      gerenciaUsuarios = data;
+    }
+  }catch(e){
+    console.warn('gerencia_usuarios', e.message||e);
+  }
+  const uid = localStorage.getItem(GERENCIA_UID_KEY);
+  if(uid){
+    const u = gerenciaUsuarios.find(x=>x.id===uid);
+    if(u) gerenciaLogado = u;
+  }
+}
+
+function renderLoginGerencia(main){
+  main.innerHTML = `
+    <div class="login-wrap">
+      <div class="login-box">
+        <div class="card">
+          <h3>Acesso restrito — Gerência</h3>
+          <label style="margin-top:0;">Login</label>
+          <input type="text" id="gerLoginUsr" placeholder="Seu login">
+          <label>Senha</label>
+          <input type="password" id="gerLoginSenha" placeholder="Sua senha">
+          <button class="btn-primary full" id="btnGerLogin">Entrar</button>
+          <div class="msg" id="gerLoginMsg"></div>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('btnGerLogin').addEventListener('click', fazerLoginGerencia);
+  document.getElementById('gerLoginSenha').addEventListener('keydown', e=>{ if(e.key==='Enter') fazerLoginGerencia(); });
+}
+
+function fazerLoginGerencia(){
+  const login = document.getElementById('gerLoginUsr').value.trim();
+  const senha = document.getElementById('gerLoginSenha').value;
+  const msg = document.getElementById('gerLoginMsg');
+  const u = gerenciaUsuarios.find(x=>String(x.login).toLowerCase()===login.toLowerCase());
+  if(!u || String(u.senha)!==String(senha)){
+    msg.textContent = 'Login ou senha incorretos.';
+    msg.className = 'msg erro';
+    document.getElementById('gerLoginSenha').value = '';
+    return;
+  }
+  gerenciaLogado = u;
+  localStorage.setItem(GERENCIA_UID_KEY, u.id);
+  renderSidebar();
+  renderMain();
+}
+
+function sairGerencia(){
+  localStorage.removeItem(GERENCIA_UID_KEY);
+  gerenciaLogado = null;
+  renderSidebar();
+  renderMain();
+}
+
+function renderContaGerencia(){
+  if(!gerenciaLogado) return '';
+  return `
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:13px;">Conectado como <b>${gerenciaLogado.nome}</b></div>
+      <div style="display:flex;gap:8px;">
+        <button class="action-link" id="btnTrocarSenhaGer">Trocar senha</button>
+        <button class="action-link danger" onclick="sairGerencia()">Sair da Gerência</button>
+      </div>
+    </div>`;
+}
+function ligarBotaoTrocarSenha(){
+  const btn = document.getElementById('btnTrocarSenhaGer');
+  if(!btn) return;
+  btn.addEventListener('click', async ()=>{
+    const nova = prompt('Digite a nova senha da Gerência:');
+    if(!nova) return;
+    try{
+      const {error} = await supaPortal.from('gerencia_usuarios').update({senha:nova}).eq('id', gerenciaLogado.id);
+      if(error) throw error;
+      gerenciaLogado.senha = nova;
+      alert('Senha alterada com sucesso.');
+    }catch(e){ alert('Erro ao trocar senha: '+(e.message||e)); }
+  });
+}
+
+// ============================================================
+// BLOCO DE NOTAS — ideias e pauta das reuniões de líderes
+// ============================================================
+let notaFiltroAtual = 'ideia';
+async function renderNotas(main){
+  main.innerHTML = `
+    ${renderContaGerencia()}
+    <div class="view-header">
+      <h2>Bloco de Notas</h2>
+      <div class="desc">Anote ideias soltas e monte a pauta das reuniões de líderes.</div>
+    </div>
+    <div class="card">
+      <h3>Nova anotação</h3>
+      <label style="margin-top:0;">Ideia / tópico</label>
+      <textarea id="notaTexto" placeholder="Ex: Conversar sobre reposição de material de limpeza..."></textarea>
+      <button class="btn-primary full" id="btnAddNota">Adicionar</button>
+      <div class="msg" id="notaMsg"></div>
+    </div>
+    <div class="kvtoggle">
+      <button data-f="ideia" class="${notaFiltroAtual==='ideia'?'active':''}">Ideias soltas</button>
+      <button data-f="pauta" class="${notaFiltroAtual==='pauta'?'active':''}">Pauta da próxima reunião</button>
+      <button data-f="discutido" class="${notaFiltroAtual==='discutido'?'active':''}">Já discutido</button>
+    </div>
+    <div id="listaNotas"></div>
+  `;
+  ligarBotaoTrocarSenha();
+  document.querySelectorAll('.kvtoggle button').forEach(b=>{
+    b.addEventListener('click', ()=>{ notaFiltroAtual = b.dataset.f; renderNotas(main); });
+  });
+  document.getElementById('btnAddNota').addEventListener('click', async ()=>{
+    const texto = document.getElementById('notaTexto').value.trim();
+    const msg = document.getElementById('notaMsg');
+    if(!texto){ msg.textContent='Escreva algo antes de adicionar.'; msg.className='msg erro'; return; }
+    try{
+      const reg = {id:crypto.randomUUID?crypto.randomUUID():'n-'+Date.now(), texto, status:'ideia', criado_em:new Date().toISOString()};
+      const {error} = await supaPortal.from('gerencia_notas').insert([reg]);
+      if(error) throw error;
+      msg.textContent='Adicionada.'; msg.className='msg ok';
+      renderNotas(main);
+    }catch(e){ msg.textContent='Erro: '+(e.message||e); msg.className='msg erro'; }
+  });
+  carregarNotas();
+}
+async function carregarNotas(){
+  const el = document.getElementById('listaNotas');
+  try{
+    const {data, error} = await supaPortal.from('gerencia_notas').select('*').eq('status', notaFiltroAtual).order('criado_em', {ascending:false});
+    if(error) throw error;
+    if(!data || !data.length){ el.innerHTML = '<div class="empty">Nada por aqui ainda.</div>'; return; }
+    el.innerHTML = data.map(n=>{
+      const data_ = new Date(n.criado_em).toLocaleDateString('pt-BR');
+      let acoes = '';
+      if(n.status==='ideia') acoes = `<button class="action-link" onclick="moverNota('${n.id}','pauta')">Mover para pauta</button>`;
+      if(n.status==='pauta') acoes = `<button class="action-link" onclick="moverNota('${n.id}','discutido')">Marcar como discutido</button> <button class="action-link" onclick="moverNota('${n.id}','ideia')">Voltar pra ideias</button>`;
+      if(n.status==='discutido') acoes = `<button class="action-link" onclick="moverNota('${n.id}','ideia')">Reabrir</button>`;
+      return `<div class="nota-card">
+        <div class="nota-texto">${esc(n.texto)}</div>
+        <div class="nota-rodape">
+          <span style="font-size:11.5px;color:var(--texto-suave);">${data_}</span>
+          <div>${acoes} <button class="action-link danger" onclick="removerNota('${n.id}')">Remover</button></div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){ el.innerHTML = `<div class="msg erro" style="display:block;">Erro: ${e.message||e}</div>`; }
+}
+async function moverNota(id, novoStatus){
+  try{ await supaPortal.from('gerencia_notas').update({status:novoStatus}).eq('id', id); carregarNotas(); }
+  catch(e){ alert('Erro: '+(e.message||e)); }
+}
+async function removerNota(id){
+  if(!confirm('Remover esta anotação?')) return;
+  try{ await supaPortal.from('gerencia_notas').delete().eq('id', id); carregarNotas(); }
+  catch(e){ alert('Erro: '+(e.message||e)); }
+}
+function esc(t){ return String(t==null?'':t).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+// ============================================================
+// DASHBOARD DP
+// ============================================================
+async function renderDashDP(main){
+  main.innerHTML = `
+    ${renderContaGerencia()}
+    <div class="view-header"><h2>Dashboard DP</h2><div class="desc">Visão geral do quadro de pessoal.</div></div>
+    <div id="dashDpBody"><div class="empty">Carregando...</div></div>`;
+  ligarBotaoTrocarSenha();
+  const body = document.getElementById('dashDpBody');
+  try{
+    const [colabsRes, candRes] = await Promise.all([
+      supaPortal.from('dp_colaboradores').select('*'),
+      supaPortal.from('dp_candidatos').select('*')
+    ]);
+    if(colabsRes.error) throw colabsRes.error;
+    const colabs = (colabsRes.data||[]).filter(c=>c.status!=='desligado');
+    const cands = candRes.data||[];
+    const experiencia = colabs.filter(c=>c.contrato==='experiencia');
+    const hoje = new Date();
+    const mesAtual = hoje.getMonth()+1;
+    const anivs = colabs.filter(c=>c.aniv).filter(c=>parseInt(c.aniv.split('-')[1],10)===mesAtual)
+      .map(c=>({...c, dia:parseInt(c.aniv.split('-')[2],10)}))
+      .sort((a,b)=>a.dia-b.dia);
+
+    body.innerHTML = `
+      <div class="stat-row">
+        <div class="stat"><div class="num">${colabs.length}</div><div class="lbl">Colaboradores ativos</div></div>
+        <div class="stat"><div class="num">${experiencia.length}</div><div class="lbl">Em experiência</div></div>
+        <div class="stat"><div class="num">${cands.length}</div><div class="lbl">Vagas em aberto</div></div>
+        <div class="stat"><div class="num">${anivs.length}</div><div class="lbl">Aniversariantes do mês</div></div>
+      </div>
+      <div class="card">
+        <h3>Aniversariantes deste mês</h3>
+        ${anivs.length ? `<table><thead><tr><th>Nome</th><th>Cargo</th><th>Dia</th></tr></thead><tbody>${anivs.map(c=>`<tr><td>${esc(c.nome)}</td><td>${esc(c.cargo||'—')}</td><td>${c.dia}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">Ninguém faz aniversário este mês.</div>'}
+      </div>
+      <div class="card">
+        <h3>Pipeline de contratação</h3>
+        ${cands.length ? `<table><thead><tr><th>Nome</th><th>Cargo</th><th>Etapa</th></tr></thead><tbody>${cands.map(c=>`<tr><td>${esc(c.nome)}</td><td>${esc(c.cargo||'—')}</td><td><span class="badge info">${esc(c.etapa||'—')}</span></td></tr>`).join('')}</tbody></table>` : '<div class="empty">Nenhum candidato em processo.</div>'}
+      </div>`;
+  }catch(e){ body.innerHTML = `<div class="msg erro" style="display:block;">Erro: ${e.message||e}</div>`; }
+}
+
+// ============================================================
+// DASHBOARD MANUTENÇÃO
+// ============================================================
+async function renderDashManutencao(main){
+  main.innerHTML = `
+    ${renderContaGerencia()}
+    <div class="view-header"><h2>Dashboard Manutenção</h2><div class="desc">Chamados e gastos do mês.</div></div>
+    <div id="dashManutBody"><div class="empty">Carregando...</div></div>`;
+  ligarBotaoTrocarSenha();
+  const body = document.getElementById('dashManutBody');
+  try{
+    const hoje = new Date();
+    const mesRef = hoje.toISOString().slice(0,7); // YYYY-MM
+    const [chRes, gastosRes, lancRes] = await Promise.all([
+      supaPortal.from('chamados').select('*'),
+      supaPortal.from('gastos').select('*').eq('mes', mesRef),
+      supaPortal.from('lancamentos_gastos').select('*').eq('mes', mesRef)
+    ]);
+    if(chRes.error) throw chRes.error;
+    const ch = chRes.data||[];
+    const abertos = ch.filter(c=>c.status==='Aberto'||c.status==='Andamento');
+    const urgentes = abertos.filter(c=>c.prioridade==='Urgente');
+    const programados = ch.filter(c=>c.status==='Programado');
+    const concluidosMes = ch.filter(c=>c.status==='Concluido' && c.concluidoEm && c.concluidoEm.slice(0,7)===mesRef);
+    const orcamento = (gastosRes.data||[])[0]?.orcamento || 0;
+    const gastoMes = (lancRes.data||[]).reduce((s,l)=>s+(Number(l.valor)||0),0);
+
+    body.innerHTML = `
+      <div class="stat-row">
+        <div class="stat"><div class="num">${abertos.length}</div><div class="lbl">Chamados abertos</div></div>
+        <div class="stat"><div class="num">${urgentes.length}</div><div class="lbl">Urgentes</div></div>
+        <div class="stat"><div class="num">${programados.length}</div><div class="lbl">Programados</div></div>
+        <div class="stat"><div class="num">${concluidosMes.length}</div><div class="lbl">Concluídos este mês</div></div>
+      </div>
+      <div class="card">
+        <h3>Gastos deste mês</h3>
+        <div style="font-size:13px;">Gasto: <b>R$ ${gastoMes.toFixed(2).replace('.',',')}</b>${orcamento?` de um orçamento de R$ ${Number(orcamento).toFixed(2).replace('.',',')}`:''}</div>
+      </div>
+      <div class="card">
+        <h3>Chamados urgentes em aberto</h3>
+        ${urgentes.length ? `<table><thead><tr><th>Local</th><th>Área</th><th>Descrição</th></tr></thead><tbody>${urgentes.map(c=>`<tr><td>${esc(c.local||'—')}</td><td>${esc(c.areaTecnica||'—')}</td><td>${esc(c.descricao||'—')}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">Nenhum chamado urgente em aberto.</div>'}
+      </div>`;
+  }catch(e){ body.innerHTML = `<div class="msg erro" style="display:block;">Erro: ${e.message||e}</div>`; }
+}
+
+// ============================================================
+// DASHBOARD VOUCHER
+// ============================================================
+async function renderDashVoucher(main){
+  main.innerHTML = `
+    ${renderContaGerencia()}
+    <div class="view-header"><h2>Dashboard Voucher</h2><div class="desc">Fechamentos e movimentação do mês.</div></div>
+    <div id="dashVoucherBody"><div class="empty">Carregando...</div></div>`;
+  ligarBotaoTrocarSenha();
+  const body = document.getElementById('dashVoucherBody');
+  try{
+    const {data, error} = await supaPortal.from('fechamentos_sem_lancamento').select('*').order('data', {ascending:false});
+    if(error) throw error;
+    const todos = data||[];
+    const hoje = new Date();
+    const mesRef = hoje.toISOString().slice(0,7);
+    const doMes = todos.filter(f=>(f.data||'').slice(0,7)===mesRef);
+    const valorMes = doMes.reduce((s,f)=>s+(Number(f.valor_total)||0),0);
+    const rodizioMes = doMes.reduce((s,f)=>s+(Number(f.qtd_rodizio_ocr)||0)+(Number(f.qtd_rodizio_caixa)||0),0)/2;
+    const fondueMes = doMes.reduce((s,f)=>s+(Number(f.qtd_fondue_ocr)||0)+(Number(f.qtd_fondue_caixa)||0),0)/2;
+    const ultimos = todos.slice(0,10);
+
+    body.innerHTML = `
+      <div class="stat-row">
+        <div class="stat"><div class="num">${doMes.length}</div><div class="lbl">Fechamentos este mês</div></div>
+        <div class="stat"><div class="num">R$ ${valorMes.toFixed(2).replace('.',',')}</div><div class="lbl">Valor arrecadado</div></div>
+        <div class="stat"><div class="num">${Math.round(rodizioMes)}</div><div class="lbl">Rodízio (média scan/caixa)</div></div>
+        <div class="stat"><div class="num">${Math.round(fondueMes)}</div><div class="lbl">Fondue (média scan/caixa)</div></div>
+      </div>
+      <div class="card">
+        <h3>Últimos fechamentos</h3>
+        ${ultimos.length ? `<table><thead><tr><th>Data</th><th>Valor</th><th>Bateu?</th></tr></thead><tbody>${ultimos.map(f=>`<tr><td>${(f.data||'').split('-').reverse().join('/')}</td><td>${f.valor_total!=null?('R$ '+Number(f.valor_total).toFixed(2).replace('.',',')):'—'}</td><td>${f.bateu===true?'<span class="badge ok">Sim</span>':(f.bateu===false?'<span class="badge erro">Não</span>':'—')}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">Nenhum fechamento encontrado.</div>'}
+      </div>`;
+  }catch(e){ body.innerHTML = `<div class="msg erro" style="display:block;">Erro: ${e.message||e}</div>`; }
+}
+
+// ============================================================
 // USUÁRIOS (demo — localStorage)
 // ============================================================
 const USERS_KEY = 'portalEsboco_usuarios';
@@ -472,6 +794,11 @@ function renderSidebar(){
     sidebarWrap.style.display = 'none';
     return;
   }
+  // Sem login na Gerência, não mostra nem os nomes dos submenus.
+  if(!gerenciaLogado){
+    sidebarWrap.style.display = 'none';
+    return;
+  }
   sidebarWrap.style.display = '';
 
   document.getElementById('setorTitulo').textContent = s.nome;
@@ -510,6 +837,11 @@ function renderMain(){
     return;
   }
 
+  if(setorAtual === 'gerencia' && !gerenciaLogado){
+    renderLoginGerencia(main);
+    return;
+  }
+
   if(setorAtual === 'gerencia' && submenuAtual === 'usuarios'){
     renderUsuarios(main);
     return;
@@ -517,6 +849,26 @@ function renderMain(){
 
   if(setorAtual === 'gerencia' && submenuAtual === 'dashboard'){
     renderDashboardGeral(main);
+    return;
+  }
+
+  if(setorAtual === 'gerencia' && submenuAtual === 'notas'){
+    renderNotas(main);
+    return;
+  }
+
+  if(setorAtual === 'gerencia' && submenuAtual === 'dash_dp'){
+    renderDashDP(main);
+    return;
+  }
+
+  if(setorAtual === 'gerencia' && submenuAtual === 'dash_manutencao'){
+    renderDashManutencao(main);
+    return;
+  }
+
+  if(setorAtual === 'gerencia' && submenuAtual === 'dash_voucher'){
+    renderDashVoucher(main);
     return;
   }
 
@@ -659,9 +1011,12 @@ function removerUsuario(i){
 // ============================================================
 // INICIALIZAÇÃO
 // ============================================================
-renderTopNav();
-renderSidebar();
-renderMain();
+(async function iniciar(){
+  await carregarGerenciaUsuarios();
+  renderTopNav();
+  renderSidebar();
+  renderMain();
+})();
 </script>
 
 </body>
