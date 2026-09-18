@@ -177,13 +177,12 @@ const SETORES = {
     nome: 'Gerência',
     ativo: true,
     submenus: [
-      {id:'usuarios', nome:'Usuários e Permissões', ativo:true},
-      {id:'dashboard', nome:'Dashboard Geral', ativo:true},
       {id:'notas', nome:'Bloco de Notas', ativo:true},
       {id:'dash_dp', nome:'Dashboard DP', ativo:true},
       {id:'dash_manutencao', nome:'Dashboard Manutenção', ativo:true},
       {id:'dash_voucher', nome:'Dashboard Voucher', ativo:true},
       {id:'relatorio_consolidado', nome:'Relatório Consolidado', ativo:false},
+      {id:'config', nome:'Configuração', ativo:true},
     ]
   },
   manutencao: {
@@ -235,7 +234,7 @@ const NIVEIS = [
 ];
 
 let setorAtual = 'gerencia';
-let submenuAtual = 'usuarios';
+let submenuAtual = 'notas';
 
 // ============================================================
 // CONEXÃO SUPABASE (só leitura do uso do banco)
@@ -248,7 +247,7 @@ const LIMITE_BANCO_MB = 500; // limite do plano gratuito
 function renderDashboardGeral(main){
   main.innerHTML = `
     <div class="view-header">
-      <h2>Dashboard Geral</h2>
+      <h2>Controle de Memória</h2>
       <div class="desc">Uso do banco de dados (limite gratuito: ${LIMITE_BANCO_MB} MB).</div>
     </div>
     <div class="card" id="cardUsoBanco">
@@ -548,7 +547,21 @@ function ligarBotaoTrocarSenha(){
 // BLOCO DE NOTAS — ideias e pauta das reuniões de líderes
 // ============================================================
 let notaFiltroAtual = 'ideia';
+let notaCategoriaFiltro = '';
+let gerenciaCategorias = [];
+const PRIORIDADE_LBL = {baixa:'Baixa', media:'Média', alta:'Alta'};
+const PRIORIDADE_ORDEM = {alta:0, media:1, baixa:2};
+
+async function carregarCategorias(){
+  try{
+    const {data, error} = await supaPortal.from('gerencia_categorias').select('*').order('nome');
+    if(error) throw error;
+    gerenciaCategorias = data || [];
+  }catch(e){ console.warn('gerencia_categorias', e.message||e); }
+}
+
 async function renderNotas(main){
+  await carregarCategorias();
   main.innerHTML = `
     ${renderContaGerencia()}
     <div class="view-header">
@@ -559,13 +572,37 @@ async function renderNotas(main){
       <h3>Nova anotação</h3>
       <label style="margin-top:0;">Ideia / tópico</label>
       <textarea id="notaTexto" placeholder="Ex: Conversar sobre reposição de material de limpeza..."></textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <label>Categoria</label>
+          <select id="notaCategoria">
+            <option value="">Sem categoria</option>
+            ${gerenciaCategorias.map(c=>`<option value="${esc(c.nome)}">${esc(c.nome)}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label>Prioridade</label>
+          <select id="notaPrioridade">
+            <option value="baixa">Baixa</option>
+            <option value="media" selected>Média</option>
+            <option value="alta">Alta</option>
+          </select>
+        </div>
+      </div>
+      <button class="action-link" id="btnNovaCategoria" style="margin-top:10px;">+ Criar nova categoria</button>
       <button class="btn-primary full" id="btnAddNota">Adicionar</button>
       <div class="msg" id="notaMsg"></div>
     </div>
-    <div class="kvtoggle">
-      <button data-f="ideia" class="${notaFiltroAtual==='ideia'?'active':''}">Ideias soltas</button>
-      <button data-f="pauta" class="${notaFiltroAtual==='pauta'?'active':''}">Pauta da próxima reunião</button>
-      <button data-f="discutido" class="${notaFiltroAtual==='discutido'?'active':''}">Já discutido</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px;">
+      <div class="kvtoggle" style="margin-bottom:0;">
+        <button data-f="ideia" class="${notaFiltroAtual==='ideia'?'active':''}">Ideias soltas</button>
+        <button data-f="pauta" class="${notaFiltroAtual==='pauta'?'active':''}">Pauta da próxima reunião</button>
+        <button data-f="discutido" class="${notaFiltroAtual==='discutido'?'active':''}">Já discutido</button>
+      </div>
+      <select id="notaCategoriaFiltro" style="width:180px;">
+        <option value="">Todas as categorias</option>
+        ${gerenciaCategorias.map(c=>`<option value="${esc(c.nome)}" ${notaCategoriaFiltro===c.nome?'selected':''}>${esc(c.nome)}</option>`).join('')}
+      </select>
     </div>
     <div id="listaNotas"></div>
   `;
@@ -573,12 +610,25 @@ async function renderNotas(main){
   document.querySelectorAll('.kvtoggle button').forEach(b=>{
     b.addEventListener('click', ()=>{ notaFiltroAtual = b.dataset.f; renderNotas(main); });
   });
+  document.getElementById('notaCategoriaFiltro').addEventListener('change', (e)=>{ notaCategoriaFiltro = e.target.value; carregarNotas(); });
+  document.getElementById('btnNovaCategoria').addEventListener('click', async ()=>{
+    const nome = prompt('Nome da nova categoria:');
+    if(!nome || !nome.trim()) return;
+    try{
+      const reg = {id:crypto.randomUUID?crypto.randomUUID():'cat-'+Date.now(), nome:nome.trim()};
+      const {error} = await supaPortal.from('gerencia_categorias').insert([reg]);
+      if(error) throw error;
+      renderNotas(main);
+    }catch(e){ alert('Erro ao criar categoria: '+(e.message||e)); }
+  });
   document.getElementById('btnAddNota').addEventListener('click', async ()=>{
     const texto = document.getElementById('notaTexto').value.trim();
+    const categoria = document.getElementById('notaCategoria').value || null;
+    const prioridade = document.getElementById('notaPrioridade').value;
     const msg = document.getElementById('notaMsg');
     if(!texto){ msg.textContent='Escreva algo antes de adicionar.'; msg.className='msg erro'; return; }
     try{
-      const reg = {id:crypto.randomUUID?crypto.randomUUID():'n-'+Date.now(), texto, status:'ideia', criado_em:new Date().toISOString()};
+      const reg = {id:crypto.randomUUID?crypto.randomUUID():'n-'+Date.now(), texto, categoria, prioridade, status:'ideia', criado_em:new Date().toISOString()};
       const {error} = await supaPortal.from('gerencia_notas').insert([reg]);
       if(error) throw error;
       msg.textContent='Adicionada.'; msg.className='msg ok';
@@ -590,20 +640,28 @@ async function renderNotas(main){
 async function carregarNotas(){
   const el = document.getElementById('listaNotas');
   try{
-    const {data, error} = await supaPortal.from('gerencia_notas').select('*').eq('status', notaFiltroAtual).order('criado_em', {ascending:false});
+    let q = supaPortal.from('gerencia_notas').select('*').eq('status', notaFiltroAtual);
+    if(notaCategoriaFiltro) q = q.eq('categoria', notaCategoriaFiltro);
+    const {data, error} = await q.order('criado_em', {ascending:false});
     if(error) throw error;
     if(!data || !data.length){ el.innerHTML = '<div class="empty">Nada por aqui ainda.</div>'; return; }
-    el.innerHTML = data.map(n=>{
-      const data_ = new Date(n.criado_em).toLocaleDateString('pt-BR');
+    const ordenado = [...data].sort((a,b)=>(PRIORIDADE_ORDEM[a.prioridade] ?? 1)-(PRIORIDADE_ORDEM[b.prioridade] ?? 1));
+    el.innerHTML = ordenado.map(n=>{
+      const dataF = new Date(n.criado_em).toLocaleDateString('pt-BR');
       let acoes = '';
       if(n.status==='ideia') acoes = `<button class="action-link" onclick="moverNota('${n.id}','pauta')">Mover para pauta</button>`;
       if(n.status==='pauta') acoes = `<button class="action-link" onclick="moverNota('${n.id}','discutido')">Marcar como discutido</button> <button class="action-link" onclick="moverNota('${n.id}','ideia')">Voltar pra ideias</button>`;
       if(n.status==='discutido') acoes = `<button class="action-link" onclick="moverNota('${n.id}','ideia')">Reabrir</button>`;
+      const prBadge = {alta:'erro', media:'pend', baixa:'info'}[n.prioridade] || 'info';
       return `<div class="nota-card">
-        <div class="nota-texto">${esc(n.texto)}</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+          ${n.categoria ? `<span class="badge info">${esc(n.categoria)}</span>` : ''}
+          <span class="badge ${prBadge}">${PRIORIDADE_LBL[n.prioridade]||'Média'}</span>
+        </div>
+        <div class="nota-texto" id="notaTexto_${n.id}">${esc(n.texto)}</div>
         <div class="nota-rodape">
-          <span style="font-size:11.5px;color:var(--texto-suave);">${data_}</span>
-          <div>${acoes} <button class="action-link danger" onclick="removerNota('${n.id}')">Remover</button></div>
+          <span style="font-size:11.5px;color:var(--texto-suave);">${dataF}</span>
+          <div>${acoes} <button class="action-link" onclick="editarNota('${n.id}')">Editar</button> <button class="action-link danger" onclick="removerNota('${n.id}')">Remover</button></div>
         </div>
       </div>`;
     }).join('');
@@ -611,6 +669,14 @@ async function carregarNotas(){
 }
 async function moverNota(id, novoStatus){
   try{ await supaPortal.from('gerencia_notas').update({status:novoStatus}).eq('id', id); carregarNotas(); }
+  catch(e){ alert('Erro: '+(e.message||e)); }
+}
+async function editarNota(id){
+  const el = document.getElementById('notaTexto_'+id);
+  if(!el) return;
+  const novo = prompt('Editar anotação:', el.textContent);
+  if(novo === null || !novo.trim()) return;
+  try{ await supaPortal.from('gerencia_notas').update({texto:novo.trim()}).eq('id', id); carregarNotas(); }
   catch(e){ alert('Erro: '+(e.message||e)); }
 }
 async function removerNota(id){
@@ -745,17 +811,82 @@ async function renderDashVoucher(main){
 }
 
 // ============================================================
-// USUÁRIOS (demo — localStorage)
+// CONFIGURAÇÃO DA GERÊNCIA — acessos + controle de memória
 // ============================================================
-const USERS_KEY = 'portalEsboco_usuarios';
-function carregarUsuarios(){ return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }
-function salvarUsuarios(arr){ localStorage.setItem(USERS_KEY, JSON.stringify(arr)); }
-if(carregarUsuarios().length === 0){
-  salvarUsuarios([
-    {nome:'Eduardo Rohden', nivel:5, menus:['gerencia','manutencao','dp','voucher','recepcao','governanca','aeb']},
-    {nome:'Encarregada de Governança', nivel:2, menus:['governanca']},
-    {nome:'Controlista A&B', nivel:2, menus:['voucher']},
-  ]);
+let configTabAtual = 'acessos';
+function renderConfigGerencia(main){
+  main.innerHTML = `
+    ${renderContaGerencia()}
+    <div class="view-header"><h2>Configuração</h2><div class="desc">Acessos ao sistema de Gerência e controle de espaço do banco.</div></div>
+    <div class="kvtoggle">
+      <button data-t="acessos" class="${configTabAtual==='acessos'?'active':''}">Acessos</button>
+      <button data-t="memoria" class="${configTabAtual==='memoria'?'active':''}">Controle de Memória</button>
+    </div>
+    <div id="configSubArea"></div>
+  `;
+  document.querySelectorAll('.kvtoggle button').forEach(b=>{
+    b.addEventListener('click', ()=>{ configTabAtual = b.dataset.t; renderConfigGerencia(main); });
+  });
+  const sub = document.getElementById('configSubArea');
+  if(configTabAtual === 'memoria'){
+    renderDashboardGeral(sub);
+  } else {
+    renderAcessosGerencia(sub);
+  }
+}
+
+function renderAcessosGerencia(sub){
+  sub.innerHTML = `
+    <div class="card">
+      <h3>Criar novo acesso</h3>
+      <label style="margin-top:0;">Nome</label>
+      <input type="text" id="novoGerNome" placeholder="Ex: Maria Souza">
+      <label>Login</label>
+      <input type="text" id="novoGerLogin" placeholder="Ex: maria">
+      <label>Senha</label>
+      <input type="text" id="novoGerSenha" placeholder="Defina uma senha">
+      <button class="btn-primary full" id="btnAddGerUsuario">Criar acesso</button>
+      <div class="msg" id="gerUsuarioMsg"></div>
+    </div>
+    <div class="card">
+      <h3>Quem tem acesso à Gerência</h3>
+      <div id="listaGerUsuarios"></div>
+    </div>`;
+  document.getElementById('btnAddGerUsuario').addEventListener('click', async ()=>{
+    const nome = document.getElementById('novoGerNome').value.trim();
+    const login = document.getElementById('novoGerLogin').value.trim();
+    const senha = document.getElementById('novoGerSenha').value;
+    const msg = document.getElementById('gerUsuarioMsg');
+    if(!nome || !login || !senha){ msg.textContent='Preencha nome, login e senha.'; msg.className='msg erro'; return; }
+    if(gerenciaUsuarios.some(u=>u.login.toLowerCase()===login.toLowerCase())){ msg.textContent='Já existe um acesso com esse login.'; msg.className='msg erro'; return; }
+    try{
+      const novo = {id:crypto.randomUUID?crypto.randomUUID():'u-'+Date.now(), nome, login, senha};
+      const {error} = await supaPortal.from('gerencia_usuarios').insert([novo]);
+      if(error) throw error;
+      gerenciaUsuarios.push(novo);
+      msg.textContent='Acesso criado.'; msg.className='msg ok';
+      renderAcessosGerencia(sub);
+    }catch(e){ msg.textContent='Erro: '+(e.message||e); msg.className='msg erro'; }
+  });
+  renderListaGerUsuarios();
+}
+function renderListaGerUsuarios(){
+  const el = document.getElementById('listaGerUsuarios');
+  if(!el) return;
+  el.innerHTML = gerenciaUsuarios.map(u=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--borda)">
+      <div style="flex:1;"><b>${esc(u.nome)}</b> <span style="font-size:12px;color:var(--texto-suave)">(${esc(u.login)})</span></div>
+      <button class="action-link danger" onclick="removerGerUsuario('${u.id}')">Remover</button>
+    </div>`).join('');
+}
+async function removerGerUsuario(id){
+  if(gerenciaUsuarios.length <= 1){ alert('Não é possível remover o único acesso da Gerência.'); return; }
+  if(!confirm('Remover este acesso?')) return;
+  try{
+    await supaPortal.from('gerencia_usuarios').delete().eq('id', id);
+    gerenciaUsuarios = gerenciaUsuarios.filter(u=>u.id!==id);
+    renderListaGerUsuarios();
+  }catch(e){ alert('Erro: '+(e.message||e)); }
 }
 
 // ============================================================
@@ -842,16 +973,6 @@ function renderMain(){
     return;
   }
 
-  if(setorAtual === 'gerencia' && submenuAtual === 'usuarios'){
-    renderUsuarios(main);
-    return;
-  }
-
-  if(setorAtual === 'gerencia' && submenuAtual === 'dashboard'){
-    renderDashboardGeral(main);
-    return;
-  }
-
   if(setorAtual === 'gerencia' && submenuAtual === 'notas'){
     renderNotas(main);
     return;
@@ -869,6 +990,11 @@ function renderMain(){
 
   if(setorAtual === 'gerencia' && submenuAtual === 'dash_voucher'){
     renderDashVoucher(main);
+    return;
+  }
+
+  if(setorAtual === 'gerencia' && submenuAtual === 'config'){
+    renderConfigGerencia(main);
     return;
   }
 
@@ -903,109 +1029,6 @@ function renderMain(){
     <div class="card">
       <div class="empty">Espaço reservado para o sistema de "${sub?sub.nome:''}".</div>
     </div>`;
-}
-
-// ---- Usuários e Permissões ----
-let nivelSelecionado = 2;
-let menusSelecionados = [];
-
-function renderUsuarios(main){
-  main.innerHTML = `
-    <div class="view-header">
-      <h2>Usuários e Permissões</h2>
-      <div class="desc">Cada usuário tem um nível (1 a 5) e os menus principais que pode acessar.</div>
-    </div>
-
-    <div class="card">
-      <h3>Novo usuário</h3>
-      <label style="margin-top:0;">Nome</label>
-      <input type="text" id="novoUsuarioNome" placeholder="Ex: Maria Souza">
-
-      <label>Nível de acesso</label>
-      <div class="nivel-row" id="nivelRow">
-        ${NIVEIS.map(n=>`<button type="button" data-n="${n.v}" class="${n.v===nivelSelecionado?'selected':''}"><span class="n">${n.v}</span><span class="d">${n.d}</span></button>`).join('')}
-      </div>
-
-      <label>Menus permitidos</label>
-      <div class="menu-check-grid" id="menuCheckGrid">
-        ${Object.entries(SETORES).map(([id,s])=>`
-          <label class="menu-check ${!s.ativo?'disabled':''}">
-            <input type="checkbox" value="${id}" ${menusSelecionados.includes(id)?'checked':''}>
-            ${s.nome}${!s.ativo?' (não conectado)':''}
-          </label>
-        `).join('')}
-      </div>
-
-      <button class="btn-primary full" id="btnCriarUsuario">Criar usuário</button>
-      <div class="msg" id="usuarioMsg"></div>
-    </div>
-
-    <div class="card">
-      <h3>Usuários cadastrados</h3>
-      <div id="tabelaUsuarios"></div>
-    </div>
-  `;
-
-  document.querySelectorAll('#nivelRow button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      nivelSelecionado = parseInt(btn.dataset.n);
-      document.querySelectorAll('#nivelRow button').forEach(b=>b.classList.remove('selected'));
-      btn.classList.add('selected');
-    });
-  });
-
-  document.querySelectorAll('#menuCheckGrid input').forEach(chk=>{
-    chk.addEventListener('change', ()=>{
-      menusSelecionados = [...document.querySelectorAll('#menuCheckGrid input:checked')].map(c=>c.value);
-    });
-  });
-
-  document.getElementById('btnCriarUsuario').addEventListener('click', ()=>{
-    const nome = document.getElementById('novoUsuarioNome').value.trim();
-    if(!nome){ showMsgUsuario('Digite o nome do usuário.', 'erro'); return; }
-    if(menusSelecionados.length === 0){ showMsgUsuario('Marque pelo menos um menu.', 'erro'); return; }
-
-    const usuarios = carregarUsuarios();
-    usuarios.push({nome, nivel: nivelSelecionado, menus: menusSelecionados});
-    salvarUsuarios(usuarios);
-
-    document.getElementById('novoUsuarioNome').value = '';
-    menusSelecionados = [];
-    nivelSelecionado = 2;
-    showMsgUsuario('Usuário criado com sucesso.', 'ok');
-    renderUsuarios(main);
-  });
-
-  renderTabelaUsuarios();
-}
-
-function showMsgUsuario(texto, tipo){
-  const el = document.getElementById('usuarioMsg');
-  el.textContent = texto;
-  el.className = 'msg ' + tipo;
-}
-
-function renderTabelaUsuarios(){
-  const el = document.getElementById('tabelaUsuarios');
-  const usuarios = carregarUsuarios();
-  if(usuarios.length === 0){ el.innerHTML = '<div class="empty">Nenhum usuário cadastrado ainda.</div>'; return; }
-  el.innerHTML = `<table>
-    <thead><tr><th>Nome</th><th>Nível</th><th>Menus permitidos</th><th></th></tr></thead>
-    <tbody>${usuarios.map((u,i)=>`<tr>
-      <td>${u.nome}</td>
-      <td><span class="badge nivel">${u.nivel} · ${NIVEIS.find(n=>n.v===u.nivel)?.d||''}</span></td>
-      <td>${u.menus.map(m=>`<span class="badge menu-ok">${SETORES[m]?.nome||m}</span>`).join('')}</td>
-      <td><button class="action-link danger" onclick="removerUsuario(${i})">Remover</button></td>
-    </tr>`).join('')}</tbody>
-  </table>`;
-}
-
-function removerUsuario(i){
-  if(!confirm('Remover este usuário?')) return;
-  const usuarios = carregarUsuarios();
-  usuarios.splice(i,1);
-  salvarUsuarios(usuarios);
-  renderTabelaUsuarios();
 }
 
 // ============================================================
