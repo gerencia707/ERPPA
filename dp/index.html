@@ -2,6 +2,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -317,10 +318,6 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
       <span id="dp-user-chip" style="font-size:12.5px;color:var(--text2);padding:0 4px;"></span>
       <button class="btn btn-s btn-sm" onclick="sairDP()" title="Sair">⎋ Sair</button>
       <button class="btn btn-s btn-sm" onclick="imprimirColabs()" title="Imprimir lista de colaboradores">🖨 Imprimir</button>
-      <button class="btn btn-g btn-sm" onclick="expResumoGestor()" title="Exportar resumo para o Portal do Gestor">↗ Resumo Gestor</button>
-      <button class="btn btn-s btn-sm" onclick="expDados()">↓ Backup</button>
-      <button class="btn btn-s btn-sm" onclick="impDados()">↑ Restaurar</button>
-      <input type="file" id="imp-file" accept=".json" style="display:none" onchange="procImport(event)">
     </div>
   </div>
   <div class="content">
@@ -338,6 +335,10 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
           <div class="card-hdr"><span class="card-title">Aniversários do mês</span></div>
           <div class="card-body" id="dash-aniv" style="display:flex;flex-direction:column;gap:6px"></div>
         </div>
+      </div>
+      <div class="card mt4">
+        <div class="card-hdr"><span class="card-title">Testes de função em andamento</span></div>
+        <div class="card-body" id="dash-testes" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
       <div class="card mt4">
         <div class="card-hdr"><span class="card-title">Candidatos por etapa</span></div>
@@ -641,6 +642,10 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
               <div class="fgr"><label>Dias de férias padrão (CLT)</label><input type="number" id="cfg-fer-dias" placeholder="30" oninput="salvCfg()"></div>
               <div class="fgr"><label>Alerta contrato vencendo (dias)</label><input type="number" id="cfg-alerta-dias" placeholder="15" oninput="salvCfg()"></div>
               <div class="fgr"><label>Alerta ASO vencendo (dias)</label><input type="number" id="cfg-aso-alerta" placeholder="30" oninput="salvCfg()"></div>
+              <div class="fgr"><label>Teste de função — setor p/ setor (dias)</label><input type="number" id="cfg-teste-setor" placeholder="30" oninput="salvCfg()"></div>
+              <div class="fgr"><label>Teste de função — liderança (dias)</label><input type="number" id="cfg-teste-lideranca" placeholder="90" oninput="salvCfg()"></div>
+              <div class="fgr"><label>Teste de função — gerência (dias)</label><input type="number" id="cfg-teste-gerencia" placeholder="180" oninput="salvCfg()"></div>
+              <div class="fgr"><label>Alerta teste de função vencendo (dias)</label><input type="number" id="cfg-teste-alerta" placeholder="15" oninput="salvCfg()"></div>
             </div>
           </div>
         </div>
@@ -712,20 +717,8 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
       <!-- BACKUP -->
       <div class="g2 mt4">
         <div class="card">
-          <div class="card-hdr"><span class="card-title">💾 Dados e backup</span></div>
+          <div class="card-hdr"><span class="card-title">💾 Dados</span></div>
           <div class="card-body" style="display:flex;flex-direction:column;gap:0">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-              <div><div style="font-size:13px;font-weight:500">Exportar backup</div><div class="tsm tmut">Arquivo JSON com todos os dados</div></div>
-              <button class="btn btn-s btn-sm" onclick="expDados()">↓ Exportar</button>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-              <div><div style="font-size:13px;font-weight:500">Importar backup</div><div class="tsm tmut">Restaurar dados de arquivo JSON</div></div>
-              <button class="btn btn-s btn-sm" onclick="impDados()">↑ Importar</button>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-              <div><div style="font-size:13px;font-weight:500">Exportar resumo para Gestor</div><div class="tsm tmut">Gera JSON para o Portal do Gestor</div></div>
-              <button class="btn btn-g btn-sm" onclick="expResumoGestor()">↗ Exportar</button>
-            </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
               <div><div style="font-size:13px;font-weight:500;color:var(--red)">Limpar todos os dados</div><div class="tsm tmut">Ação irreversível</div></div>
               <button class="btn btn-d btn-sm" onclick="limparTudo()">⚠ Limpar</button>
@@ -1189,6 +1182,63 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
   </div>
 </div>
 
+<!-- MODAL TESTE DE FUNÇÃO -->
+<div class="mo" id="m-teste">
+  <div class="md" style="max-width:580px">
+    <div class="mh"><div class="mt" id="m-teste-nome">Teste de Função</div><button class="mc" onclick="fMo('m-teste')">✕</button></div>
+    <div class="mb">
+      <div id="teste-ativo-box"></div>
+      <div class="fgr">
+        <label>Iniciar novo teste de função</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="teste-tipo" style="width:190px;flex-shrink:0" onchange="atualizarPrevisaoTeste()">
+            <option value="setor">Mudança de setor</option>
+            <option value="lideranca">Liderança</option>
+            <option value="gerencia">Gerência</option>
+          </select>
+          <input type="date" id="teste-inicio" style="width:145px;flex-shrink:0" onchange="atualizarPrevisaoTeste()">
+          <input type="text" id="teste-cargo-novo" placeholder="Cargo novo (ex: Chefe de Fila)" style="flex:1;min-width:180px">
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px" id="teste-previsao"></div>
+      </div>
+      <div class="fgr"><label>Observação</label><input type="text" id="teste-obs" placeholder="Opcional"></div>
+      <button class="btn btn-p btn-sm" onclick="addTeste()" style="align-self:flex-start">+ Iniciar teste</button>
+      <div class="div"></div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Histórico de testes</div>
+      <div id="teste-lista" style="display:flex;flex-direction:column;gap:7px;max-height:300px;overflow-y:auto"></div>
+    </div>
+    <div class="mf"><button class="btn btn-s" onclick="fMo('m-teste')">Fechar</button></div>
+  </div>
+</div>
+
+<!-- MODAL AVALIAÇÕES -->
+<div class="mo" id="m-aval">
+  <div class="md" style="max-width:580px">
+    <div class="mh"><div class="mt" id="m-aval-nome">Avaliações</div><button class="mc" onclick="fMo('m-aval')">✕</button></div>
+    <div class="mb">
+      <div class="fgr">
+        <label>Nova avaliação</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="aval-tipo" style="width:150px;flex-shrink:0">
+            <option value="45_dias">45 dias</option>
+            <option value="90_dias">90 dias</option>
+            <option value="anual">Anual</option>
+          </select>
+          <input type="date" id="aval-data" style="width:145px;flex-shrink:0">
+          <input type="number" id="aval-nota" min="0" max="10" step="0.1" placeholder="Nota (0-10)" style="width:120px;flex-shrink:0">
+        </div>
+        <input type="text" id="aval-avaliador" placeholder="Avaliador" style="margin-top:8px">
+        <textarea id="aval-obs" placeholder="Observações da avaliação..." style="margin-top:8px;min-height:70px;width:100%;padding:8px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:13px"></textarea>
+      </div>
+      <button class="btn btn-p btn-sm" onclick="addAvaliacao()" style="align-self:flex-start">+ Registrar avaliação</button>
+      <div class="div"></div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Histórico de avaliações</div>
+      <div id="aval-lista" style="display:flex;flex-direction:column;gap:7px;max-height:300px;overflow-y:auto"></div>
+    </div>
+    <div class="mf"><button class="btn btn-s" onclick="fMo('m-aval')">Fechar</button></div>
+  </div>
+</div>
+
 <!-- MODAL DOCUMENTOS (checklist) -->
 <div class="mo" id="m-docs">
   <div class="md" style="max-width:500px">
@@ -1249,7 +1299,9 @@ const TBMAP = {
   epi_tipos:    { tb:'dp_epi_tipos',     id:'id' },
   epi_entregas: { tb:'dp_epi_entregas',  id:'id' },
   desligados:   { tb:'dp_desligamentos', id:'id' },
-  cargos:       { tb:'dp_cargos',        id:'id' }
+  cargos:       { tb:'dp_cargos',        id:'id' },
+  testes_funcao:{ tb:'dp_testes_funcao', id:'id' },
+  avaliacoes:   { tb:'dp_avaliacoes',    id:'id' }
 };
 
 // Cache em memória — alimentado pelo Supabase ao iniciar
@@ -1584,7 +1636,8 @@ async function carregarDoSupabase(){
     await carregarHierarquia();
     const [
       colabs, candidatos, ferias, hist, docs,
-      epiTipos, epiEntregas, deslig, cargos, matriz, cfg
+      epiTipos, epiEntregas, deslig, cargos, matriz, cfg,
+      testesFuncao, avaliacoes
     ] = await Promise.all([
       supa.from('dp_colaboradores').select('*').neq('status','desligado'),
       supa.from('dp_candidatos').select('*'),
@@ -1596,7 +1649,9 @@ async function carregarDoSupabase(){
       supa.from('dp_desligamentos').select('*'),
       supa.from('dp_cargos').select('*').eq('ativo',true),
       supa.from('dp_matriz').select('*'),
-      supa.from('dp_config').select('*').limit(1).maybeSingle()
+      supa.from('dp_config').select('*').limit(1).maybeSingle(),
+      supa.from('dp_testes_funcao').select('*'),
+      supa.from('dp_avaliacoes').select('*')
     ]);
 
     _cache.colabs       = (colabs.data||[]).map(fromSupaColab);
@@ -1609,6 +1664,8 @@ async function carregarDoSupabase(){
     _cache.desligados   = (deslig.data||[]).map(fromSupaDeslig);
     _cache.cargos       = (cargos.data||[]).map(fromSupaCargo);
     _cache.matriz       = (matriz.data||[]).map(fromSupaMatriz);
+    _cache.testes_funcao = testesFuncao.data||[];
+    _cache.avaliacoes    = avaliacoes.data||[];
 
     // Setores do Supabase — se a tabela estiver vazia, semeia os padrões
     // uma vez (senão o sistema fica usando uma lista fixa só em memória que
@@ -1765,6 +1822,16 @@ function renderDash(){
   colabs.filter(c=>c.aniv&&c.aniv.slice(5)===hj.slice(5)).forEach(c=>{
     alertas.push({tipo:'gr',ic:'🎂',at:`Aniversário hoje — ${c.nome}`,as:`${c.cargo||'—'} · ${c.setor||'—'}`});
   });
+  const testesAtivos=gTestes().filter(t=>t.status==='em_teste');
+  const cfgTeste=gCfg();
+  testesAtivos.forEach(t=>{
+    const c=colabs.find(x=>x.id===t.colaboradorId);
+    if(!c) return;
+    const fim=addDias(t.dataInicio,duracaoTeste(t.tipo));
+    const dias=diasAte(fim);
+    if(dias<0) alertas.push({tipo:'re',ic:'🧪',at:`Teste de função vencido — ${c.nome}`,as:`${TESTE_LBL[t.tipo]||t.tipo} venceu há ${Math.abs(dias)} dia(s) (${fmD(fim)}) — decidir aprovação!`});
+    else if(dias<=(cfgTeste.testeAlertaDias||15)) alertas.push({tipo:'or',ic:'🧪',at:`Teste de função — ${c.nome}`,as:`${TESTE_LBL[t.tipo]||t.tipo} vence ${dias===0?'HOJE':'em '+dias+' dias'} (${fmD(fim)})`});
+  });
 
   const aEl=document.getElementById('dash-alertas');
   aEl.innerHTML=alertas.map(a=>`<div class="alert alert-${a.tipo}"><span class="alert-ic">${a.ic}</span><div><div class="at">${a.at}</div><div class="as">${a.as}</div></div></div>`).join('')
@@ -1811,6 +1878,23 @@ function renderDash(){
     <span class="badge ${c.aniv.slice(5)===hj.slice(5)?'b-gr':'b-gy'}">${fmDlabel(c.aniv)}${c.aniv.slice(5)===hj.slice(5)?' 🎂':''}</span>
   </div>`).join('')||'<div class="tsm tmut" style="padding:8px 0">Nenhum aniversário neste mês</div>';
 
+  // Testes de função em andamento
+  const testesLista=testesAtivos.map(t=>{
+    const c=colabs.find(x=>x.id===t.colaboradorId);
+    if(!c) return null;
+    const fim=addDias(t.dataInicio,duracaoTeste(t.tipo));
+    const dias=diasAte(fim);
+    return {nome:c.nome,cargoNovo:t.cargoNovo,tipo:t.tipo,fim,dias};
+  }).filter(Boolean).sort((a,b)=>a.dias-b.dias);
+  const testesEl=document.getElementById('dash-testes');
+  testesEl.innerHTML=testesLista.map(t=>`<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+    <div style="width:34px;height:34px;border-radius:7px;background:${t.dias<0?'var(--red)':t.dias<=15?'var(--orange)':'var(--verde)'};color:${t.dias<0||t.dias<=15?'#fff':'var(--verde-l)'};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;text-align:center">
+      <span style="font-size:14px;line-height:1;font-family:'DM Mono',monospace">${t.dias===0?'hj':Math.abs(t.dias)}</span><span>${t.dias<0?'venc.':t.dias>0?'d':''}</span>
+    </div>
+    <div style="flex:1"><div style="font-size:13px;font-weight:500">${t.nome}${t.cargoNovo?' → '+t.cargoNovo:''}</div><div class="tsm tmut">${TESTE_LBL[t.tipo]||t.tipo} · previsão ${fmD(t.fim)}</div></div>
+    <span class="badge ${t.dias<0?'b-re':t.dias<=15?'b-or':'b-gy'}">${TESTE_LBL[t.tipo]||t.tipo}</span>
+  </div>`).join('')||'<div class="tsm tmut" style="padding:8px 0">Nenhum teste de função em andamento</div>';
+
   // Pipeline resumo
   const ETAPAS=['documentos','exame','integracao','inicio'];
   const ELBL={documentos:'Documentos',exame:'Exame',integracao:'Integração',inicio:'Início'};
@@ -1828,13 +1912,19 @@ function renderDash(){
 /* ===== COLABORADORES ===== */
 function renderColabs(){
   const setores = gSetores();
+  const setEl = document.getElementById('col-set');
+  if(setEl.options.length <= 1){
+    setores.forEach(function(s){
+      const o = document.createElement('option'); o.value = s; o.textContent = s; setEl.appendChild(o);
+    });
+  }
   const q = (document.getElementById('col-q').value||'').toLowerCase();
   const sf = document.getElementById('col-set').value;
   const st = document.getElementById('col-st').value;
 
   let todos = gD('colabs').filter(function(c){ return c.status !== 'desligado'; });
   if(q) todos = todos.filter(function(c){
-    return c.nome.toLowerCase().includes(q) || (c.cargo&&c.cargo.toLowerCase().includes(q));
+    return (c.nome||'').toLowerCase().includes(q) || (c.cargo&&c.cargo.toLowerCase().includes(q));
   });
   if(sf) todos = todos.filter(function(c){ return c.setor === sf; });
   if(st) todos = todos.filter(function(c){ return c.status === st; });
@@ -1979,6 +2069,8 @@ function renderColabRow(c){
     + '<div class="colab-acoes">'
       + '<button class="btn btn-s btn-sm btn-ic" onclick="abrirColab(this.dataset.id)" data-id="' + c.id + '" title="Editar">✎</button>'
       + '<button class="btn btn-s btn-sm btn-ic" onclick="abrirHistorico(this.dataset.id)" data-id="' + c.id + '" title="Histórico">📋</button>'
+      + '<button class="btn btn-s btn-sm btn-ic" onclick="abrirTeste(this.dataset.id)" data-id="' + c.id + '" title="Teste de Função">🧪</button>'
+      + '<button class="btn btn-s btn-sm btn-ic" onclick="abrirAval(this.dataset.id)" data-id="' + c.id + '" title="Avaliações">📝</button>'
       + '<button class="btn btn-d btn-sm" onclick="abrirDesligamento(this.dataset.id)" data-id="' + c.id + '" style="font-size:11px">📦 Desligar</button>'
       + '<button class="btn btn-d btn-sm btn-ic" onclick="delColab(this.dataset.id)" data-id="' + c.id + '" title="Remover">✕</button>'
     + '</div>'
@@ -2299,24 +2391,6 @@ function salvAdmissao(){
   sD('candidatos',gD('candidatos').filter(x=>x.id!==_admCandId));
   fMo('m-admissao');renderPipeline();
   toast(`${c.nome} admitido! Colaborador criado com contrato de ${contrato==='experiencia'?'experiência (45/90 dias)':'efetivo'}.`);
-}
-
-/* ===== BACKUP ===== */
-function expDados(){
-  const data={versao:'1.2',exportadoEm:new Date().toISOString(),colabs:gD('colabs'),candidatos:gD('candidatos'),matriz:gD('matriz'),ferias:gD('ferias'),historico:gD('historico'),docs_colabs:gD('docs_colabs'),cargos:gD('cargos'),epi_tipos:gD('epi_tipos'),epi_entregas:gD('epi_entregas'),desligados:gD('desligados'),config:DB.gO('config',{})};
-  const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`portal-dp-${hoje()}.json`;a.click();URL.revokeObjectURL(u);
-  toast('Backup exportado!');
-}
-function impDados(){document.getElementById('imp-file').click();}
-function procImport(ev){
-  const f=ev.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=e=>{try{const d=JSON.parse(e.target.result);conf('Importar backup? Os dados atuais serão substituídos.',()=>{
-    if(d.colabs)sD('colabs',d.colabs);if(d.candidatos)sD('candidatos',d.candidatos);if(d.matriz)sD('matriz',d.matriz);if(d.ferias)sD('ferias',d.ferias);if(d.historico)sD('historico',d.historico);if(d.docs_colabs)sD('docs_colabs',d.docs_colabs);if(d.cargos)sD('cargos',d.cargos);if(d.epi_tipos)sD('epi_tipos',d.epi_tipos);if(d.epi_entregas)sD('epi_entregas',d.epi_entregas);if(d.desligados)sD('desligados',d.desligados);if(d.config)DB.sO('config',d.config);
-    toast('Importado!');renderDash();
-  },'Importar');}catch{toast('Arquivo inválido',true);}};
-  r.readAsText(f);ev.target.value='';
 }
 
 /* ===== FILHOS / DEPENDENTES ===== */
@@ -2725,6 +2799,177 @@ function delHistItem(id){
   renderHistLista(_histColabId);
 }
 
+/* ===== TESTE DE FUNÇÃO ===== */
+let _testeColabId = null;
+const TESTE_LBL = {setor:'Mudança de setor', lideranca:'Liderança', gerencia:'Gerência'};
+const TESTE_STATUS_LBL = {em_teste:'Em teste', aprovado:'Aprovado', reprovado:'Reprovado'};
+const TESTE_STATUS_COR = {em_teste:'b-or', aprovado:'b-gv', reprovado:'b-re'};
+
+function duracaoTeste(tipo){
+  const c = gCfg();
+  if(tipo==='lideranca') return c.testeLiderancaDias||90;
+  if(tipo==='gerencia') return c.testeGerenciaDias||180;
+  return c.testeSetorDias||30;
+}
+function gTestes(){ return gD('testes_funcao'); }
+
+function abrirTeste(colabId){
+  _testeColabId = colabId;
+  const c = gD('colabs').find(x=>x.id===colabId);
+  document.getElementById('m-teste-nome').textContent = (c?c.nome+' — ':'')+'Teste de Função';
+  document.getElementById('teste-tipo').value = 'setor';
+  document.getElementById('teste-inicio').value = hoje();
+  document.getElementById('teste-cargo-novo').value = '';
+  document.getElementById('teste-obs').value = '';
+  atualizarPrevisaoTeste();
+  renderTesteBox(colabId);
+  aMo('m-teste');
+}
+function atualizarPrevisaoTeste(){
+  const tipo = document.getElementById('teste-tipo').value;
+  const inicio = document.getElementById('teste-inicio').value || hoje();
+  const dias = duracaoTeste(tipo);
+  const fim = addDias(inicio, dias);
+  document.getElementById('teste-previsao').textContent = 'Previsão de término: '+fmD(fim)+' ('+dias+' dias)';
+}
+function renderTesteBox(colabId){
+  const testes = gTestes().filter(t=>t.colaboradorId===colabId).sort((a,b)=>b.dataInicio.localeCompare(a.dataInicio));
+  const ativo = testes.find(t=>t.status==='em_teste');
+  const box = document.getElementById('teste-ativo-box');
+  if(ativo){
+    const dias = duracaoTeste(ativo.tipo);
+    const fim = addDias(ativo.dataInicio, dias);
+    const restam = diasAte(fim);
+    const cor = restam<0 ? 'var(--red)' : restam<=15 ? 'var(--orange)' : 'var(--verde)';
+    box.innerHTML = `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600">Em teste — ${TESTE_LBL[ativo.tipo]||ativo.tipo}${ativo.cargoNovo?' → '+ativo.cargoNovo:''}</div>
+          <div class="tsm tmut">Início ${fmD(ativo.dataInicio)} · previsão ${fmD(fim)}</div>
+          <div style="font-size:13px;font-weight:600;color:${cor};margin-top:4px">${restam<0?'Prazo vencido há '+Math.abs(restam)+' dia(s)':restam+' dia(s) restante(s)'}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button class="btn btn-p btn-sm" onclick="finalizarTeste('${ativo.id}','aprovado')">✓ Aprovar</button>
+          <button class="btn btn-d btn-sm" onclick="finalizarTeste('${ativo.id}','reprovado')">✕ Reprovar</button>
+        </div>
+      </div>
+    </div>`;
+  } else {
+    box.innerHTML = '';
+  }
+  renderTesteLista(colabId);
+}
+function renderTesteLista(colabId){
+  const testes = gTestes().filter(t=>t.colaboradorId===colabId).sort((a,b)=>b.dataInicio.localeCompare(a.dataInicio));
+  document.getElementById('teste-lista').innerHTML = testes.map(t=>{
+    const dias = duracaoTeste(t.tipo);
+    const fim = addDias(t.dataInicio, dias);
+    return `<div class="hist-item">
+      <div class="hist-dot" style="background:rgba(122,154,119,.15);color:var(--text2)">🧪</div>
+      <div class="hist-body">
+        <div class="hist-tipo">${TESTE_LBL[t.tipo]||t.tipo}${t.cargoNovo?' → '+t.cargoNovo:''} <span class="badge ${TESTE_STATUS_COR[t.status]||'b-gy'}" style="font-size:9px">${TESTE_STATUS_LBL[t.status]||t.status}</span></div>
+        ${t.observacao?`<div class="hist-desc">${t.observacao}</div>`:''}
+        <div class="hist-data">${fmD(t.dataInicio)} → previsão ${fmD(fim)}</div>
+      </div>
+      <button onclick="delTeste('${t.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:2px" title="Remover">✕</button>
+    </div>`;
+  }).join('') || '<div class="tsm tmut" style="padding:8px 0">Nenhum teste de função registrado</div>';
+}
+function addTeste(){
+  const tipo = document.getElementById('teste-tipo').value;
+  const inicio = document.getElementById('teste-inicio').value;
+  const cargoNovo = document.getElementById('teste-cargo-novo').value.trim();
+  const obs = document.getElementById('teste-obs').value.trim();
+  if(!inicio){ toast('Informe a data de início', true); return; }
+  if(gTestes().some(t=>t.colaboradorId===_testeColabId && t.status==='em_teste')){
+    toast('Já existe um teste de função em andamento para este colaborador.', true); return;
+  }
+  const c = gD('colabs').find(x=>x.id===_testeColabId);
+  const T = gTestes();
+  const novo = {id:uid(), colaboradorId:_testeColabId, cargoAnterior:c?c.cargo:'', cargoNovo, tipo, dataInicio:inicio, status:'em_teste', observacao:obs, criadoEm:new Date().toISOString()};
+  T.push(novo);
+  sD('testes_funcao', T, novo.id);
+  addHistItem(_testeColabId, 'promocao', 'Iniciou teste de função: '+(TESTE_LBL[tipo]||tipo)+(cargoNovo?' → '+cargoNovo:''), inicio);
+  document.getElementById('teste-cargo-novo').value='';
+  document.getElementById('teste-obs').value='';
+  renderTesteBox(_testeColabId);
+  toast('Teste de função iniciado!');
+}
+function finalizarTeste(id, status){
+  const msg = status==='aprovado' ? 'Aprovar este teste de função?' : 'Reprovar este teste de função?';
+  conf(msg, function(){
+    const T = gTestes();
+    const t = T.find(x=>x.id===id);
+    if(t) t.status = status;
+    sD('testes_funcao', T, id);
+    renderTesteBox(_testeColabId);
+    toast(status==='aprovado'?'Teste aprovado!':'Teste marcado como reprovado.');
+  });
+}
+function delTeste(id){
+  conf('Remover este registro de teste de função?', function(){
+    sD('testes_funcao', gTestes().filter(t=>t.id!==id));
+    renderTesteBox(_testeColabId);
+  });
+}
+
+/* ===== AVALIAÇÕES ===== */
+let _avalColabId = null;
+const AVAL_LBL = {'45_dias':'45 dias','90_dias':'90 dias','anual':'Anual'};
+function gAvaliacoes(){ return gD('avaliacoes'); }
+
+function abrirAval(colabId){
+  _avalColabId = colabId;
+  const c = gD('colabs').find(x=>x.id===colabId);
+  document.getElementById('m-aval-nome').textContent = (c?c.nome+' — ':'')+'Avaliações';
+  document.getElementById('aval-tipo').value = '45_dias';
+  document.getElementById('aval-data').value = hoje();
+  document.getElementById('aval-nota').value = '';
+  document.getElementById('aval-avaliador').value = '';
+  document.getElementById('aval-obs').value = '';
+  renderAvalLista(colabId);
+  aMo('m-aval');
+}
+function renderAvalLista(colabId){
+  const A = gAvaliacoes().filter(a=>a.colaboradorId===colabId).sort((a,b)=>b.data.localeCompare(a.data));
+  document.getElementById('aval-lista').innerHTML = A.map(a=>{
+    const notaCor = a.nota==null ? 'var(--text3)' : a.nota>=7 ? 'var(--verde)' : a.nota>=5 ? 'var(--orange)' : 'var(--red)';
+    return `<div class="hist-item">
+      <div class="hist-dot" style="background:rgba(36,113,163,.1);color:var(--blue)">📝</div>
+      <div class="hist-body">
+        <div class="hist-tipo">${AVAL_LBL[a.tipo]||a.tipo} ${a.nota!=null?`<span style="color:${notaCor};font-weight:700">· nota ${a.nota}</span>`:''}</div>
+        ${a.observacao?`<div class="hist-desc">${a.observacao}</div>`:''}
+        <div class="hist-data">${fmD(a.data)}${a.avaliador?' · '+a.avaliador:''}</div>
+      </div>
+      <button onclick="delAvaliacao('${a.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:2px" title="Remover">✕</button>
+    </div>`;
+  }).join('') || '<div class="tsm tmut" style="padding:8px 0">Nenhuma avaliação registrada</div>';
+}
+function addAvaliacao(){
+  const tipo = document.getElementById('aval-tipo').value;
+  const data = document.getElementById('aval-data').value;
+  const notaStr = document.getElementById('aval-nota').value;
+  const nota = notaStr==='' ? null : parseFloat(notaStr);
+  const avaliador = document.getElementById('aval-avaliador').value.trim();
+  const obs = document.getElementById('aval-obs').value.trim();
+  if(!data){ toast('Informe a data da avaliação', true); return; }
+  const A = gAvaliacoes();
+  const nova = {id:uid(), colaboradorId:_avalColabId, tipo, data, nota, avaliador, observacao:obs, criadoEm:new Date().toISOString()};
+  A.push(nova);
+  sD('avaliacoes', A, nova.id);
+  document.getElementById('aval-nota').value='';
+  document.getElementById('aval-avaliador').value='';
+  document.getElementById('aval-obs').value='';
+  renderAvalLista(_avalColabId);
+  toast('Avaliação registrada!');
+}
+function delAvaliacao(id){
+  conf('Remover esta avaliação?', function(){
+    sD('avaliacoes', gAvaliacoes().filter(a=>a.id!==id));
+    renderAvalLista(_avalColabId);
+  });
+}
+
 /* ===== HISTÓRICO — botão na tabela de colaboradores ===== */
 // Atualizar renderColabs para incluir botão de histórico
 /* ===== IMPRESSÃO ===== */
@@ -2740,41 +2985,6 @@ function imprimirColabs(){
   ${colabs.map((c,i)=>`<tr><td>${i+1}</td><td>${c.nome}</td><td>${c.cargo||'—'}</td><td>${c.setor||'—'}</td><td>${fmD(c.adm)}</td><td>${c.contrato||'CLT'}</td><td>${fmD(c.aso)}</td><td>${c.status}</td></tr>`).join('')}
   </tbody></table></body></html>`);
   win.document.close();win.print();
-}
-
-/* ===== EXPORTAR RESUMO PARA PORTAL DO GESTOR ===== */
-function expResumoGestor(){
-  const colabs=gD('colabs').filter(c=>c.status!=='desligado');
-  const cands=gD('candidatos');
-  const ferias=gD('ferias');
-  const hj=hoje();
-
-  const alertas=[];
-  colabs.filter(c=>c.contrato==='experiencia'&&c.adm).forEach(c=>{
-    const d45=addDias(c.adm,45);const d90=addDias(c.adm,90);
-    const da45=diasAte(d45);const da90=diasAte(d90);
-    if(da45>=0&&da45<=15) alertas.push({tipo:'contrato_45',nome:c.nome,cargo:c.cargo,data:d45,dias:da45});
-    else if(da90>=0&&da90<=20) alertas.push({tipo:'contrato_90',nome:c.nome,cargo:c.cargo,data:d90,dias:da90});
-  });
-  colabs.filter(c=>c.aso&&diasAte(c.aso)>=0&&diasAte(c.aso)<=30).forEach(c=>{
-    alertas.push({tipo:'aso',nome:c.nome,cargo:c.cargo,data:c.aso,dias:diasAte(c.aso)});
-  });
-  colabs.filter(c=>c.aniv&&c.aniv.slice(5)===hj.slice(5)).forEach(c=>{
-    alertas.push({tipo:'aniversario',nome:c.nome,cargo:c.cargo,data:hj,dias:0});
-  });
-
-  const resumo={
-    geradoEm:new Date().toISOString(),
-    fonte:'Portal DP — Laghetto Pedras Altas',
-    totais:{ativos:colabs.filter(c=>c.status==='ativo').length,emExperiencia:colabs.filter(c=>c.contrato==='experiencia').length,emFerias:colabs.filter(c=>c.status==='ferias').length,candidatos:cands.length,total:colabs.length},
-    alertas,
-    colaboradores:colabs.map(c=>({id:c.id,nome:c.nome,cargo:c.cargo,setor:c.setor,lider:c.lider,adm:c.adm,aniv:c.aniv,aso:c.aso,contrato:c.contrato,status:c.status}))
-  };
-
-  const b=new Blob([JSON.stringify(resumo,null,2)],{type:'application/json'});
-  const u=URL.createObjectURL(b);const a=document.createElement('a');
-  a.href=u;a.download=`resumo-dp-${hoje()}.json`;a.click();URL.revokeObjectURL(u);
-  toast(`Resumo exportado! ${alertas.length} alerta(s) incluído(s).`);
 }
 
 /* ===== EPI ===== */
@@ -3272,19 +3482,18 @@ function renderOrganograma(){
   aplicarZoomOrg();
 }
 
+let orgZoomAtual = 1;
 function zoomOrg(dir){
-  if(!ST.orgZoom) ST.orgZoom = 1;
-  if(dir === 0) ST.orgZoom = 1;
-  else ST.orgZoom = Math.max(0.4, Math.min(1.6, +(ST.orgZoom + dir*0.1).toFixed(2)));
+  if(dir === 0) orgZoomAtual = 1;
+  else orgZoomAtual = Math.max(0.4, Math.min(1.6, +(orgZoomAtual + dir*0.1).toFixed(2)));
   aplicarZoomOrg();
 }
 function aplicarZoomOrg(){
   var inner = document.getElementById('org-zoom-inner');
   if(!inner) return;
-  var z = ST.orgZoom || 1;
-  inner.style.zoom = z;
+  inner.style.zoom = orgZoomAtual;
   var label = document.getElementById('org-zoom-label');
-  if(label) label.textContent = Math.round(z*100)+'%';
+  if(label) label.textContent = Math.round(orgZoomAtual*100)+'%';
 }
 
 function cardOrg(c, classe){
@@ -3777,7 +3986,8 @@ function delTipoEPI(id){
 function gCfg(){
   return DB.gO('config',{
     hotel:'Laghetto Pedras Altas',uhs:171,cidade:'Canela - RS',regional:'',gm:'Eduardo Rohden',
-    sfTeto:1800,sfValor:59,ferDias:15,alertaDias:15,asoAlerta:30,driveEPI:''
+    sfTeto:1800,sfValor:59,ferDias:15,alertaDias:15,asoAlerta:30,driveEPI:'',
+    testeSetorDias:30,testeLiderancaDias:90,testeGerenciaDias:180,testeAlertaDias:15
   });
 }
 function salvCfg(){
@@ -3792,7 +4002,11 @@ function salvCfg(){
     ferDias:parseInt(document.getElementById('cfg-fer-dias').value)||30,
     alertaDias:parseInt(document.getElementById('cfg-alerta-dias').value)||15,
     asoAlerta:parseInt(document.getElementById('cfg-aso-alerta').value)||30,
-    driveEPI:document.getElementById('cfg-drive-epi').value
+    driveEPI:document.getElementById('cfg-drive-epi').value,
+    testeSetorDias:parseInt(document.getElementById('cfg-teste-setor').value)||30,
+    testeLiderancaDias:parseInt(document.getElementById('cfg-teste-lideranca').value)||90,
+    testeGerenciaDias:parseInt(document.getElementById('cfg-teste-gerencia').value)||180,
+    testeAlertaDias:parseInt(document.getElementById('cfg-teste-alerta').value)||15
   });
 }
 function renderConfiguracoes(){
@@ -3808,6 +4022,10 @@ function renderConfiguracoes(){
   document.getElementById('cfg-alerta-dias').value=c.alertaDias||15;
   document.getElementById('cfg-aso-alerta').value=c.asoAlerta||30;
   document.getElementById('cfg-drive-epi').value=c.driveEPI||'';
+  document.getElementById('cfg-teste-setor').value=c.testeSetorDias||30;
+  document.getElementById('cfg-teste-lideranca').value=c.testeLiderancaDias||90;
+  document.getElementById('cfg-teste-gerencia').value=c.testeGerenciaDias||180;
+  document.getElementById('cfg-teste-alerta').value=c.testeAlertaDias||15;
   renderCfgSetores();
   renderCfgCargos();
   renderCfgDocs();
