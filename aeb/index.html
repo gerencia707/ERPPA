@@ -136,6 +136,7 @@
       <button data-view="escala"><span class="ic">📅</span>Escala de Folga</button>
       <button data-view="eventos"><span class="ic">🎉</span>Eventos</button>
       <button data-view="vouchers"><span class="ic">🎟</span>Vouchers LGM</button>
+      <button data-view="comissao"><span class="ic">💰</span>Divisor de Comissão</button>
       <button data-view="equipe"><span class="ic">👥</span>Equipe (DP)</button>
       <button data-view="config"><span class="ic">⚙</span>Configuração</button>
     </nav>
@@ -263,6 +264,40 @@
       <div class="view-header"><h2>Vouchers LGM</h2><div class="desc">Movimentação vinda do sistema de Voucher LGM — apenas para controle.</div></div>
       <div class="config-note">Estes dados pertencem ao sistema de Voucher LGM. Aqui é só consulta — para lançar ou corrigir um fechamento, use o sistema de Voucher.</div>
       <div class="card" style="margin-top:20px;"><h3>Fechamentos recentes</h3><div id="tabelaVouchers"></div></div>
+    </section>
+
+    <!-- DIVISOR DE COMISSÃO -->
+    <section class="view" id="view-comissao">
+      <div class="view-header"><h2>Divisor de Comissão</h2><div class="desc">10% da bebida vendida, dividido entre o A&amp;B Salão — período de 21 a 20 do mês seguinte.</div></div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <h3 style="margin:0;">Período</h3>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn-secondary" type="button" id="btnComMesAnt">‹</button>
+            <div id="comPeriodoLabel" style="font-weight:700;color:var(--verde-escuro);min-width:190px;text-align:center;font-size:13px;"></div>
+            <button class="btn-secondary" type="button" id="btnComMesProx">›</button>
+          </div>
+        </div>
+        <label style="margin-top:14px;">Valor total da comissão do período (R$)</label>
+        <input type="number" id="comValorTotal" min="0" step="0.01" placeholder="0,00">
+        <button class="btn-primary full" id="btnComSalvarValor">Salvar valor do período</button>
+        <div class="msg" id="comMsg"></div>
+      </div>
+
+      <div class="card">
+        <h3>Faltas, atestados e observações do período</h3>
+        <div class="config-note">Só o que está aqui é digitado à mão — admissão, contrato e desligamento o sistema já sabe pelo DP.</div>
+        <div id="tabelaComLancamentos" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <h3 style="margin:0;">Resultado da divisão</h3>
+          <button class="btn-secondary" type="button" onclick="window.print()">🖨 Imprimir / Baixar PDF</button>
+        </div>
+        <div id="tabelaComResultado" style="margin-top:14px;"></div>
+      </div>
     </section>
 
     <!-- EQUIPE (DP) -->
@@ -422,6 +457,7 @@ document.querySelectorAll('.sidebar nav button').forEach(btn=>{
     if(btn.dataset.view==='eventos') carregarEventos();
     if(btn.dataset.view==='equipe'){ carregarEquipeSetor('ab-cozinha','Cozinha'); carregarEquipeSetor('ab-salao','Salao'); }
     if(btn.dataset.view==='vouchers') carregarVouchers();
+    if(btn.dataset.view==='comissao') carregarComissao();
     if(btn.dataset.view==='config') renderUsuarios();
   });
 });
@@ -644,7 +680,161 @@ async function carregarVouchers(){
 }
 
 // ============================================================
-// EQUIPE (DP) — leitura das tabelas do DP, Cozinha e Salão
+// DIVISOR DE COMISSÃO — A&B Salão
+// ============================================================
+// Regras (conferidas com a planilha real usada hoje):
+// - Período: dia 21 de um mês até dia 20 do mês seguinte.
+// - Elegível: já passou de 90 dias de admissão até a data de referência
+//   (o dia seguinte ao fim do período — quando a divisão é paga).
+// - "Dias de comissão" de cada um = min(30, dias desde que ficou elegível
+//   até a data de referência) − dias de falta − (atestado ≤3 ? 0 : atestado).
+//   Faltas ≥10 no período zera tudo.
+// - Quem foi desligado dentro do período usa a data do desligamento como
+//   referência no lugar da data de pagamento — isso já proporcionaliza
+//   o valor dele automaticamente, sem precisar de um campo à parte.
+// - O valor de cada um = (valor total do período ÷ soma de todos os dias
+//   de comissão) × dias de comissão da pessoa.
+let comPeriodoAtual = new Date();
+comPeriodoAtual.setDate(21);
+comPeriodoAtual.setHours(0,0,0,0);
+if(new Date().getDate() < 21) comPeriodoAtual.setMonth(comPeriodoAtual.getMonth()-1);
+let _comColabsCache = [];
+
+function comLimites(ref){
+  const ini = new Date(ref.getFullYear(), ref.getMonth(), 21);
+  const fim = new Date(ref.getFullYear(), ref.getMonth()+1, 20);
+  const pagamento = new Date(ref.getFullYear(), ref.getMonth()+1, 21);
+  return {ini, fim, pagamento};
+}
+function comISO(d){ return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function comPeriodoId(ref){ return comISO(comLimites(ref).ini); }
+
+document.getElementById('btnComMesAnt').addEventListener('click',()=>{ comPeriodoAtual.setMonth(comPeriodoAtual.getMonth()-1); carregarComissao(); });
+document.getElementById('btnComMesProx').addEventListener('click',()=>{ comPeriodoAtual.setMonth(comPeriodoAtual.getMonth()+1); carregarComissao(); });
+
+async function carregarComissao(){
+  const {ini, fim, pagamento} = comLimites(comPeriodoAtual);
+  document.getElementById('comPeriodoLabel').textContent = `${ini.getDate()}/${MESES_LBL[ini.getMonth()].slice(0,3)} – ${fim.getDate()}/${MESES_LBL[fim.getMonth()].slice(0,3)} ${fim.getFullYear()}`;
+  const periodoId = comPeriodoId(comPeriodoAtual);
+
+  try{
+    // Colaboradores ativos do A&B Salão + quem foi desligado dentro do período
+    const [ativosRes, desligRes, periodoRes, lancRes] = await Promise.all([
+      supa.from('dp_colaboradores').select('*').eq('setor_slug','ab-salao').neq('status','desligado'),
+      supa.from('dp_desligamentos').select('*').eq('setor_slug','ab-salao').gte('data_deslig', comISO(ini)).lte('data_deslig', comISO(fim)),
+      supa.from('aeb_comissao_periodos').select('*').eq('id', periodoId).maybeSingle(),
+      supa.from('aeb_comissao_lancamentos').select('*').eq('periodo_id', periodoId)
+    ]);
+    if(ativosRes.error) throw ativosRes.error;
+
+    const ativos = (ativosRes.data||[]).map(c=>({id:c.id, nome:c.nome, adm:c.adm, contrato:c.contrato, desligadoEm:null}));
+    const desligados = (desligRes.data||[]).map(d=>({id:d.colab_id||('deslig-'+d.id), nome:d.snap_nome, adm:d.snap_adm, contrato:d.snap_contrato, desligadoEm:d.data_deslig}));
+    // Se por acaso a mesma pessoa aparecer nos dois (não deveria, já que status desligado tira do primeiro filtro), evita duplicar
+    const idsAtivos = new Set(ativos.map(c=>c.id));
+    _comColabsCache = ativos.concat(desligados.filter(d=>!idsAtivos.has(d.id))).sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+
+    document.getElementById('comValorTotal').value = periodoRes.data ? periodoRes.data.valor_comissao : '';
+
+    const lancamentos = {};
+    (lancRes.data||[]).forEach(l=>{ lancamentos[l.colaborador_id] = l; });
+
+    renderComLancamentos(lancamentos);
+    renderComResultado(periodoRes.data ? periodoRes.data.valor_comissao : null, lancamentos, {ini, fim, pagamento});
+  }catch(e){
+    document.getElementById('tabelaComLancamentos').innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`;
+    document.getElementById('tabelaComResultado').innerHTML = '';
+  }
+}
+
+document.getElementById('btnComSalvarValor').addEventListener('click', async ()=>{
+  const periodoId = comPeriodoId(comPeriodoAtual);
+  const {ini} = comLimites(comPeriodoAtual);
+  const valor = parseFloat(document.getElementById('comValorTotal').value);
+  if(isNaN(valor) || valor < 0){ showMsg('comMsg','Informe um valor válido.','erro'); return; }
+  try{
+    const {error} = await supa.from('aeb_comissao_periodos').upsert([{id:comPeriodoId(comPeriodoAtual), periodo_inicio:comISO(ini), valor_comissao:valor}], {onConflict:'id'});
+    if(error) throw error;
+    showMsg('comMsg','Valor salvo.','ok');
+    carregarComissao();
+  }catch(e){ showMsg('comMsg','Erro: '+(e.message||e),'erro'); }
+});
+
+function renderComLancamentos(lancamentos){
+  const el = document.getElementById('tabelaComLancamentos');
+  if(!_comColabsCache.length){ el.innerHTML='<div class="empty">Nenhum colaborador do A&B Salão encontrado.</div>'; return; }
+  el.innerHTML = `<table><thead><tr><th>Colaborador</th><th>Faltas</th><th>Atestado</th><th>Observação</th><th></th></tr></thead><tbody>${_comColabsCache.map(c=>{
+    const l = lancamentos[c.id] || {};
+    return `<tr>
+      <td>${esc(c.nome)}${c.desligadoEm?`<div style="font-size:11px;color:var(--texto-suave)">Desligado(a) em ${c.desligadoEm.split('-').reverse().join('/')}</div>`:''}</td>
+      <td><input type="number" min="0" style="width:70px;" value="${l.dias_falta||0}" onchange="salvarLancamentoCom('${c.id}','dias_falta',this.value)"></td>
+      <td><input type="number" min="0" style="width:70px;" value="${l.dias_atestado||0}" onchange="salvarLancamentoCom('${c.id}','dias_atestado',this.value)"></td>
+      <td><input type="text" value="${esc(l.observacao||'')}" onchange="salvarLancamentoCom('${c.id}','observacao',this.value)"></td>
+      <td></td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+async function salvarLancamentoCom(colabId, campo, valor){
+  const periodoId = comPeriodoId(comPeriodoAtual);
+  const c = _comColabsCache.find(x=>x.id===colabId);
+  const payload = {id: periodoId+'__'+colabId, periodo_id: periodoId, colaborador_id: colabId, colaborador_nome: c?c.nome:''};
+  payload[campo] = campo==='observacao' ? valor.trim() : (parseInt(valor)||0);
+  try{
+    // Busca o que já existe pra não sobrescrever os outros campos
+    const {data} = await supa.from('aeb_comissao_lancamentos').select('*').eq('id', payload.id).maybeSingle();
+    const merged = Object.assign({dias_falta:0, dias_atestado:0, observacao:''}, data||{}, payload);
+    const {error} = await supa.from('aeb_comissao_lancamentos').upsert([merged], {onConflict:'id'});
+    if(error) throw error;
+    carregarComissao();
+  }catch(e){ alert('Erro ao salvar: '+(e.message||e)); }
+}
+
+function comDiasComissao(colab, lanc, limites){
+  const adm = colab.adm ? new Date(colab.adm+'T00:00:00') : null;
+  if(!adm) return 0;
+  const elegivelEm = new Date(adm); elegivelEm.setDate(elegivelEm.getDate()+90);
+  const referencia = colab.desligadoEm ? new Date(colab.desligadoEm+'T00:00:00') : limites.pagamento;
+  if(referencia < elegivelEm) return 0;
+  const diasFalta = (lanc && lanc.dias_falta) || 0;
+  const diasAtestado = (lanc && lanc.dias_atestado) || 0;
+  if(diasFalta >= 10) return 0;
+  const diasDesdeElegivel = Math.round((referencia - elegivelEm)/86400000) + 1;
+  const diasBase = Math.min(30, diasDesdeElegivel);
+  const descontoAtestado = diasAtestado <= 3 ? 0 : diasAtestado;
+  return Math.max(0, diasBase - diasFalta - descontoAtestado);
+}
+
+function renderComResultado(valorTotal, lancamentos, limites){
+  const el = document.getElementById('tabelaComResultado');
+  if(valorTotal == null){ el.innerHTML = '<div class="empty">Informe e salve o valor total da comissão do período acima.</div>'; return; }
+  if(!_comColabsCache.length){ el.innerHTML = '<div class="empty">Nenhum colaborador do A&B Salão encontrado.</div>'; return; }
+
+  const linhas = _comColabsCache.map(c=>{
+    const lanc = lancamentos[c.id];
+    const dias = comDiasComissao(c, lanc, limites);
+    return {colab:c, lanc, dias};
+  });
+  const somaDias = linhas.reduce((s,l)=>s+l.dias,0);
+  const valorPorDia = somaDias>0 ? valorTotal/somaDias : 0;
+
+  el.innerHTML = `<table><thead><tr><th>Colaborador</th><th>Admissão</th><th>Situação</th><th>Faltas</th><th>Atestado</th><th>Dias de comissão</th><th>Valor a receber</th><th>Obs.</th></tr></thead><tbody>${linhas.map(l=>{
+    const valor = valorPorDia*l.dias;
+    const situacao = l.colab.desligadoEm ? `<span class="badge erro">Desligado em ${l.colab.desligadoEm.split('-').reverse().join('/')}</span>` : (l.colab.contrato==='experiencia' ? '<span class="badge pend">Em experiência</span>' : '<span class="badge ok">Ativo</span>');
+    return `<tr>
+      <td>${esc(l.colab.nome)}</td>
+      <td>${l.colab.adm?l.colab.adm.split('-').reverse().join('/'):'—'}</td>
+      <td>${situacao}</td>
+      <td>${(l.lanc&&l.lanc.dias_falta)||0}</td>
+      <td>${(l.lanc&&l.lanc.dias_atestado)||0}</td>
+      <td>${l.dias.toFixed(1)}</td>
+      <td><b>R$ ${valor.toFixed(2).replace('.',',')}</b></td>
+      <td style="font-size:11px;color:var(--texto-suave);">${esc((l.lanc&&l.lanc.observacao)||'')}</td>
+    </tr>`;
+  }).join('')}</tbody>
+  <tfoot><tr style="font-weight:700;"><td colspan="6" style="text-align:right;">Total</td><td>R$ ${valorTotal.toFixed(2).replace('.',',')}</td><td></td></tr></tfoot>
+  </table>`;
+}
+
 // ============================================================
 async function carregarEquipeSetor(setorSlug,sufixo){
   const elC=document.getElementById('tabelaColabs'+sufixo), elP=document.getElementById('tabelaPipeline'+sufixo);
