@@ -286,17 +286,12 @@
       </div>
 
       <div class="card">
-        <h3>Faltas, atestados e observações do período</h3>
-        <div class="config-note">Só o que está aqui é digitado à mão — admissão, contrato e desligamento o sistema já sabe pelo DP.</div>
-        <div id="tabelaComLancamentos" style="margin-top:14px;"></div>
-      </div>
-
-      <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-          <h3 style="margin:0;">Resultado da divisão</h3>
+          <h3 style="margin:0;">Divisão do período</h3>
           <button class="btn-secondary" type="button" onclick="window.print()">🖨 Imprimir / Baixar PDF</button>
         </div>
-        <div id="tabelaComResultado" style="margin-top:14px;"></div>
+        <div class="config-note">Só as colunas Faltas, Atestado e Observação são digitadas à mão — o resto (admissão, contrato, desligamento, dias de comissão e valor) o sistema já calcula sozinho a partir do DP.</div>
+        <div id="tabelaComTudo" style="margin-top:14px;"></div>
       </div>
     </section>
 
@@ -709,11 +704,17 @@ function comLimites(ref){
 function comISO(d){ return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 function comPeriodoId(ref){ return comISO(comLimites(ref).ini); }
 
+let _comLancamentosCache = {};
+let _comValorAtual = null;
+let _comLimitesAtual = null;
+let _comSalvarTimers = {};
+
 document.getElementById('btnComMesAnt').addEventListener('click',()=>{ comPeriodoAtual.setMonth(comPeriodoAtual.getMonth()-1); carregarComissao(); });
 document.getElementById('btnComMesProx').addEventListener('click',()=>{ comPeriodoAtual.setMonth(comPeriodoAtual.getMonth()+1); carregarComissao(); });
 
 async function carregarComissao(){
   const {ini, fim, pagamento} = comLimites(comPeriodoAtual);
+  _comLimitesAtual = {ini, fim, pagamento};
   document.getElementById('comPeriodoLabel').textContent = `${ini.getDate()}/${MESES_LBL[ini.getMonth()].slice(0,3)} – ${fim.getDate()}/${MESES_LBL[fim.getMonth()].slice(0,3)} ${fim.getFullYear()}`;
   const periodoId = comPeriodoId(comPeriodoAtual);
 
@@ -727,27 +728,32 @@ async function carregarComissao(){
     ]);
     if(ativosRes.error) throw ativosRes.error;
 
-    const ativos = (ativosRes.data||[]).map(c=>({id:c.id, nome:c.nome, adm:c.adm, contrato:c.contrato, desligadoEm:null}));
-    const desligados = (desligRes.data||[]).map(d=>({id:d.colab_id||('deslig-'+d.id), nome:d.snap_nome, adm:d.snap_adm, contrato:d.snap_contrato, desligadoEm:d.data_deslig}));
+    const ativos = (ativosRes.data||[]).map(c=>({id:c.id, nome:c.nome, cargo:c.cargo, adm:c.adm, contrato:c.contrato, desligadoEm:null}));
+    const desligados = (desligRes.data||[]).map(d=>({id:d.colab_id||('deslig-'+d.id), nome:d.snap_nome, cargo:d.snap_cargo, adm:d.snap_adm, contrato:d.snap_contrato, desligadoEm:d.data_deslig}));
     // Se por acaso a mesma pessoa aparecer nos dois (não deveria, já que status desligado tira do primeiro filtro), evita duplicar
     const idsAtivos = new Set(ativos.map(c=>c.id));
     _comColabsCache = ativos.concat(desligados.filter(d=>!idsAtivos.has(d.id))).sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
 
-    document.getElementById('comValorTotal').value = periodoRes.data ? periodoRes.data.valor_comissao : '';
+    _comValorAtual = periodoRes.data ? periodoRes.data.valor_comissao : null;
+    document.getElementById('comValorTotal').value = _comValorAtual != null ? _comValorAtual : '';
 
-    const lancamentos = {};
-    (lancRes.data||[]).forEach(l=>{ lancamentos[l.colaborador_id] = l; });
+    _comLancamentosCache = {};
+    (lancRes.data||[]).forEach(l=>{ _comLancamentosCache[l.colaborador_id] = l; });
 
-    renderComLancamentos(lancamentos);
-    renderComResultado(periodoRes.data ? periodoRes.data.valor_comissao : null, lancamentos, {ini, fim, pagamento});
+    renderComTabela();
   }catch(e){
-    document.getElementById('tabelaComLancamentos').innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`;
-    document.getElementById('tabelaComResultado').innerHTML = '';
+    document.getElementById('tabelaComTudo').innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`;
   }
 }
 
+// Prévia instantânea enquanto digita o valor total (antes mesmo de salvar)
+document.getElementById('comValorTotal').addEventListener('input', ()=>{
+  const valor = parseFloat(document.getElementById('comValorTotal').value);
+  _comValorAtual = isNaN(valor) ? null : valor;
+  recalcularResultadoCom();
+});
+
 document.getElementById('btnComSalvarValor').addEventListener('click', async ()=>{
-  const periodoId = comPeriodoId(comPeriodoAtual);
   const {ini} = comLimites(comPeriodoAtual);
   const valor = parseFloat(document.getElementById('comValorTotal').value);
   if(isNaN(valor) || valor < 0){ showMsg('comMsg','Informe um valor válido.','erro'); return; }
@@ -755,39 +761,8 @@ document.getElementById('btnComSalvarValor').addEventListener('click', async ()=
     const {error} = await supa.from('aeb_comissao_periodos').upsert([{id:comPeriodoId(comPeriodoAtual), periodo_inicio:comISO(ini), valor_comissao:valor}], {onConflict:'id'});
     if(error) throw error;
     showMsg('comMsg','Valor salvo.','ok');
-    carregarComissao();
   }catch(e){ showMsg('comMsg','Erro: '+(e.message||e),'erro'); }
 });
-
-function renderComLancamentos(lancamentos){
-  const el = document.getElementById('tabelaComLancamentos');
-  if(!_comColabsCache.length){ el.innerHTML='<div class="empty">Nenhum colaborador do A&B Salão encontrado.</div>'; return; }
-  el.innerHTML = `<table><thead><tr><th>Colaborador</th><th>Faltas</th><th>Atestado</th><th>Observação</th><th></th></tr></thead><tbody>${_comColabsCache.map(c=>{
-    const l = lancamentos[c.id] || {};
-    return `<tr>
-      <td>${esc(c.nome)}${c.desligadoEm?`<div style="font-size:11px;color:var(--texto-suave)">Desligado(a) em ${c.desligadoEm.split('-').reverse().join('/')}</div>`:''}</td>
-      <td><input type="number" min="0" style="width:70px;" value="${l.dias_falta||0}" onchange="salvarLancamentoCom('${c.id}','dias_falta',this.value)"></td>
-      <td><input type="number" min="0" style="width:70px;" value="${l.dias_atestado||0}" onchange="salvarLancamentoCom('${c.id}','dias_atestado',this.value)"></td>
-      <td><input type="text" value="${esc(l.observacao||'')}" onchange="salvarLancamentoCom('${c.id}','observacao',this.value)"></td>
-      <td></td>
-    </tr>`;
-  }).join('')}</tbody></table>`;
-}
-
-async function salvarLancamentoCom(colabId, campo, valor){
-  const periodoId = comPeriodoId(comPeriodoAtual);
-  const c = _comColabsCache.find(x=>x.id===colabId);
-  const payload = {id: periodoId+'__'+colabId, periodo_id: periodoId, colaborador_id: colabId, colaborador_nome: c?c.nome:''};
-  payload[campo] = campo==='observacao' ? valor.trim() : (parseInt(valor)||0);
-  try{
-    // Busca o que já existe pra não sobrescrever os outros campos
-    const {data} = await supa.from('aeb_comissao_lancamentos').select('*').eq('id', payload.id).maybeSingle();
-    const merged = Object.assign({dias_falta:0, dias_atestado:0, observacao:''}, data||{}, payload);
-    const {error} = await supa.from('aeb_comissao_lancamentos').upsert([merged], {onConflict:'id'});
-    if(error) throw error;
-    carregarComissao();
-  }catch(e){ alert('Erro ao salvar: '+(e.message||e)); }
-}
 
 function comDiasComissao(colab, lanc, limites){
   const adm = colab.adm ? new Date(colab.adm+'T00:00:00') : null;
@@ -804,35 +779,89 @@ function comDiasComissao(colab, lanc, limites){
   return Math.max(0, diasBase - diasFalta - descontoAtestado);
 }
 
-function renderComResultado(valorTotal, lancamentos, limites){
-  const el = document.getElementById('tabelaComResultado');
-  if(valorTotal == null){ el.innerHTML = '<div class="empty">Informe e salve o valor total da comissão do período acima.</div>'; return; }
-  if(!_comColabsCache.length){ el.innerHTML = '<div class="empty">Nenhum colaborador do A&B Salão encontrado.</div>'; return; }
-
-  const linhas = _comColabsCache.map(c=>{
-    const lanc = lancamentos[c.id];
-    const dias = comDiasComissao(c, lanc, limites);
-    return {colab:c, lanc, dias};
-  });
-  const somaDias = linhas.reduce((s,l)=>s+l.dias,0);
-  const valorPorDia = somaDias>0 ? valorTotal/somaDias : 0;
-
-  el.innerHTML = `<table><thead><tr><th>Colaborador</th><th>Admissão</th><th>Situação</th><th>Faltas</th><th>Atestado</th><th>Dias de comissão</th><th>Valor a receber</th><th>Obs.</th></tr></thead><tbody>${linhas.map(l=>{
-    const valor = valorPorDia*l.dias;
-    const situacao = l.colab.desligadoEm ? `<span class="badge erro">Desligado em ${l.colab.desligadoEm.split('-').reverse().join('/')}</span>` : (l.colab.contrato==='experiencia' ? '<span class="badge pend">Em experiência</span>' : '<span class="badge ok">Ativo</span>');
+// Monta a tabela única (dados do DP + campos editáveis + colunas calculadas)
+// uma vez só. Depois disso, cada tecla digitada só atualiza as células de
+// "Dias de comissão" e "Valor a receber" (recalcularResultadoCom), sem
+// reconstruir a tabela inteira — assim o campo onde a pessoa está
+// digitando nunca perde o foco.
+function renderComTabela(){
+  const el = document.getElementById('tabelaComTudo');
+  if(!_comColabsCache.length){ el.innerHTML='<div class="empty">Nenhum colaborador do A&B Salão encontrado.</div>'; return; }
+  el.innerHTML = `<table><thead><tr>
+    <th>Colaborador</th><th>Função</th><th>Admissão</th><th>Situação</th>
+    <th>Faltas</th><th>Atestado</th><th>Observação</th>
+    <th>Dias de comissão</th><th>Valor a receber</th>
+  </tr></thead><tbody>${_comColabsCache.map(c=>{
+    const l = _comLancamentosCache[c.id] || {};
+    const situacao = c.desligadoEm ? `<span class="badge erro">Desligado em ${c.desligadoEm.split('-').reverse().join('/')}</span>` : (c.contrato==='experiencia' ? '<span class="badge pend">Em experiência</span>' : '<span class="badge ok">Ativo</span>');
     return `<tr>
-      <td>${esc(l.colab.nome)}</td>
-      <td>${l.colab.adm?l.colab.adm.split('-').reverse().join('/'):'—'}</td>
+      <td>${esc(c.nome)}${c.desligadoEm?`<div style="font-size:11px;color:var(--texto-suave)">Desligado(a) em ${c.desligadoEm.split('-').reverse().join('/')}</div>`:''}</td>
+      <td>${esc(c.cargo||'—')}</td>
+      <td>${c.adm?c.adm.split('-').reverse().join('/'):'—'}</td>
       <td>${situacao}</td>
-      <td>${(l.lanc&&l.lanc.dias_falta)||0}</td>
-      <td>${(l.lanc&&l.lanc.dias_atestado)||0}</td>
-      <td>${l.dias.toFixed(1)}</td>
-      <td><b>R$ ${valor.toFixed(2).replace('.',',')}</b></td>
-      <td style="font-size:11px;color:var(--texto-suave);">${esc((l.lanc&&l.lanc.observacao)||'')}</td>
+      <td><input type="number" min="0" style="width:70px;" value="${l.dias_falta||0}" oninput="atualizarLancamentoCom('${c.id}','dias_falta',this.value)"></td>
+      <td><input type="number" min="0" style="width:70px;" value="${l.dias_atestado||0}" oninput="atualizarLancamentoCom('${c.id}','dias_atestado',this.value)"></td>
+      <td><input type="text" style="min-width:140px;" value="${esc(l.observacao||'')}" oninput="atualizarLancamentoCom('${c.id}','observacao',this.value)"></td>
+      <td id="comDias_${c.id}">—</td>
+      <td id="comValor_${c.id}"><b>—</b></td>
     </tr>`;
   }).join('')}</tbody>
-  <tfoot><tr style="font-weight:700;"><td colspan="6" style="text-align:right;">Total</td><td>R$ ${valorTotal.toFixed(2).replace('.',',')}</td><td></td></tr></tfoot>
+  <tfoot><tr style="font-weight:700;"><td colspan="8" style="text-align:right;">Total</td><td id="comTotalValor">—</td></tr></tfoot>
   </table>`;
+  recalcularResultadoCom();
+}
+
+// Recalcula só as colunas de resultado (não reconstrói a tabela) — pode
+// ser chamado a cada tecla digitada sem tirar o foco do campo ativo.
+function recalcularResultadoCom(){
+  if(!_comColabsCache.length) return;
+  if(_comValorAtual == null){
+    _comColabsCache.forEach(c=>{
+      const dEl=document.getElementById('comDias_'+c.id), vEl=document.getElementById('comValor_'+c.id);
+      if(dEl) dEl.textContent='—'; if(vEl) vEl.innerHTML='<b>—</b>';
+    });
+    const totalEl=document.getElementById('comTotalValor'); if(totalEl) totalEl.textContent='Informe o valor total acima';
+    return;
+  }
+  const linhas = _comColabsCache.map(c=>{
+    const lanc = _comLancamentosCache[c.id];
+    const dias = comDiasComissao(c, lanc, _comLimitesAtual);
+    return {colab:c, dias};
+  });
+  const somaDias = linhas.reduce((s,l)=>s+l.dias,0);
+  const valorPorDia = somaDias>0 ? _comValorAtual/somaDias : 0;
+  linhas.forEach(l=>{
+    const valor = valorPorDia*l.dias;
+    const dEl=document.getElementById('comDias_'+l.colab.id), vEl=document.getElementById('comValor_'+l.colab.id);
+    if(dEl) dEl.textContent = l.dias.toFixed(1);
+    if(vEl) vEl.innerHTML = '<b>R$ '+valor.toFixed(2).replace('.',',')+'</b>';
+  });
+  const totalEl=document.getElementById('comTotalValor');
+  if(totalEl) totalEl.textContent = 'R$ '+_comValorAtual.toFixed(2).replace('.',',');
+}
+
+// Atualiza a prévia na hora (cache local) e agenda o salvamento no banco
+// um pouco depois, sem travar a digitação esperando a rede.
+function atualizarLancamentoCom(colabId, campo, valor){
+  if(!_comLancamentosCache[colabId]) _comLancamentosCache[colabId] = {dias_falta:0, dias_atestado:0, observacao:''};
+  _comLancamentosCache[colabId][campo] = campo==='observacao' ? valor : (parseInt(valor)||0);
+  recalcularResultadoCom();
+  clearTimeout(_comSalvarTimers[colabId]);
+  _comSalvarTimers[colabId] = setTimeout(()=>salvarLancamentoCom(colabId), 600);
+}
+
+async function salvarLancamentoCom(colabId){
+  const periodoId = comPeriodoId(comPeriodoAtual);
+  const c = _comColabsCache.find(x=>x.id===colabId);
+  const l = _comLancamentosCache[colabId] || {dias_falta:0, dias_atestado:0, observacao:''};
+  const payload = {
+    id: periodoId+'__'+colabId, periodo_id: periodoId, colaborador_id: colabId, colaborador_nome: c?c.nome:'',
+    dias_falta: l.dias_falta||0, dias_atestado: l.dias_atestado||0, observacao: (l.observacao||'').trim()
+  };
+  try{
+    const {error} = await supa.from('aeb_comissao_lancamentos').upsert([payload], {onConflict:'id'});
+    if(error) throw error;
+  }catch(e){ console.warn('Erro ao salvar lançamento:', e.message||e); }
 }
 
 // ============================================================
