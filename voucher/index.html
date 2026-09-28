@@ -89,8 +89,21 @@
   .stat{background:var(--card);border:1px solid var(--borda);border-radius:var(--radius);padding:14px 18px;flex:1;min-width:130px;}
   .stat .num{font-size:22px;font-weight:700;color:var(--verde-escuro);}
   .stat .lbl{font-size:11.5px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
-  .stat .sub{font-size:13px;font-weight:600;color:var(--verde-mid);margin-top:4px;}
+  #view-graficos .stat .num{white-space:nowrap;}
+  #tabelaReceitas td, #tabelaRelatorio td{white-space:nowrap;}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px;}
+  .stat-grid .stat{min-width:0;}
+  .stat-grid .stat .num{white-space:nowrap;font-size:20px;}
+  .stat-grid .stat .lbl{line-height:1.35;}
+  @media(max-width:1180px){ .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  .dif-neg{color:var(--erro);font-weight:700;}
+  .dif-pos{color:var(--alerta);font-weight:700;}
+  .dif-zero{color:var(--texto-suave);}
+  .total-row .dif-pos{color:#F2C878;}
+  .total-row .dif-neg{color:#FFB4A0;}
+  .total-row .dif-zero{color:var(--verde-claro);}
   .resumo-tabela th,.resumo-tabela td{text-align:right;white-space:nowrap;font-size:12.5px;padding:6px 8px;}
+  .resumo-tabela th{white-space:normal;line-height:1.25;vertical-align:bottom;}
   .resumo-tabela th:nth-child(1),.resumo-tabela td:nth-child(1),.resumo-tabela th:nth-child(2),.resumo-tabela td:nth-child(2){text-align:left;}
   .resumo-tabela tr.resumo-vazio td{color:var(--texto-suave);}
   .resumo-tabela tr.resumo-foot td{background:var(--verde-escuro);color:#fff;font-weight:700;border-bottom:1px solid rgba(255,255,255,.12);}
@@ -162,6 +175,7 @@
     </div>
     <nav>
       <button data-view="fechamento" class="active"><span class="ic">✓</span>Fechamento do Dia</button>
+      <button data-view="receitas"><span class="ic">⊕</span>Bebidas e Passantes</button>
       <button data-view="relatorio"><span class="ic">▤</span>Relatório</button>
       <button data-view="graficos"><span class="ic">📊</span>Gráficos</button>
       <button data-view="danfe"><span class="ic">⎘</span>Emissão de DANFE</button>
@@ -220,17 +234,6 @@
 
         <div class="divider"></div>
 
-        <label style="margin-top:0;">Receitas do dia</label>
-        <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;">
-          <div><label style="margin-top:0;font-size:12px;">Bebida do Restaurante (R$)</label><input type="number" min="0" step="0.01" id="fechBebidaRest" placeholder="0,00"></div>
-          <div><label style="margin-top:0;font-size:12px;">Bebida do Room (R$)</label><input type="number" min="0" step="0.01" id="fechBebidaRoom" placeholder="0,00"></div>
-          <div><label style="margin-top:0;font-size:12px;">Rodízio passante (quantidade)</label><input type="number" min="0" id="fechPassRodizio" placeholder="0"></div>
-          <div><label style="margin-top:0;font-size:12px;">Rodízio + Fondue passante (quantidade)</label><input type="number" min="0" id="fechPassFondue" placeholder="0"></div>
-        </div>
-        <div id="fechPassPreview" style="font-size:12.5px;color:var(--texto-suave);margin-top:10px;"></div>
-
-        <div class="divider"></div>
-
         <label style="margin-top:0;">Link do scan (opcional)</label>
         <input type="url" id="fechLink" placeholder="https://drive.google.com/...">
 
@@ -244,6 +247,39 @@
       <div class="card">
         <h3>Histórico de fechamentos</h3>
         <div id="tabelaFechamentos"></div>
+      </div>
+    </section>
+
+    <!-- ===================== BEBIDAS E PASSANTES ===================== -->
+    <section class="view" id="view-receitas">
+      <div class="view-header">
+        <h2>Bebidas e Passantes</h2>
+        <div class="desc">Lançamento diário da bebida do Restaurante e dos rodízios passantes. As informações aparecem no Relatório e nos Gráficos.</div>
+      </div>
+
+      <div class="card">
+        <h3>Lançamento do dia</h3>
+        <label style="margin-top:0;">Data</label>
+        <input type="date" id="recData" style="max-width:220px;">
+        <div id="recAviso" style="font-size:12.5px;color:var(--texto-suave);margin-top:8px;min-height:16px;"></div>
+
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:6px;">
+          <div><label style="margin-top:0;font-size:12px;">Bebida do Restaurante (R$)</label><input type="number" min="0" step="0.01" id="recBebida" placeholder="0,00"></div>
+          <div><label style="margin-top:0;font-size:12px;">Rodízio passante (quantidade)</label><input type="number" min="0" id="recPassRodizio" placeholder="0"></div>
+          <div><label style="margin-top:0;font-size:12px;">Rodízio + Fondue passante (quantidade)</label><input type="number" min="0" id="recPassFondue" placeholder="0"></div>
+        </div>
+        <div id="recPreview" style="font-size:12.5px;color:var(--texto-suave);margin-top:10px;min-height:16px;"></div>
+
+        <button class="btn-primary full" id="btnSalvarReceita">Salvar lançamento do dia</button>
+        <div class="msg" id="recMsg"></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <h3 style="margin:0;">Lançamentos do mês</h3>
+          <input type="month" id="recMes" style="width:180px;">
+        </div>
+        <div style="overflow-x:auto;margin-top:14px;"><div id="tabelaReceitas"></div></div>
       </div>
     </section>
 
@@ -279,21 +315,27 @@
         <button class="btn-primary full" id="btnAplicarRelatorio">Aplicar</button>
       </div>
 
-      <div class="stat-row">
+      <div class="msg" id="relAvisoReceitas"></div>
+
+      <div class="stat-grid">
         <div class="stat"><div class="num" id="statDias">–</div><div class="lbl">Dias no período</div></div>
-        <div class="stat"><div class="num" id="statRodizioTotal">–</div><div class="lbl">Rodízio (total)</div></div>
-        <div class="stat"><div class="num" id="statFondueTotal">–</div><div class="lbl">Rodízio+Fondue (total)</div></div>
-        <div class="stat"><div class="num" id="statValorTotal">–</div><div class="lbl">Valor total (R$)</div></div>
         <div class="stat"><div class="num" id="statBateram">–</div><div class="lbl">Dias que bateram</div></div>
+        <div class="stat"><div class="num" id="statValorTotal">–</div><div class="lbl">Valor total dos vouchers (R$)</div></div>
+        <div class="stat"><div class="num" id="statBebidaRest">–</div><div class="lbl">Bebida do Restaurante</div></div>
       </div>
 
-      <div class="stat-row">
-        <div class="stat"><div class="num" id="statValorRodizio">–</div><div class="lbl">Valor do Rodízio (total)</div></div>
-        <div class="stat"><div class="num" id="statValorFondue">–</div><div class="lbl">Valor do Rodízio + Fondue (total)</div></div>
-        <div class="stat"><div class="num" id="statBebidaRest">–</div><div class="lbl">Bebida do Restaurante</div></div>
-        <div class="stat"><div class="num" id="statBebidaRoom">–</div><div class="lbl">Bebida do Room</div></div>
-        <div class="stat"><div class="num" id="statPassRodizio">–</div><div class="lbl">Rodízio passante (qtd)</div><div class="sub" id="statPassRodizioValor"></div></div>
-        <div class="stat"><div class="num" id="statPassFondue">–</div><div class="lbl">Rodízio + Fondue passante (qtd)</div><div class="sub" id="statPassFondueValor"></div></div>
+      <div class="stat-grid">
+        <div class="stat"><div class="num" id="statRodizioTotal">–</div><div class="lbl">Rodízio (quantidade)</div></div>
+        <div class="stat"><div class="num" id="statValorRodizio">–</div><div class="lbl">Rodízio (valor)</div></div>
+        <div class="stat"><div class="num" id="statFondueTotal">–</div><div class="lbl">Rodízio + Fondue (quantidade)</div></div>
+        <div class="stat"><div class="num" id="statValorFondue">–</div><div class="lbl">Rodízio + Fondue (valor)</div></div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat"><div class="num" id="statPassRodizio">–</div><div class="lbl">Rodízio passante (quantidade)</div></div>
+        <div class="stat"><div class="num" id="statPassRodizioValor">–</div><div class="lbl">Rodízio passante (valor)</div></div>
+        <div class="stat"><div class="num" id="statPassFondue">–</div><div class="lbl">Rodízio + Fondue passante (quantidade)</div></div>
+        <div class="stat"><div class="num" id="statPassFondueValor">–</div><div class="lbl">Rodízio + Fondue passante (valor)</div></div>
       </div>
 
       <div class="card">
@@ -344,10 +386,11 @@
           <div class="stat"><div class="num" id="resTotalReal">–</div><div class="lbl">Receita realizada</div></div>
           <div class="stat"><div class="num" id="resMediaDia">–</div><div class="lbl">Média por dia lançado</div></div>
           <div class="stat"><div class="num" id="resProjecao">–</div><div class="lbl">Projeção do mês</div></div>
-          <div class="stat"><div class="num" id="resDiasLancados">–</div><div class="lbl">Dias lançados</div></div>
+          <div class="stat"><div class="num" id="resDiasLancados">–</div><div class="lbl">Dias com fechamento</div></div>
+          <div class="stat"><div class="num" id="resDiasReceitas">–</div><div class="lbl">Dias com bebida/passantes</div></div>
         </div>
         <div style="overflow-x:auto;"><div id="tabelaResumoMes"></div></div>
-        <div class="config-note">Projeção = média dos dias já lançados × número de dias do mês. Receita total = vouchers + passantes + bebidas (Restaurante e Room).</div>
+        <div class="config-note">Projeção = média × número de dias do mês. Os vouchers usam a média dos dias com fechamento; passantes e bebida usam a média dos dias lançados na aba Bebidas e Passantes. Receita total = vouchers + passantes + bebida do Restaurante.</div>
       </div>
     </section>
 
@@ -505,7 +548,7 @@
       <div class="card">
         <div class="danger-zone">
           <h3>Zona de risco</h3>
-          <button class="btn-secondary" id="btnLimparDadosTeste">Limpar fechamentos e DANFEs do modo teste</button>
+          <button class="btn-secondary" id="btnLimparDadosTeste">Limpar dados do modo teste (fechamentos, DANFEs, bebidas e passantes)</button>
           <div style="height:10px;"></div>
           <button class="btn-secondary" id="btnLimparConfig">Limpar toda a configuração salva neste navegador</button>
         </div>
@@ -700,9 +743,10 @@ function initConnection(){
 function modoTeste(){ return !supabaseClient; }
 function tabelaFechamentos(){ return config.tabela_fechamentos || 'fechamentos_sem_lancamento'; }
 function tabelaDanfe(){ return config.tabela_danfe || 'danfe_emissoes'; }
+function tabelaReceitas(){ return config.tabela_receitas || 'receitas_diarias'; }
 
 // ---- banco local (modo teste) ----
-const LOCAL_KEYS = { fechamentos: 'voucherLGM_sl_fechamentos', danfe: 'voucherLGM_sl_danfe' };
+const LOCAL_KEYS = { fechamentos: 'voucherLGM_sl_fechamentos', danfe: 'voucherLGM_sl_danfe', receitas: 'voucherLGM_sl_receitas' };
 function localLoad(key){ return JSON.parse(localStorage.getItem(key) || '[]'); }
 function localSave(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
 function novoId(){ return (crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now()+'-'+Math.random().toString(16).slice(2)); }
@@ -717,6 +761,16 @@ const localDB = {
       else { arr.push({...reg, id: novoId(), created_at: new Date().toISOString()}); }
       localSave(LOCAL_KEYS.fechamentos, arr);
     }
+  },
+  receitas: {
+    all(){ return localLoad(LOCAL_KEYS.receitas); },
+    upsertByData(reg){
+      const arr = localLoad(LOCAL_KEYS.receitas);
+      const idx = arr.findIndex(r=>r.data===reg.data);
+      if(idx>=0){ arr[idx] = {...arr[idx], ...reg}; } else { arr.push({...reg}); }
+      localSave(LOCAL_KEYS.receitas, arr);
+    },
+    deleteByData(data){ localSave(LOCAL_KEYS.receitas, localLoad(LOCAL_KEYS.receitas).filter(r=>r.data!==data)); }
   },
   danfe: {
     all(){ return localLoad(LOCAL_KEYS.danfe); },
@@ -738,6 +792,7 @@ document.querySelectorAll('.sidebar nav button').forEach(btn=>{
     btn.classList.add('active');
     document.getElementById('view-'+btn.dataset.view).classList.add('active');
     if(btn.dataset.view === 'fechamento') carregarHistoricoFechamentos();
+    if(btn.dataset.view === 'receitas') carregarReceitas();
     if(btn.dataset.view === 'relatorio') carregarRelatorio();
     if(btn.dataset.view === 'graficos') { carregarGraficos(); carregarResumoMes(); }
     if(btn.dataset.view === 'danfe') { renderTabelaDanfe(); carregarHistoricoDanfe(); }
@@ -1379,18 +1434,6 @@ document.getElementById('btnConferir').addEventListener('click', ()=>{
   }
 });
 
-// ---- prévia do valor dos passantes (quantidade × preço do voucher) ----
-function atualizarPreviewPassante(){
-  const el = document.getElementById('fechPassPreview');
-  const qR = parseInt(document.getElementById('fechPassRodizio').value) || 0;
-  const qF = parseInt(document.getElementById('fechPassFondue').value) || 0;
-  if(!qR && !qF){ el.textContent = ''; return; }
-  const vR = qR * valorVoucher('rodizio'), vF = qF * valorVoucher('rodizio_fondue');
-  el.textContent = `Rodízio passante: R$ ${fmtMoeda(vR)}  ·  Rodízio + Fondue passante: R$ ${fmtMoeda(vF)}`;
-}
-document.getElementById('fechPassRodizio').addEventListener('input', atualizarPreviewPassante);
-document.getElementById('fechPassFondue').addEventListener('input', atualizarPreviewPassante);
-
 // ---- salvar fechamento ----
 document.getElementById('btnSalvarFechamento').addEventListener('click', async ()=>{
   if(!ultimoResultadoOcr){ showMsg('salvarMsg', 'Rode a leitura do scan primeiro.', 'erro'); return; }
@@ -1410,10 +1453,6 @@ document.getElementById('btnSalvarFechamento').addEventListener('click', async (
     qtd_fondue_caixa: ultimaConferencia.caixaFondue,
     bateu: ultimaConferencia.bateu,
     valor_total: valorTotal,
-    valor_bebida_restaurante: parseFloat(document.getElementById('fechBebidaRest').value) || 0,
-    valor_bebida_room: parseFloat(document.getElementById('fechBebidaRoom').value) || 0,
-    qtd_rodizio_passante: parseInt(document.getElementById('fechPassRodizio').value) || 0,
-    qtd_fondue_passante: parseInt(document.getElementById('fechPassFondue').value) || 0,
     lista_vouchers: listaVouchers,
     link_scan_drive: linkScan,
     observacao: document.getElementById('fechObs').value.trim() || null,
@@ -1428,13 +1467,9 @@ document.getElementById('btnSalvarFechamento').addEventListener('click', async (
       if(error) throw error;
     }
     showMsg('salvarMsg', 'Fechamento do dia ' + data + ' salvo com sucesso' + (modoTeste()?' (modo teste).':'.'), 'ok');
-    ['fechBebidaRest','fechBebidaRoom','fechPassRodizio','fechPassFondue'].forEach(id=>{ document.getElementById(id).value = ''; });
-    atualizarPreviewPassante();
     carregarHistoricoFechamentos();
   }catch(e){
-    const msg = String(e.message || e);
-    const faltaColuna = /passante|bebida|schema cache|column/i.test(msg);
-    showMsg('salvarMsg', 'Erro ao salvar: ' + msg + (faltaColuna ? ' — confira se você já rodou o SQL alterar_tabelas_voucher_receitas.sql no Supabase (faltam colunas novas).' : ''), 'erro');
+    showMsg('salvarMsg', 'Erro ao salvar: ' + (e.message || e), 'erro');
   }
 });
 
@@ -1461,6 +1496,159 @@ async function carregarHistoricoFechamentos(){
         <td>R$ ${fmtMoeda(f.valor_total)}</td>
       </tr>`).join('')}</tbody></table>`;
   }catch(e){ el.innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`; }
+}
+
+// ============================================================
+// BEBIDAS E PASSANTES (aba própria)
+// ============================================================
+const dataBr = d => (d||'').split('-').reverse().join('/');
+function limitesMes(mesVal){
+  const [a, m] = mesVal.split('-').map(Number);
+  const ult = new Date(a, m, 0).getDate();
+  return {de: `${mesVal}-01`, ate: `${mesVal}-${String(ult).padStart(2,'0')}`};
+}
+
+async function buscarReceitas(de, ate){
+  if(modoTeste()){
+    return localDB.receitas.all().filter(r=>r.data>=de && r.data<=ate).sort((a,b)=>a.data.localeCompare(b.data));
+  }
+  const resp = await supabaseClient.from(tabelaReceitas()).select('*').gte('data', de).lte('data', ate).order('data', {ascending:true});
+  if(resp.error) throw resp.error;
+  return resp.data || [];
+}
+// Versão usada por Relatório e Gráficos: se a tabela ainda não existir, não derruba
+// o resto — devolve vazio e guarda o motivo pra mostrar um aviso.
+async function buscarReceitasSeguro(de, ate){
+  window._receitasErro = null;
+  try{ return await buscarReceitas(de, ate); }
+  catch(e){ window._receitasErro = String(e.message || e); return []; }
+}
+const AVISO_SQL_RECEITAS = 'Rode o SQL criar_tabela_receitas_diarias.sql no Supabase.';
+
+document.getElementById('recData').value = hoje();
+document.getElementById('recMes').value = hoje().slice(0,7);
+
+function atualizarPreviewReceita(){
+  const el = document.getElementById('recPreview');
+  const b = parseFloat(document.getElementById('recBebida').value) || 0;
+  const qR = parseInt(document.getElementById('recPassRodizio').value) || 0;
+  const qF = parseInt(document.getElementById('recPassFondue').value) || 0;
+  if(!b && !qR && !qF){ el.textContent = ''; return; }
+  const vR = qR * valorVoucher('rodizio'), vF = qF * valorVoucher('rodizio_fondue');
+  el.textContent = `Rodízio passante: R$ ${fmtMoeda(vR)}  ·  Rodízio + Fondue passante: R$ ${fmtMoeda(vF)}  ·  Total do dia: R$ ${fmtMoeda(b + vR + vF)}`;
+}
+['recBebida','recPassRodizio','recPassFondue'].forEach(id=> document.getElementById(id).addEventListener('input', atualizarPreviewReceita));
+
+// Ao trocar a data, carrega o que já foi lançado nela (pra poder corrigir).
+async function carregarReceitaDoDia(){
+  const data = document.getElementById('recData').value;
+  const aviso = document.getElementById('recAviso');
+  if(!data){ aviso.textContent = ''; return; }
+  try{
+    const [r] = await buscarReceitas(data, data);
+    if(r){
+      document.getElementById('recBebida').value = r.valor_bebida_restaurante ?? '';
+      document.getElementById('recPassRodizio').value = r.qtd_rodizio_passante ?? '';
+      document.getElementById('recPassFondue').value = r.qtd_fondue_passante ?? '';
+      aviso.textContent = 'Já existe lançamento nesta data — salvar vai atualizá-lo.';
+    } else {
+      ['recBebida','recPassRodizio','recPassFondue'].forEach(id=>{ document.getElementById(id).value = ''; });
+      aviso.textContent = '';
+    }
+  }catch(e){
+    aviso.textContent = 'Não foi possível consultar esta data: ' + (e.message||e) + ' — ' + AVISO_SQL_RECEITAS;
+  }
+  atualizarPreviewReceita();
+}
+document.getElementById('recData').addEventListener('change', carregarReceitaDoDia);
+document.getElementById('recMes').addEventListener('change', carregarListaReceitas);
+
+async function carregarReceitas(){
+  await carregarReceitaDoDia();
+  await carregarListaReceitas();
+}
+
+document.getElementById('btnSalvarReceita').addEventListener('click', async ()=>{
+  const data = document.getElementById('recData').value;
+  if(!data){ showMsg('recMsg', 'Informe a data.', 'erro'); return; }
+  const reg = {
+    data,
+    valor_bebida_restaurante: Math.max(0, parseFloat(document.getElementById('recBebida').value) || 0),
+    qtd_rodizio_passante: Math.max(0, parseInt(document.getElementById('recPassRodizio').value) || 0),
+    qtd_fondue_passante: Math.max(0, parseInt(document.getElementById('recPassFondue').value) || 0),
+    lancado_por: usuarioLogado ? usuarioLogado.nome : (config.controlista || null),
+    atualizado_em: new Date().toISOString()
+  };
+  try{
+    if(modoTeste()){
+      localDB.receitas.upsertByData(reg);
+    } else {
+      const {error} = await supabaseClient.from(tabelaReceitas()).upsert([reg], {onConflict:'data'});
+      if(error) throw error;
+    }
+    showMsg('recMsg', `Lançamento de ${dataBr(data)} salvo${modoTeste()?' (modo teste)':''}.`, 'ok');
+    document.getElementById('recMes').value = data.slice(0,7);
+    await carregarListaReceitas();
+    await carregarReceitaDoDia();
+  }catch(e){
+    const msg = String(e.message || e);
+    showMsg('recMsg', 'Erro ao salvar: ' + msg + (/receitas_diarias|relation|schema cache|does not exist/i.test(msg) ? ' — ' + AVISO_SQL_RECEITAS : ''), 'erro');
+  }
+});
+
+async function carregarListaReceitas(){
+  const el = document.getElementById('tabelaReceitas');
+  const mesVal = document.getElementById('recMes').value || hoje().slice(0,7);
+  const {de, ate} = limitesMes(mesVal);
+  try{
+    const rows = (await buscarReceitas(de, ate)).sort((a,b)=>b.data.localeCompare(a.data));
+    if(!rows.length){ el.innerHTML = '<div class="empty">Nenhum lançamento neste mês.</div>'; return; }
+    const pR = valorVoucher('rodizio'), pF = valorVoucher('rodizio_fondue');
+    let tB = 0, tQR = 0, tQF = 0;
+    const linhas = rows.map(r=>{
+      const b = Number(r.valor_bebida_restaurante) || 0, qR = r.qtd_rodizio_passante || 0, qF = r.qtd_fondue_passante || 0;
+      tB += b; tQR += qR; tQF += qF;
+      return `<tr>
+        <td>${dataBr(r.data)}</td>
+        <td>R$ ${fmtMoeda(b)}</td>
+        <td>${qR}</td><td>R$ ${fmtMoeda(qR*pR)}</td>
+        <td>${qF}</td><td>R$ ${fmtMoeda(qF*pF)}</td>
+        <td><b>R$ ${fmtMoeda(b + qR*pR + qF*pF)}</b></td>
+        <td style="font-size:12px;color:var(--texto-suave);">${r.lancado_por || '—'}</td>
+        <td style="white-space:nowrap;">
+          <button class="action-link" onclick="editarReceita('${r.data}')">Editar</button>
+          <button class="action-link" style="color:var(--erro);" onclick="excluirReceita('${r.data}')">Excluir</button>
+        </td>
+      </tr>`;
+    }).join('');
+    el.innerHTML = `<table><thead><tr>
+        <th>Data</th><th>Bebida Restaurante</th><th>Rodízio passante (qtd)</th><th>Rodízio passante (R$)</th>
+        <th>Rod. + Fondue passante (qtd)</th><th>Rod. + Fondue passante (R$)</th><th>Total do dia</th><th>Lançado por</th><th></th>
+      </tr></thead><tbody>${linhas}</tbody>
+      <tfoot><tr class="total-row"><td>Total</td><td>R$ ${fmtMoeda(tB)}</td><td>${tQR}</td><td>R$ ${fmtMoeda(tQR*pR)}</td><td>${tQF}</td><td>R$ ${fmtMoeda(tQF*pF)}</td><td>R$ ${fmtMoeda(tB + tQR*pR + tQF*pF)}</td><td></td><td></td></tr></tfoot></table>`;
+  }catch(e){
+    const msg = String(e.message || e);
+    el.innerHTML = `<div class="empty">Erro: ${msg}${/receitas_diarias|relation|schema cache|does not exist/i.test(msg) ? '<br>' + AVISO_SQL_RECEITAS : ''}</div>`;
+  }
+}
+
+function editarReceita(data){
+  document.getElementById('recData').value = data;
+  carregarReceitaDoDia();
+  document.getElementById('recData').scrollIntoView({behavior:'smooth', block:'center'});
+}
+async function excluirReceita(data){
+  if(!confirm(`Excluir o lançamento de ${dataBr(data)}?`)) return;
+  try{
+    if(modoTeste()){
+      localDB.receitas.deleteByData(data);
+    } else {
+      const {error} = await supabaseClient.from(tabelaReceitas()).delete().eq('data', data);
+      if(error) throw error;
+    }
+    await carregarListaReceitas();
+    if(document.getElementById('recData').value === data) await carregarReceitaDoDia();
+  }catch(e){ alert('Erro ao excluir: ' + (e.message || e)); }
 }
 
 // ============================================================
@@ -1579,23 +1767,29 @@ async function carregarGraficos(){
 document.getElementById('resumoMes').value = hoje().slice(0,7);
 document.getElementById('resumoMes').addEventListener('change', carregarResumoMes);
 
-const CAMPOS_RESUMO = ['sem','com','totalQtd','valorVouchers','passQtd','passValor','bebRest','bebRoom','totalReceita'];
-const CAMPOS_RESUMO_QTD = ['sem','com','totalQtd','passQtd'];
 const DIAS_SEMANA_ABREV = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+// src: de onde vem a coluna — f = fechamento (scan), r = aba Bebidas e Passantes, t = total do dia
+const COLUNAS_RESUMO = [
+  {c:'sem', src:'f', qtd:true}, {c:'com', src:'f', qtd:true}, {c:'totalQtd', src:'f', qtd:true}, {c:'valorVouchers', src:'f', qtd:false},
+  {c:'passQtd', src:'r', qtd:true}, {c:'passValor', src:'r', qtd:false}, {c:'bebRest', src:'r', qtd:false},
+  {c:'totalReceita', src:'t', qtd:false}
+];
+const CAMPOS_F = ['sem','com','totalQtd','valorVouchers'];
+const CAMPOS_R = ['passQtd','passValor','bebRest'];
 
-function metricasDia(f){
+function metricasFechamento(f){
   const sem = f.qtd_rodizio_ocr || 0, com = f.qtd_fondue_ocr || 0;
-  const passRod = f.qtd_rodizio_passante || 0, passFon = f.qtd_fondue_passante || 0;
-  const valorVouchers = Number(f.valor_total) || 0;
-  const passValor = passRod*valorVoucher('rodizio') + passFon*valorVoucher('rodizio_fondue');
-  const bebRest = Number(f.valor_bebida_restaurante) || 0;
-  const bebRoom = Number(f.valor_bebida_room) || 0;
-  return {sem, com, totalQtd: sem+com, valorVouchers, passQtd: passRod+passFon, passValor, bebRest, bebRoom,
-          totalReceita: valorVouchers + passValor + bebRest + bebRoom};
+  return {sem, com, totalQtd: sem+com, valorVouchers: Number(f.valor_total) || 0};
 }
-function somarMetricas(lista){
+function metricasReceita(r){
+  const rod = r.qtd_rodizio_passante || 0, fon = r.qtd_fondue_passante || 0;
+  return {passQtd: rod+fon, passValor: rod*valorVoucher('rodizio') + fon*valorVoucher('rodizio_fondue'), bebRest: Number(r.valor_bebida_restaurante) || 0};
+}
+function totaisDe(linhas){
   const t = {};
-  CAMPOS_RESUMO.forEach(c=>{ t[c] = lista.reduce((s,m)=>s+m[c], 0); });
+  CAMPOS_F.forEach(c=>{ t[c] = linhas.reduce((s,l)=>s+(l.f ? l.f[c] : 0), 0); });
+  CAMPOS_R.forEach(c=>{ t[c] = linhas.reduce((s,l)=>s+(l.r ? l.r[c] : 0), 0); });
+  t.totalReceita = t.valorVouchers + t.passValor + t.bebRest;
   return t;
 }
 
@@ -1615,54 +1809,71 @@ async function carregarResumoMes(){
       if(resp.error) throw resp.error;
       data = resp.data;
     }
-    const porDia = {};
-    data.forEach(f=>{ porDia[f.data] = f; });
+    const receitas = await buscarReceitasSeguro(de, ate);
+    const aviso = window._receitasErro
+      ? `<div class="msg alerta" style="display:block;margin-bottom:10px;">Não foi possível ler Bebidas e Passantes (${window._receitasErro}). ${AVISO_SQL_RECEITAS}</div>` : '';
 
-    // uma linha por dia do mês (dias sem fechamento ficam em branco)
+    const fPorDia = {}, rPorDia = {};
+    data.forEach(f=>{ fPorDia[f.data] = f; });
+    receitas.forEach(r=>{ rPorDia[r.data] = r; });
+
+    // uma linha por dia do mês; cada lado (fechamento / bebida+passantes) pode existir sozinho
     const linhas = [];
     for(let d=1; d<=diasNoMes; d++){
       const dataStr = `${mesVal}-${String(d).padStart(2,'0')}`;
-      const dow = new Date(ano, mes-1, d).getDay();
-      linhas.push({d, dataStr, dow, m: porDia[dataStr] ? metricasDia(porDia[dataStr]) : null});
+      linhas.push({
+        d, dataStr, dow: new Date(ano, mes-1, d).getDay(),
+        f: fPorDia[dataStr] ? metricasFechamento(fPorDia[dataStr]) : null,
+        r: rPorDia[dataStr] ? metricasReceita(rPorDia[dataStr]) : null
+      });
     }
-    const lancadas = linhas.filter(l=>l.m);
-    const n = lancadas.length;
+    const nF = linhas.filter(l=>l.f).length, nR = linhas.filter(l=>l.r).length;
 
-    if(n === 0){
-      ['resTotalReal','resMediaDia','resProjecao','resDiasLancados'].forEach(id=>{ document.getElementById(id).textContent = '–'; });
-      el.innerHTML = '<div class="empty">Nenhum fechamento lançado neste mês.</div>';
+    if(nF === 0 && nR === 0){
+      ['resTotalReal','resMediaDia','resProjecao','resDiasLancados','resDiasReceitas'].forEach(id=>{ document.getElementById(id).textContent = '–'; });
+      el.innerHTML = aviso + '<div class="empty">Nenhum lançamento neste mês.</div>';
       return;
     }
 
-    const total = somarMetricas(lancadas.map(l=>l.m));
-    const q1 = somarMetricas(lancadas.filter(l=>l.d<=15).map(l=>l.m));
-    const q2 = somarMetricas(lancadas.filter(l=>l.d>=16).map(l=>l.m));
-    // média só sobre os dias lançados; projeção = média × dias reais do mês
+    const total = totaisDe(linhas);
+    const q1 = totaisDe(linhas.filter(l=>l.d<=15));
+    const q2 = totaisDe(linhas.filter(l=>l.d>=16));
+    // Média de cada coluna sobre os dias em que aquela informação foi lançada;
+    // projeção = média × dias reais do mês. A receita total é a soma das partes.
     const media = {}, projecao = {};
-    CAMPOS_RESUMO.forEach(c=>{ media[c] = total[c]/n; projecao[c] = media[c]*diasNoMes; });
+    CAMPOS_F.forEach(c=>{ media[c] = nF ? total[c]/nF : 0; });
+    CAMPOS_R.forEach(c=>{ media[c] = nR ? total[c]/nR : 0; });
+    media.totalReceita = media.valorVouchers + media.passValor + media.bebRest;
+    Object.keys(media).forEach(c=>{ projecao[c] = media[c] * diasNoMes; });
 
     document.getElementById('resTotalReal').textContent = 'R$ ' + fmtMoeda(total.totalReceita);
     document.getElementById('resMediaDia').textContent = 'R$ ' + fmtMoeda(media.totalReceita);
     document.getElementById('resProjecao').textContent = 'R$ ' + fmtMoeda(projecao.totalReceita);
-    document.getElementById('resDiasLancados').textContent = `${n} de ${diasNoMes}`;
+    document.getElementById('resDiasLancados').textContent = `${nF} de ${diasNoMes}`;
+    document.getElementById('resDiasReceitas').textContent = `${nR} de ${diasNoMes}`;
 
     const fmtQ = v => Math.round(v).toLocaleString('pt-BR');
-    const celulas = (m, inteiro) => CAMPOS_RESUMO.map(c=>{
-      const isQtd = CAMPOS_RESUMO_QTD.includes(c);
-      return `<td>${isQtd ? fmtQ(m[c]) : (inteiro ? fmtQ(m[c]) : fmtMoeda(m[c]))}</td>`;
+    const fmt = (v, qtd) => qtd ? fmtQ(v) : fmtMoeda(v);
+    const celulasDia = l => COLUNAS_RESUMO.map(({c, src, qtd})=>{
+      let v;
+      if(src === 'f') v = l.f ? l.f[c] : null;
+      else if(src === 'r') v = l.r ? l.r[c] : null;
+      else v = (l.f || l.r) ? (l.f ? l.f.valorVouchers : 0) + (l.r ? l.r.passValor + l.r.bebRest : 0) : null;
+      return `<td>${v === null ? '' : fmt(v, qtd)}</td>`;
     }).join('');
-    const linhaFoot = (rotulo, m) => `<tr class="resumo-foot"><td class="rot" colspan="2">${rotulo}</td>${celulas(m, false)}</tr>`;
+    const celulasTotal = m => COLUNAS_RESUMO.map(({c, qtd})=>`<td>${fmt(m[c], qtd)}</td>`).join('');
+    const linhaFoot = (rotulo, m) => `<tr class="resumo-foot"><td class="rot" colspan="2">${rotulo}</td>${celulasTotal(m)}</tr>`;
 
-    el.innerHTML = `<table class="resumo-tabela">
+    el.innerHTML = aviso + `<table class="resumo-tabela">
       <thead><tr>
         <th>Dia</th><th>Data</th><th>Sem Fondue</th><th>Com Fondue</th><th>Total Qtd</th>
         <th>Rodízio Voucher (R$)</th><th>Passante (qtd)</th><th>Rodízio Passante (R$)</th>
-        <th>Bebida Restaurante (R$)</th><th>Bebida Room (R$)</th><th>Total Receita (R$)</th>
+        <th>Bebida Restaurante (R$)</th><th>Total Receita (R$)</th>
       </tr></thead>
       <tbody>${linhas.map(l=>{
-        const dataBr = `${String(l.d).padStart(2,'0')}/${String(mes).padStart(2,'0')}/${ano}`;
-        if(!l.m) return `<tr class="resumo-vazio"><td>${DIAS_SEMANA_ABREV[l.dow]}</td><td>${dataBr}</td>${'<td></td>'.repeat(CAMPOS_RESUMO.length)}</tr>`;
-        return `<tr><td>${DIAS_SEMANA_ABREV[l.dow]}</td><td>${dataBr}</td>${celulas(l.m, false)}</tr>`;
+        const dataFmt = `${String(l.d).padStart(2,'0')}/${String(mes).padStart(2,'0')}/${ano}`;
+        const vazio = !l.f && !l.r;
+        return `<tr class="${vazio ? 'resumo-vazio' : ''}"><td>${DIAS_SEMANA_ABREV[l.dow]}</td><td>${dataFmt}</td>${celulasDia(l)}</tr>`;
       }).join('')}
         ${linhaFoot('Média (dias lançados)', media)}
         ${linhaFoot('Total do mês', total)}
@@ -1708,6 +1919,14 @@ async function carregarRelatorio(){
       data = resp.data;
     }
 
+    // Bebida e passantes vêm da aba própria. Com filtro de status ativo, só entram
+    // os dias filtrados (bebida/passante não tem "bateu"); sem filtro, entram todos.
+    let receitas = await buscarReceitasSeguro(de, ate);
+    if(status){ const datas = new Set(data.map(f=>f.data)); receitas = receitas.filter(r=>datas.has(r.data)); }
+    const avisoEl = document.getElementById('relAvisoReceitas');
+    if(window._receitasErro){ showMsg('relAvisoReceitas', `Não foi possível ler Bebidas e Passantes (${window._receitasErro}). ${AVISO_SQL_RECEITAS}`, 'alerta'); }
+    else { avisoEl.textContent = ''; avisoEl.className = 'msg'; }
+
     const dias = data.length;
     const rodizioTotal = data.reduce((s,f)=>s+(f.qtd_rodizio_ocr||0),0);
     const fondueTotal = data.reduce((s,f)=>s+(f.qtd_fondue_ocr||0),0);
@@ -1717,40 +1936,56 @@ async function carregarRelatorio(){
     document.getElementById('statDias').textContent = dias;
     document.getElementById('statRodizioTotal').textContent = rodizioTotal;
     document.getElementById('statFondueTotal').textContent = fondueTotal;
-    document.getElementById('statValorTotal').textContent = fmtMoeda(valorTotal);
+    document.getElementById('statValorTotal').textContent = 'R$ ' + fmtMoeda(valorTotal);
     document.getElementById('statBateram').textContent = `${bateram}/${dias}`;
 
-    const somaCampo = campo => data.reduce((s,f)=>s+(Number(f[campo])||0),0);
-    const passRodQtd = somaCampo('qtd_rodizio_passante'), passFonQtd = somaCampo('qtd_fondue_passante');
+    const somaR = campo => receitas.reduce((s,r)=>s+(Number(r[campo])||0),0);
+    const passRodQtd = somaR('qtd_rodizio_passante'), passFonQtd = somaR('qtd_fondue_passante');
     document.getElementById('statValorRodizio').textContent = 'R$ ' + fmtMoeda(rodizioTotal * valorVoucher('rodizio'));
     document.getElementById('statValorFondue').textContent = 'R$ ' + fmtMoeda(fondueTotal * valorVoucher('rodizio_fondue'));
-    document.getElementById('statBebidaRest').textContent = 'R$ ' + fmtMoeda(somaCampo('valor_bebida_restaurante'));
-    document.getElementById('statBebidaRoom').textContent = 'R$ ' + fmtMoeda(somaCampo('valor_bebida_room'));
+    document.getElementById('statBebidaRest').textContent = 'R$ ' + fmtMoeda(somaR('valor_bebida_restaurante'));
     document.getElementById('statPassRodizio').textContent = passRodQtd;
     document.getElementById('statPassRodizioValor').textContent = 'R$ ' + fmtMoeda(passRodQtd * valorVoucher('rodizio'));
     document.getElementById('statPassFondue').textContent = passFonQtd;
     document.getElementById('statPassFondueValor').textContent = 'R$ ' + fmtMoeda(passFonQtd * valorVoucher('rodizio_fondue'));
 
-    if(!data || data.length===0){ el.innerHTML = '<div class="empty">Nenhum fechamento encontrado no período.</div>'; return; }
+    // Tabela: um dia por linha, juntando fechamento e lançamento de bebida/passantes.
+    const fPorDia = {}, rPorDia = {};
+    data.forEach(f=>{ fPorDia[f.data] = f; });
+    receitas.forEach(r=>{ rPorDia[r.data] = r; });
+    const datas = Array.from(new Set([...Object.keys(fPorDia), ...Object.keys(rPorDia)])).sort().reverse();
+    if(datas.length === 0){ el.innerHTML = '<div class="empty">Nenhum lançamento encontrado no período.</div>'; return; }
 
-    el.innerHTML = `<table><thead><tr><th>Data</th><th>Rodízio (scan)</th><th>Fondue (scan)</th><th>Rodízio (caixa)</th><th>Fondue (caixa)</th><th>Passante (R / R+F)</th><th>Bebida Rest.</th><th>Bebida Room</th><th>Status</th><th>Valor</th><th>Scan</th><th></th></tr></thead>
-      <tbody>${data.map((f,i)=>`<tr>
-        <td>${f.data}</td>
-        <td>${f.qtd_rodizio_ocr}</td>
-        <td>${f.qtd_fondue_ocr}</td>
-        <td>${f.qtd_rodizio_caixa}</td>
-        <td>${f.qtd_fondue_caixa}</td>
-        <td>${f.qtd_rodizio_passante!=null ? `${f.qtd_rodizio_passante} / ${f.qtd_fondue_passante||0}` : '—'}</td>
-        <td>${f.valor_bebida_restaurante!=null ? 'R$ '+fmtMoeda(f.valor_bebida_restaurante) : '—'}</td>
-        <td>${f.valor_bebida_room!=null ? 'R$ '+fmtMoeda(f.valor_bebida_room) : '—'}</td>
-        <td><span class="badge ${f.bateu?'bate':'naobate'}">${f.bateu?'Bateu':'Não bateu'}</span></td>
-        <td>R$ ${fmtMoeda(f.valor_total)}</td>
-        <td>${f.link_scan_drive ? `<a class="linkscan" href="${f.link_scan_drive}" target="_blank">Ver scan</a>` : '—'}</td>
-        <td><button class="action-link" onclick="toggleListaVouchers(${i})">Ver lista</button></td>
-      </tr>
-      <tr id="listaVouchers${i}" style="display:none;">
-        <td colspan="12">${renderListaVouchersHtml(f.lista_vouchers)}</td>
-      </tr>`).join('')}</tbody></table>`;
+    el.innerHTML = `<table><thead><tr><th>Data</th><th>Rodízio (scan)</th><th>Fondue (scan)</th><th>Rodízio (caixa)</th><th>Fondue (caixa)</th><th>Passante (R / R+F)</th><th>Bebida Rest.</th><th>Status</th><th>Valor</th><th>Scan</th><th></th></tr></thead>
+      <tbody>${datas.map((dt,i)=>{
+        const f = fPorDia[dt], r = rPorDia[dt];
+        const passCel = r ? `${r.qtd_rodizio_passante||0} / ${r.qtd_fondue_passante||0}` : '—';
+        const bebCel = r ? 'R$ '+fmtMoeda(r.valor_bebida_restaurante) : '—';
+        if(!f){
+          return `<tr>
+            <td>${dt}</td><td>—</td><td>—</td><td>—</td><td>—</td>
+            <td>${passCel}</td><td>${bebCel}</td>
+            <td><span class="badge naobate" style="background:var(--alerta-bg);color:var(--alerta);">Sem fechamento</span></td>
+            <td>—</td><td>—</td><td></td>
+          </tr>`;
+        }
+        return `<tr>
+          <td>${f.data}</td>
+          <td>${f.qtd_rodizio_ocr}</td>
+          <td>${f.qtd_fondue_ocr}</td>
+          <td>${f.qtd_rodizio_caixa}</td>
+          <td>${f.qtd_fondue_caixa}</td>
+          <td>${passCel}</td>
+          <td>${bebCel}</td>
+          <td><span class="badge ${f.bateu?'bate':'naobate'}">${f.bateu?'Bateu':'Não bateu'}</span></td>
+          <td>R$ ${fmtMoeda(f.valor_total)}</td>
+          <td>${f.link_scan_drive ? `<a class="linkscan" href="${f.link_scan_drive}" target="_blank">Ver scan</a>` : '—'}</td>
+          <td><button class="action-link" onclick="toggleListaVouchers(${i})">Ver lista</button></td>
+        </tr>
+        <tr id="listaVouchers${i}" style="display:none;">
+          <td colspan="11">${renderListaVouchersHtml(f.lista_vouchers)}</td>
+        </tr>`;
+      }).join('')}</tbody></table>`;
   }catch(e){ el.innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`; }
 }
 
@@ -1774,6 +2009,13 @@ function toggleListaVouchers(i){
 // ============================================================
 // DANFE
 // ============================================================
+// Diferença entre o valor lançado (manual) e o calculado. Sem manual = sem diferença.
+function fmtDif(v){
+  if(v === null || v === undefined) return '<span class="dif-zero">—</span>';
+  const r = Math.round(v*100)/100;
+  if(r === 0) return '<span class="dif-zero">R$ 0,00</span>';
+  return r > 0 ? `<span class="dif-pos">+ R$ ${fmtMoeda(r)}</span>` : `<span class="dif-neg">− R$ ${fmtMoeda(Math.abs(r))}</span>`;
+}
 document.getElementById('btnCalcularDanfe').addEventListener('click', async ()=>{
   const mesVal = document.getElementById('danfeMesRapido').value;
   if(!mesVal){ alert('Selecione o mês.'); return; }
@@ -1816,14 +2058,15 @@ function renderTabelaDanfe(){
   if(cnpjs.length===0){ wrap.innerHTML = '<div class="empty">Cadastre os CNPJs na aba Configuração antes de gerar o DANFE.</div>'; return; }
 
   wrap.innerHTML = `<table>
-    <thead><tr><th>Empresa</th><th>CNPJ</th><th>% Receita</th><th>Valor calculado</th><th>Valor a lançar (manual)</th></tr></thead>
+    <thead><tr><th>Empresa</th><th>CNPJ</th><th>% Receita</th><th>Valor calculado</th><th>Valor a lançar (manual)</th><th>Diferença</th></tr></thead>
     <tbody id="danfeLinhas">
       ${cnpjs.map((c)=>`<tr>
         <td>${c.nome}</td>
         <td class="codigo">${c.cnpj}</td>
         <td><input type="number" step="0.01" class="danfe-input danfe-pct" value="0"></td>
         <td class="danfe-valor-receita">R$ 0,00</td>
-        <td><input type="number" step="0.01" class="danfe-input danfe-manual" style="width:120px;" placeholder="igual ao calculado"></td>
+        <td><input type="number" step="0.01" class="danfe-input danfe-manual" style="width:130px;" placeholder="= calculado"></td>
+        <td class="danfe-dif"><span class="dif-zero">—</span></td>
       </tr>`).join('')}
     </tbody>
     <tfoot><tr class="total-row">
@@ -1831,6 +2074,7 @@ function renderTabelaDanfe(){
       <td id="danfeSomaPct">0,00%</td>
       <td id="danfeSomaReceita">R$ 0,00</td>
       <td id="danfeSomaLancado">R$ 0,00</td>
+      <td id="danfeSomaDif"><span class="dif-zero">—</span></td>
     </tr></tfoot>
   </table>`;
 
@@ -1848,11 +2092,13 @@ function recalcularDanfe(){
     const manual = manualTxt === '' ? null : parseFloat(manualTxt);
     const lancado = (manual !== null && !isNaN(manual)) ? manual : receita;
     row.querySelector('.danfe-valor-receita').textContent = 'R$ ' + fmtMoeda(receita);
+    row.querySelector('.danfe-dif').innerHTML = fmtDif((manual !== null && !isNaN(manual)) ? manual - receita : null);
     somaPct += pct; somaReceita += receita; somaLancado += lancado;
   });
   document.getElementById('danfeSomaPct').textContent = somaPct.toFixed(2).replace('.',',') + '%';
   document.getElementById('danfeSomaReceita').textContent = 'R$ ' + fmtMoeda(somaReceita);
   document.getElementById('danfeSomaLancado').textContent = 'R$ ' + fmtMoeda(somaLancado);
+  document.getElementById('danfeSomaDif').innerHTML = fmtDif(somaLancado - somaReceita);
 
   const sumEl = document.getElementById('danfePctSum');
   sumEl.style.display = 'block';
@@ -1925,7 +2171,7 @@ async function carregarHistoricoDanfe(){
       data = resp.data;
     }
     if(!data || data.length===0){ el.innerHTML = '<div class="empty">Nenhuma emissão salva ainda.</div>'; return; }
-    el.innerHTML = `<table><thead><tr><th>Período</th><th>Empresa</th><th>CNPJ</th><th>%</th><th>Valor calculado</th><th>Valor lançado</th></tr></thead>
+    el.innerHTML = `<table><thead><tr><th>Período</th><th>Empresa</th><th>CNPJ</th><th>%</th><th>Valor calculado</th><th>Valor lançado</th><th>Diferença</th></tr></thead>
       <tbody>${data.map(d=>`<tr>
         <td>${d.periodo_label} (${d.data_inicio} a ${d.data_fim})</td>
         <td>${d.empresa}</td>
@@ -1933,6 +2179,7 @@ async function carregarHistoricoDanfe(){
         <td>${(d.percentual||0).toFixed(2).replace('.',',')}%</td>
         <td>R$ ${fmtMoeda(d.valor_total_receita)}</td>
         <td>${d.valor_manual!=null ? `<b>R$ ${fmtMoeda(d.valor_manual)}</b> <span class="badge naobate" style="font-size:10px;">manual</span>` : `R$ ${fmtMoeda(d.valor_total_receita)}`}</td>
+        <td>${fmtDif(d.valor_manual!=null ? d.valor_manual - d.valor_total_receita : null)}</td>
       </tr>`).join('')}</tbody></table>`;
   }catch(e){ el.innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`; }
 }
@@ -2075,9 +2322,10 @@ document.getElementById('btnRestaurarCnpjs').addEventListener('click', ()=>{
   renderListaCnpjs();
 });
 document.getElementById('btnLimparDadosTeste').addEventListener('click', ()=>{
-  if(!confirm('Isso apaga todos os fechamentos e DANFEs salvos localmente em modo teste. Confirma?')) return;
+  if(!confirm('Isso apaga todos os fechamentos, DANFEs e lançamentos de bebidas/passantes salvos localmente em modo teste. Confirma?')) return;
   localStorage.removeItem(LOCAL_KEYS.fechamentos);
   localStorage.removeItem(LOCAL_KEYS.danfe);
+  localStorage.removeItem(LOCAL_KEYS.receitas);
   carregarHistoricoFechamentos();
   showMsg('configMsg', 'Dados de teste removidos.', 'ok');
 });
