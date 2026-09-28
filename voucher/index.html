@@ -89,6 +89,12 @@
   .stat{background:var(--card);border:1px solid var(--borda);border-radius:var(--radius);padding:14px 18px;flex:1;min-width:130px;}
   .stat .num{font-size:22px;font-weight:700;color:var(--verde-escuro);}
   .stat .lbl{font-size:11.5px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
+  .stat .sub{font-size:13px;font-weight:600;color:var(--verde-mid);margin-top:4px;}
+  .resumo-tabela th,.resumo-tabela td{text-align:right;white-space:nowrap;font-size:12.5px;padding:6px 8px;}
+  .resumo-tabela th:nth-child(1),.resumo-tabela td:nth-child(1),.resumo-tabela th:nth-child(2),.resumo-tabela td:nth-child(2){text-align:left;}
+  .resumo-tabela tr.resumo-vazio td{color:var(--texto-suave);}
+  .resumo-tabela tr.resumo-foot td{background:var(--verde-escuro);color:#fff;font-weight:700;border-bottom:1px solid rgba(255,255,255,.12);}
+  .resumo-tabela tr.resumo-foot td.rot{text-align:left;}
   .empty{text-align:center;padding:40px 20px;color:var(--texto-suave);font-size:13.5px;}
   .config-note{font-size:12px;color:var(--texto-suave);background:#F2F5F2;border-radius:7px;padding:10px 12px;margin-top:16px;line-height:1.5;}
   .divider{height:1px;background:var(--borda);margin:20px 0;}
@@ -214,6 +220,17 @@
 
         <div class="divider"></div>
 
+        <label style="margin-top:0;">Receitas do dia</label>
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;">
+          <div><label style="margin-top:0;font-size:12px;">Bebida do Restaurante (R$)</label><input type="number" min="0" step="0.01" id="fechBebidaRest" placeholder="0,00"></div>
+          <div><label style="margin-top:0;font-size:12px;">Bebida do Room (R$)</label><input type="number" min="0" step="0.01" id="fechBebidaRoom" placeholder="0,00"></div>
+          <div><label style="margin-top:0;font-size:12px;">Rodízio passante (quantidade)</label><input type="number" min="0" id="fechPassRodizio" placeholder="0"></div>
+          <div><label style="margin-top:0;font-size:12px;">Rodízio + Fondue passante (quantidade)</label><input type="number" min="0" id="fechPassFondue" placeholder="0"></div>
+        </div>
+        <div id="fechPassPreview" style="font-size:12.5px;color:var(--texto-suave);margin-top:10px;"></div>
+
+        <div class="divider"></div>
+
         <label style="margin-top:0;">Link do scan (opcional)</label>
         <input type="url" id="fechLink" placeholder="https://drive.google.com/...">
 
@@ -270,9 +287,18 @@
         <div class="stat"><div class="num" id="statBateram">–</div><div class="lbl">Dias que bateram</div></div>
       </div>
 
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="statValorRodizio">–</div><div class="lbl">Valor do Rodízio (total)</div></div>
+        <div class="stat"><div class="num" id="statValorFondue">–</div><div class="lbl">Valor do Rodízio + Fondue (total)</div></div>
+        <div class="stat"><div class="num" id="statBebidaRest">–</div><div class="lbl">Bebida do Restaurante</div></div>
+        <div class="stat"><div class="num" id="statBebidaRoom">–</div><div class="lbl">Bebida do Room</div></div>
+        <div class="stat"><div class="num" id="statPassRodizio">–</div><div class="lbl">Rodízio passante (qtd)</div><div class="sub" id="statPassRodizioValor"></div></div>
+        <div class="stat"><div class="num" id="statPassFondue">–</div><div class="lbl">Rodízio + Fondue passante (qtd)</div><div class="sub" id="statPassFondueValor"></div></div>
+      </div>
+
       <div class="card">
         <h3>Fechamentos do período</h3>
-        <div id="tabelaRelatorio"></div>
+        <div id="tabelaRelatorio" style="overflow-x:auto;"></div>
       </div>
     </section>
 
@@ -312,8 +338,16 @@
       </div>
 
       <div class="card">
-        <h3>Conferência (Bateu x Não bateu)</h3>
-        <canvas id="graficoConferencia" height="90"></canvas>
+        <h3>Resumo do mês e previsão</h3>
+        <div><label style="margin-top:0;">Mês</label><input type="month" id="resumoMes" style="width:180px;"></div>
+        <div class="stat-row" style="margin-top:16px;">
+          <div class="stat"><div class="num" id="resTotalReal">–</div><div class="lbl">Receita realizada</div></div>
+          <div class="stat"><div class="num" id="resMediaDia">–</div><div class="lbl">Média por dia lançado</div></div>
+          <div class="stat"><div class="num" id="resProjecao">–</div><div class="lbl">Projeção do mês</div></div>
+          <div class="stat"><div class="num" id="resDiasLancados">–</div><div class="lbl">Dias lançados</div></div>
+        </div>
+        <div style="overflow-x:auto;"><div id="tabelaResumoMes"></div></div>
+        <div class="config-note">Projeção = média dos dias já lançados × número de dias do mês. Receita total = vouchers + passantes + bebidas (Restaurante e Room).</div>
       </div>
     </section>
 
@@ -346,7 +380,7 @@
 
       <div class="card">
         <h3>Distribuição por CNPJ</h3>
-        <div class="config-note" style="margin-top:0;">Só a % de cada CNPJ precisa ser preenchida — o valor é calculado automaticamente.</div>
+        <div class="config-note" style="margin-top:0;">Só a % de cada CNPJ precisa ser preenchida — o valor é calculado automaticamente. Se o valor que dá pra lançar for diferente do calculado, digite-o na coluna "Valor a lançar".</div>
         <div id="danfeTabelaWrap" style="margin-top:14px;"></div>
         <div class="danfe-pct-sum" id="danfePctSum" style="display:none;"></div>
         <button class="btn-primary" id="btnSalvarDanfe" style="margin-top:16px;">Salvar emissão desta quinzena</button>
@@ -705,7 +739,7 @@ document.querySelectorAll('.sidebar nav button').forEach(btn=>{
     document.getElementById('view-'+btn.dataset.view).classList.add('active');
     if(btn.dataset.view === 'fechamento') carregarHistoricoFechamentos();
     if(btn.dataset.view === 'relatorio') carregarRelatorio();
-    if(btn.dataset.view === 'graficos') carregarGraficos();
+    if(btn.dataset.view === 'graficos') { carregarGraficos(); carregarResumoMes(); }
     if(btn.dataset.view === 'danfe') { renderTabelaDanfe(); carregarHistoricoDanfe(); }
     if(btn.dataset.view === 'config') { renderListaCnpjs(); renderListaUsuariosVoucher(); }
   });
@@ -1345,6 +1379,18 @@ document.getElementById('btnConferir').addEventListener('click', ()=>{
   }
 });
 
+// ---- prévia do valor dos passantes (quantidade × preço do voucher) ----
+function atualizarPreviewPassante(){
+  const el = document.getElementById('fechPassPreview');
+  const qR = parseInt(document.getElementById('fechPassRodizio').value) || 0;
+  const qF = parseInt(document.getElementById('fechPassFondue').value) || 0;
+  if(!qR && !qF){ el.textContent = ''; return; }
+  const vR = qR * valorVoucher('rodizio'), vF = qF * valorVoucher('rodizio_fondue');
+  el.textContent = `Rodízio passante: R$ ${fmtMoeda(vR)}  ·  Rodízio + Fondue passante: R$ ${fmtMoeda(vF)}`;
+}
+document.getElementById('fechPassRodizio').addEventListener('input', atualizarPreviewPassante);
+document.getElementById('fechPassFondue').addEventListener('input', atualizarPreviewPassante);
+
 // ---- salvar fechamento ----
 document.getElementById('btnSalvarFechamento').addEventListener('click', async ()=>{
   if(!ultimoResultadoOcr){ showMsg('salvarMsg', 'Rode a leitura do scan primeiro.', 'erro'); return; }
@@ -1364,6 +1410,10 @@ document.getElementById('btnSalvarFechamento').addEventListener('click', async (
     qtd_fondue_caixa: ultimaConferencia.caixaFondue,
     bateu: ultimaConferencia.bateu,
     valor_total: valorTotal,
+    valor_bebida_restaurante: parseFloat(document.getElementById('fechBebidaRest').value) || 0,
+    valor_bebida_room: parseFloat(document.getElementById('fechBebidaRoom').value) || 0,
+    qtd_rodizio_passante: parseInt(document.getElementById('fechPassRodizio').value) || 0,
+    qtd_fondue_passante: parseInt(document.getElementById('fechPassFondue').value) || 0,
     lista_vouchers: listaVouchers,
     link_scan_drive: linkScan,
     observacao: document.getElementById('fechObs').value.trim() || null,
@@ -1378,9 +1428,13 @@ document.getElementById('btnSalvarFechamento').addEventListener('click', async (
       if(error) throw error;
     }
     showMsg('salvarMsg', 'Fechamento do dia ' + data + ' salvo com sucesso' + (modoTeste()?' (modo teste).':'.'), 'ok');
+    ['fechBebidaRest','fechBebidaRoom','fechPassRodizio','fechPassFondue'].forEach(id=>{ document.getElementById(id).value = ''; });
+    atualizarPreviewPassante();
     carregarHistoricoFechamentos();
   }catch(e){
-    showMsg('salvarMsg', 'Erro ao salvar: ' + (e.message || e), 'erro');
+    const msg = String(e.message || e);
+    const faltaColuna = /passante|bebida|schema cache|column/i.test(msg);
+    showMsg('salvarMsg', 'Erro ao salvar: ' + msg + (faltaColuna ? ' — confira se você já rodou o SQL alterar_tabelas_voucher_receitas.sql no Supabase (faltam colunas novas).' : ''), 'erro');
   }
 });
 
@@ -1449,7 +1503,7 @@ document.querySelectorAll('#periodoRapido button').forEach(btn=>{
 // ============================================================
 // GRÁFICOS
 // ============================================================
-let chartTipos = null, chartValor = null, chartConferencia = null;
+let chartTipos = null, chartValor = null;
 
 document.querySelectorAll('#periodoRapidoGraficos button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -1489,12 +1543,8 @@ async function carregarGraficos(){
     const rodizioSerie = data.map(f=>f.qtd_rodizio_ocr||0);
     const fondueSerie = data.map(f=>f.qtd_fondue_ocr||0);
     const valorSerie = data.map(f=>f.valor_total||0);
-    const bateram = data.filter(f=>f.bateu).length;
-    const naoBateram = data.filter(f=>!f.bateu).length;
-
     const corVerdeEscuro = '#0A2A22';
     const corSage = '#A1E19C';
-    const corAlerta = '#B3432B';
 
     if(chartTipos) chartTipos.destroy();
     chartTipos = new Chart(document.getElementById('graficoTipos'), {
@@ -1518,19 +1568,109 @@ async function carregarGraficos(){
       },
       options: {responsive:true, scales:{y:{beginAtZero:true}}}
     });
-
-    if(chartConferencia) chartConferencia.destroy();
-    chartConferencia = new Chart(document.getElementById('graficoConferencia'), {
-      type: 'doughnut',
-      data: {
-        labels: ['Bateu', 'Não bateu'],
-        datasets: [{data: [bateram, naoBateram], backgroundColor: [corSage, corAlerta]}]
-      },
-      options: {responsive:true}
-    });
   }catch(e){
     console.warn('Erro ao carregar gráficos:', e.message||e);
   }
+}
+
+// ------------------------------------------------------------
+// RESUMO DO MÊS + PROJEÇÃO
+// ------------------------------------------------------------
+document.getElementById('resumoMes').value = hoje().slice(0,7);
+document.getElementById('resumoMes').addEventListener('change', carregarResumoMes);
+
+const CAMPOS_RESUMO = ['sem','com','totalQtd','valorVouchers','passQtd','passValor','bebRest','bebRoom','totalReceita'];
+const CAMPOS_RESUMO_QTD = ['sem','com','totalQtd','passQtd'];
+const DIAS_SEMANA_ABREV = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function metricasDia(f){
+  const sem = f.qtd_rodizio_ocr || 0, com = f.qtd_fondue_ocr || 0;
+  const passRod = f.qtd_rodizio_passante || 0, passFon = f.qtd_fondue_passante || 0;
+  const valorVouchers = Number(f.valor_total) || 0;
+  const passValor = passRod*valorVoucher('rodizio') + passFon*valorVoucher('rodizio_fondue');
+  const bebRest = Number(f.valor_bebida_restaurante) || 0;
+  const bebRoom = Number(f.valor_bebida_room) || 0;
+  return {sem, com, totalQtd: sem+com, valorVouchers, passQtd: passRod+passFon, passValor, bebRest, bebRoom,
+          totalReceita: valorVouchers + passValor + bebRest + bebRoom};
+}
+function somarMetricas(lista){
+  const t = {};
+  CAMPOS_RESUMO.forEach(c=>{ t[c] = lista.reduce((s,m)=>s+m[c], 0); });
+  return t;
+}
+
+async function carregarResumoMes(){
+  const el = document.getElementById('tabelaResumoMes');
+  const mesVal = document.getElementById('resumoMes').value || hoje().slice(0,7);
+  const [ano, mes] = mesVal.split('-').map(Number);
+  const diasNoMes = new Date(ano, mes, 0).getDate();
+  const de = `${mesVal}-01`, ate = `${mesVal}-${String(diasNoMes).padStart(2,'0')}`;
+
+  try{
+    let data;
+    if(modoTeste()){
+      data = localDB.fechamentos.all().filter(f=> f.data>=de && f.data<=ate);
+    } else {
+      const resp = await supabaseClient.from(tabelaFechamentos()).select('*').gte('data', de).lte('data', ate).order('data', {ascending:true});
+      if(resp.error) throw resp.error;
+      data = resp.data;
+    }
+    const porDia = {};
+    data.forEach(f=>{ porDia[f.data] = f; });
+
+    // uma linha por dia do mês (dias sem fechamento ficam em branco)
+    const linhas = [];
+    for(let d=1; d<=diasNoMes; d++){
+      const dataStr = `${mesVal}-${String(d).padStart(2,'0')}`;
+      const dow = new Date(ano, mes-1, d).getDay();
+      linhas.push({d, dataStr, dow, m: porDia[dataStr] ? metricasDia(porDia[dataStr]) : null});
+    }
+    const lancadas = linhas.filter(l=>l.m);
+    const n = lancadas.length;
+
+    if(n === 0){
+      ['resTotalReal','resMediaDia','resProjecao','resDiasLancados'].forEach(id=>{ document.getElementById(id).textContent = '–'; });
+      el.innerHTML = '<div class="empty">Nenhum fechamento lançado neste mês.</div>';
+      return;
+    }
+
+    const total = somarMetricas(lancadas.map(l=>l.m));
+    const q1 = somarMetricas(lancadas.filter(l=>l.d<=15).map(l=>l.m));
+    const q2 = somarMetricas(lancadas.filter(l=>l.d>=16).map(l=>l.m));
+    // média só sobre os dias lançados; projeção = média × dias reais do mês
+    const media = {}, projecao = {};
+    CAMPOS_RESUMO.forEach(c=>{ media[c] = total[c]/n; projecao[c] = media[c]*diasNoMes; });
+
+    document.getElementById('resTotalReal').textContent = 'R$ ' + fmtMoeda(total.totalReceita);
+    document.getElementById('resMediaDia').textContent = 'R$ ' + fmtMoeda(media.totalReceita);
+    document.getElementById('resProjecao').textContent = 'R$ ' + fmtMoeda(projecao.totalReceita);
+    document.getElementById('resDiasLancados').textContent = `${n} de ${diasNoMes}`;
+
+    const fmtQ = v => Math.round(v).toLocaleString('pt-BR');
+    const celulas = (m, inteiro) => CAMPOS_RESUMO.map(c=>{
+      const isQtd = CAMPOS_RESUMO_QTD.includes(c);
+      return `<td>${isQtd ? fmtQ(m[c]) : (inteiro ? fmtQ(m[c]) : fmtMoeda(m[c]))}</td>`;
+    }).join('');
+    const linhaFoot = (rotulo, m) => `<tr class="resumo-foot"><td class="rot" colspan="2">${rotulo}</td>${celulas(m, false)}</tr>`;
+
+    el.innerHTML = `<table class="resumo-tabela">
+      <thead><tr>
+        <th>Dia</th><th>Data</th><th>Sem Fondue</th><th>Com Fondue</th><th>Total Qtd</th>
+        <th>Rodízio Voucher (R$)</th><th>Passante (qtd)</th><th>Rodízio Passante (R$)</th>
+        <th>Bebida Restaurante (R$)</th><th>Bebida Room (R$)</th><th>Total Receita (R$)</th>
+      </tr></thead>
+      <tbody>${linhas.map(l=>{
+        const dataBr = `${String(l.d).padStart(2,'0')}/${String(mes).padStart(2,'0')}/${ano}`;
+        if(!l.m) return `<tr class="resumo-vazio"><td>${DIAS_SEMANA_ABREV[l.dow]}</td><td>${dataBr}</td>${'<td></td>'.repeat(CAMPOS_RESUMO.length)}</tr>`;
+        return `<tr><td>${DIAS_SEMANA_ABREV[l.dow]}</td><td>${dataBr}</td>${celulas(l.m, false)}</tr>`;
+      }).join('')}
+        ${linhaFoot('Média (dias lançados)', media)}
+        ${linhaFoot('Total do mês', total)}
+        ${linhaFoot('1ª quinzena', q1)}
+        ${linhaFoot('2ª quinzena', q2)}
+        ${linhaFoot('Projeção do mês', projecao)}
+      </tbody></table>`;
+  }catch(e){ el.innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`; }
 }
 
 document.getElementById('btnAplicarRelatorio').addEventListener('click', carregarRelatorio);
@@ -1580,22 +1720,36 @@ async function carregarRelatorio(){
     document.getElementById('statValorTotal').textContent = fmtMoeda(valorTotal);
     document.getElementById('statBateram').textContent = `${bateram}/${dias}`;
 
+    const somaCampo = campo => data.reduce((s,f)=>s+(Number(f[campo])||0),0);
+    const passRodQtd = somaCampo('qtd_rodizio_passante'), passFonQtd = somaCampo('qtd_fondue_passante');
+    document.getElementById('statValorRodizio').textContent = 'R$ ' + fmtMoeda(rodizioTotal * valorVoucher('rodizio'));
+    document.getElementById('statValorFondue').textContent = 'R$ ' + fmtMoeda(fondueTotal * valorVoucher('rodizio_fondue'));
+    document.getElementById('statBebidaRest').textContent = 'R$ ' + fmtMoeda(somaCampo('valor_bebida_restaurante'));
+    document.getElementById('statBebidaRoom').textContent = 'R$ ' + fmtMoeda(somaCampo('valor_bebida_room'));
+    document.getElementById('statPassRodizio').textContent = passRodQtd;
+    document.getElementById('statPassRodizioValor').textContent = 'R$ ' + fmtMoeda(passRodQtd * valorVoucher('rodizio'));
+    document.getElementById('statPassFondue').textContent = passFonQtd;
+    document.getElementById('statPassFondueValor').textContent = 'R$ ' + fmtMoeda(passFonQtd * valorVoucher('rodizio_fondue'));
+
     if(!data || data.length===0){ el.innerHTML = '<div class="empty">Nenhum fechamento encontrado no período.</div>'; return; }
 
-    el.innerHTML = `<table><thead><tr><th>Data</th><th>Rodízio (scan)</th><th>Fondue (scan)</th><th>Rodízio (caixa)</th><th>Fondue (caixa)</th><th>Status</th><th>Valor</th><th>Scan</th><th></th></tr></thead>
+    el.innerHTML = `<table><thead><tr><th>Data</th><th>Rodízio (scan)</th><th>Fondue (scan)</th><th>Rodízio (caixa)</th><th>Fondue (caixa)</th><th>Passante (R / R+F)</th><th>Bebida Rest.</th><th>Bebida Room</th><th>Status</th><th>Valor</th><th>Scan</th><th></th></tr></thead>
       <tbody>${data.map((f,i)=>`<tr>
         <td>${f.data}</td>
         <td>${f.qtd_rodizio_ocr}</td>
         <td>${f.qtd_fondue_ocr}</td>
         <td>${f.qtd_rodizio_caixa}</td>
         <td>${f.qtd_fondue_caixa}</td>
+        <td>${f.qtd_rodizio_passante!=null ? `${f.qtd_rodizio_passante} / ${f.qtd_fondue_passante||0}` : '—'}</td>
+        <td>${f.valor_bebida_restaurante!=null ? 'R$ '+fmtMoeda(f.valor_bebida_restaurante) : '—'}</td>
+        <td>${f.valor_bebida_room!=null ? 'R$ '+fmtMoeda(f.valor_bebida_room) : '—'}</td>
         <td><span class="badge ${f.bateu?'bate':'naobate'}">${f.bateu?'Bateu':'Não bateu'}</span></td>
         <td>R$ ${fmtMoeda(f.valor_total)}</td>
         <td>${f.link_scan_drive ? `<a class="linkscan" href="${f.link_scan_drive}" target="_blank">Ver scan</a>` : '—'}</td>
         <td><button class="action-link" onclick="toggleListaVouchers(${i})">Ver lista</button></td>
       </tr>
       <tr id="listaVouchers${i}" style="display:none;">
-        <td colspan="9">${renderListaVouchersHtml(f.lista_vouchers)}</td>
+        <td colspan="12">${renderListaVouchersHtml(f.lista_vouchers)}</td>
       </tr>`).join('')}</tbody></table>`;
   }catch(e){ el.innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`; }
 }
@@ -1662,37 +1816,43 @@ function renderTabelaDanfe(){
   if(cnpjs.length===0){ wrap.innerHTML = '<div class="empty">Cadastre os CNPJs na aba Configuração antes de gerar o DANFE.</div>'; return; }
 
   wrap.innerHTML = `<table>
-    <thead><tr><th>Empresa</th><th>CNPJ</th><th>% Receita</th><th>Valor calculado</th></tr></thead>
+    <thead><tr><th>Empresa</th><th>CNPJ</th><th>% Receita</th><th>Valor calculado</th><th>Valor a lançar (manual)</th></tr></thead>
     <tbody id="danfeLinhas">
       ${cnpjs.map((c)=>`<tr>
         <td>${c.nome}</td>
         <td class="codigo">${c.cnpj}</td>
         <td><input type="number" step="0.01" class="danfe-input danfe-pct" value="0"></td>
         <td class="danfe-valor-receita">R$ 0,00</td>
+        <td><input type="number" step="0.01" class="danfe-input danfe-manual" style="width:120px;" placeholder="igual ao calculado"></td>
       </tr>`).join('')}
     </tbody>
     <tfoot><tr class="total-row">
       <td colspan="2">Total</td>
       <td id="danfeSomaPct">0,00%</td>
       <td id="danfeSomaReceita">R$ 0,00</td>
+      <td id="danfeSomaLancado">R$ 0,00</td>
     </tr></tfoot>
   </table>`;
 
-  document.querySelectorAll('.danfe-pct').forEach(inp=> inp.addEventListener('input', recalcularDanfe));
+  document.querySelectorAll('.danfe-pct, .danfe-manual').forEach(inp=> inp.addEventListener('input', recalcularDanfe));
   recalcularDanfe();
 }
 
 function recalcularDanfe(){
   const valorTotal = window._danfeValorTotal || 0;
-  let somaPct = 0, somaReceita = 0;
+  let somaPct = 0, somaReceita = 0, somaLancado = 0;
   document.querySelectorAll('#danfeLinhas tr').forEach(row=>{
     const pct = parseFloat(row.querySelector('.danfe-pct').value) || 0;
     const receita = valorTotal * (pct/100);
+    const manualTxt = row.querySelector('.danfe-manual').value;
+    const manual = manualTxt === '' ? null : parseFloat(manualTxt);
+    const lancado = (manual !== null && !isNaN(manual)) ? manual : receita;
     row.querySelector('.danfe-valor-receita').textContent = 'R$ ' + fmtMoeda(receita);
-    somaPct += pct; somaReceita += receita;
+    somaPct += pct; somaReceita += receita; somaLancado += lancado;
   });
   document.getElementById('danfeSomaPct').textContent = somaPct.toFixed(2).replace('.',',') + '%';
   document.getElementById('danfeSomaReceita').textContent = 'R$ ' + fmtMoeda(somaReceita);
+  document.getElementById('danfeSomaLancado').textContent = 'R$ ' + fmtMoeda(somaLancado);
 
   const sumEl = document.getElementById('danfePctSum');
   sumEl.style.display = 'block';
@@ -1713,10 +1873,15 @@ document.getElementById('btnSalvarDanfe').addEventListener('click', async ()=>{
   const valorTotal = window._danfeValorTotal || 0;
   const periodo = window._danfePeriodo;
   const registros = [];
+  let temManual = false;
   document.querySelectorAll('#danfeLinhas tr').forEach((row, i)=>{
     const pct = parseFloat(row.querySelector('.danfe-pct').value) || 0;
     const receita = valorTotal * (pct/100);
+    const manualTxt = row.querySelector('.danfe-manual').value;
+    const manual = (manualTxt === '' || isNaN(parseFloat(manualTxt))) ? null : parseFloat(manualTxt);
+    if(manual !== null) temManual = true;
     registros.push({
+      _manual: manual,
       periodo_label: `${periodo.mes} (${periodo.quinzena})`,
       data_inicio: periodo.de,
       data_fim: periodo.ate,
@@ -1725,6 +1890,12 @@ document.getElementById('btnSalvarDanfe').addEventListener('click', async ()=>{
       percentual: pct,
       valor_total_receita: receita
     });
+  });
+  // A coluna valor_manual só vai no envio quando alguém digitou um valor manual
+  // (assim o salvamento normal continua funcionando mesmo antes de rodar o SQL novo).
+  registros.forEach(r=>{
+    if(temManual) r.valor_manual = r._manual;
+    delete r._manual;
   });
 
   try{
@@ -1736,7 +1907,10 @@ document.getElementById('btnSalvarDanfe').addEventListener('click', async ()=>{
     }
     showMsg('danfeMsg', 'Emissão de DANFE da quinzena salva com sucesso' + (modoTeste()?' (modo teste).':'.'), 'ok');
     carregarHistoricoDanfe();
-  }catch(e){ showMsg('danfeMsg', 'Erro ao salvar: ' + (e.message || e), 'erro'); }
+  }catch(e){
+    const msg = String(e.message || e);
+    showMsg('danfeMsg', 'Erro ao salvar: ' + msg + (/valor_manual|schema cache/i.test(msg) ? ' — rode o SQL alterar_tabelas_voucher_receitas.sql no Supabase (falta a coluna valor_manual).' : ''), 'erro');
+  }
 });
 
 async function carregarHistoricoDanfe(){
@@ -1751,13 +1925,14 @@ async function carregarHistoricoDanfe(){
       data = resp.data;
     }
     if(!data || data.length===0){ el.innerHTML = '<div class="empty">Nenhuma emissão salva ainda.</div>'; return; }
-    el.innerHTML = `<table><thead><tr><th>Período</th><th>Empresa</th><th>CNPJ</th><th>%</th><th>Valor</th></tr></thead>
+    el.innerHTML = `<table><thead><tr><th>Período</th><th>Empresa</th><th>CNPJ</th><th>%</th><th>Valor calculado</th><th>Valor lançado</th></tr></thead>
       <tbody>${data.map(d=>`<tr>
         <td>${d.periodo_label} (${d.data_inicio} a ${d.data_fim})</td>
         <td>${d.empresa}</td>
         <td class="codigo">${d.cnpj}</td>
         <td>${(d.percentual||0).toFixed(2).replace('.',',')}%</td>
         <td>R$ ${fmtMoeda(d.valor_total_receita)}</td>
+        <td>${d.valor_manual!=null ? `<b>R$ ${fmtMoeda(d.valor_manual)}</b> <span class="badge naobate" style="font-size:10px;">manual</span>` : `R$ ${fmtMoeda(d.valor_total_receita)}`}</td>
       </tr>`).join('')}</tbody></table>`;
   }catch(e){ el.innerHTML = `<div class="empty">Erro: ${e.message||e}</div>`; }
 }
