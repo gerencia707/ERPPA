@@ -11,6 +11,7 @@
     --verde-escuro:#0A2A22; --verde-claro:#C7F1C5; --sage:#A1E19C; --verde-mid:#123B30;
     --bg:#F5F7F4; --card:#FFFFFF; --texto:#152119; --texto-suave:#5B6B62; --borda:#E1E8E2;
     --erro:#B3432B; --erro-bg:#FBEAE4; --ok-bg:#EAF7E7; --alerta-bg:#FDF3E3; --alerta:#8A5A15;
+    --azul:#2471A3; --azul-bg:#E8F1FA; --roxo:#6B4FA0; --roxo-bg:#EFE9F7;
     --radius:10px; --mono:'SFMono-Regular',Consolas,Menlo,monospace; --sidebar-w:212px;
   }
   *{box-sizing:border-box;}
@@ -83,10 +84,30 @@
   .cal-table th,.cal-table td{border:1px solid var(--borda);padding:5px 6px;text-align:center;white-space:nowrap;}
   .cal-table thead th{background:#F2F5F2;color:var(--texto-suave);font-weight:600;font-size:10.5px;}
   .cal-turno-row td{background:var(--verde-claro);color:var(--verde-escuro);font-weight:700;font-size:10.5px;letter-spacing:.04em;text-align:left;padding:6px 8px;}
-  .cal-t,.cal-f{display:inline-block;min-width:18px;border-radius:4px;padding:1px 4px;font-weight:700;font-size:11px;}
+  .cal-t,.cal-x,.cal-ferias,.cal-atestado,.cal-falta,.cal-curso{display:inline-block;min-width:30px;border-radius:4px;padding:2px 4px;font-weight:700;font-size:10.5px;}
   .cal-t{background:var(--ok-bg);color:var(--verde-mid);}
-  .cal-f{background:var(--alerta-bg);color:var(--alerta);}
+  .cal-x{background:#fff;color:var(--texto-suave);border:1px solid var(--borda);}
+  .cal-ferias{background:var(--azul-bg);color:var(--azul);}
+  .cal-atestado{background:var(--alerta-bg);color:var(--alerta);}
+  .cal-falta{background:var(--erro-bg);color:var(--erro);}
+  .cal-curso{background:var(--roxo-bg);color:var(--roxo);}
   .cal-sticky{position:sticky;left:0;background:var(--card);text-align:left !important;}
+  .cal-cel{cursor:pointer;}
+  .cal-cel:hover span{outline:2px solid var(--verde-mid);outline-offset:1px;}
+  .cal-table td.cal-fimsemana{background:#FBF3F1;}
+  .cal-table td.cal-hoje{background:#FDF6D8;}
+  .cal-legenda{display:flex;flex-wrap:wrap;gap:14px;font-size:11.5px;color:var(--texto-suave);margin-top:10px;align-items:center;}
+  .cal-legenda b{color:var(--texto);}
+  .cobertura-baixa{color:var(--erro);font-weight:700;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(10,42,34,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;}
+  .modal-box{background:var(--card);border-radius:var(--radius);padding:22px 24px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(0,0,0,.28);}
+  .modal-box h3{margin:0 0 2px;font-size:16px;color:var(--verde-escuro);}
+  .modal-box .sub{font-size:12px;color:var(--texto-suave);margin-bottom:14px;}
+  .status-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 18px;}
+  .status-btn{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1.5px solid var(--borda);border-radius:8px;background:#fff;cursor:pointer;font-size:12.5px;text-align:left;color:var(--texto);font-family:inherit;}
+  .status-btn .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .status-btn.selecionado{border-color:var(--verde-mid);background:var(--ok-bg);font-weight:700;}
+  .modal-acoes{display:flex;justify-content:flex-end;gap:8px;margin-top:4px;}
   .lav-cell{font-size:10.5px;color:var(--texto-suave);}
   .lav-cell.lav-dif{background:var(--erro-bg);color:var(--erro);font-weight:700;border-radius:3px;}
   @media print{ .sidebar,.view-header,.btn-primary,.btn-secondary,#btnEscalaMesAnt,#btnEscalaMesProx{display:none !important;} main{padding:0;max-width:none;} }
@@ -149,6 +170,7 @@
           <div><label style="margin-top:0;">Turno</label>
             <select id="escTurno"><option value="manha">Manhã</option><option value="tarde">Tarde</option><option value="integral">Integral</option></select>
           </div>
+          <div><label style="margin-top:0;">Horário padrão</label><input type="time" id="escHoraPadrao" value="07:00"></div>
         </div>
         <label>Dias de folga na semana</label>
         <div class="dias-check" id="escDias">
@@ -172,6 +194,13 @@
         <button class="btn-primary full" id="btnAddEscala">Adicionar</button>
         <div class="msg" id="escMsg"></div>
       </div>
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="statEscColabs">–</div><div class="lbl">Colaboradores</div></div>
+        <div class="stat"><div class="num" id="statEscFolgas">–</div><div class="lbl">Folgas no mês</div></div>
+        <div class="stat"><div class="num" id="statEscFerias" style="color:var(--azul);">–</div><div class="lbl">Em férias hoje</div></div>
+        <div class="stat"><div class="num" id="statEscAtestados" style="color:var(--alerta);">–</div><div class="lbl">Atestados hoje</div></div>
+        <div class="stat"><div class="num" id="statEscAlertas" style="color:var(--erro);">–</div><div class="lbl">Alertas de cobertura</div></div>
+      </div>
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
           <h3 style="margin:0;">Escala do mês</h3>
@@ -182,7 +211,31 @@
             <button class="btn-secondary" type="button" id="btnEscalaImprimir">Imprimir</button>
           </div>
         </div>
+        <div class="cal-legenda">
+          <span><span class="cal-t">T 07:00</span> Trabalho+hora</span>
+          <span><span class="cal-x">X</span> Folga</span>
+          <span><span class="cal-ferias">F</span> Férias</span>
+          <span><span class="cal-atestado">A</span> Atestado</span>
+          <span><span class="cal-falta">FA</span> Falta</span>
+          <span><span class="cal-curso">C</span> Curso</span>
+          <span style="margin-left:auto;">Clique na célula → status + hora de início</span>
+        </div>
         <div style="overflow-x:auto;margin-top:14px;"><div id="tabelaEscala"></div></div>
+      </div>
+
+      <!-- MODAL: editar o dia de um colaborador -->
+      <div class="modal-overlay" id="modalDia" style="display:none;">
+        <div class="modal-box">
+          <h3 id="modalDiaTitulo">Nome · Dia</h3>
+          <div class="sub" id="modalDiaSub"></div>
+          <label style="margin-top:0;">Início (só vale para Trabalho)</label>
+          <input type="time" id="modalHoraInicio">
+          <div class="status-grid" id="modalStatusGrid"></div>
+          <div class="modal-acoes">
+            <button class="btn-secondary" type="button" id="btnModalCancelar">Cancelar</button>
+            <button class="btn-primary" type="button" id="btnModalOk">OK</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -293,6 +346,10 @@
           <div class="config-note">Já vem pré-configurado com o banco central. Só mexa aqui se souber o que está fazendo.</div>
           <button class="btn-primary full" id="btnSalvarConfig">Salvar conexão</button>
           <div class="msg" id="cfgMsg"></div>
+          <label>Cobertura mínima por dia (Escala de Folga)</label>
+          <input type="number" id="cfgCoberturaMinima" min="0" placeholder="3">
+          <button class="btn-secondary full" id="btnSalvarCobertura" style="margin-top:8px;">Salvar cobertura mínima</button>
+          <div class="msg" id="cfgCoberturaMsg"></div>
         </div>
         <div class="card" id="cardUsuarios">
           <h3>Usuários e senhas</h3>
@@ -342,6 +399,23 @@ const ENXOVAL_ITENS=['Lençol Casal','Lençol Solteiro','Fronhas','Toalha de Ban
 document.getElementById('lavItem').innerHTML='<option value="">Selecione...</option>'+ENXOVAL_ITENS.map(i=>`<option value="${esc(i)}">${esc(i)}</option>`).join('');
 
 function diasNoMes(ano,mes){ return new Date(ano,mes+1,0).getDate(); }
+function isoLocal(d){ return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+const STATUS_INFO={
+  trabalho:{sigla:'T',classe:'cal-t',label:'Trabalho',dot:'var(--verde-mid)'},
+  folga:{sigla:'X',classe:'cal-x',label:'Folga',dot:'var(--texto-suave)'},
+  ferias:{sigla:'F',classe:'cal-ferias',label:'Férias',dot:'var(--azul)'},
+  atestado:{sigla:'A',classe:'cal-atestado',label:'Atestado',dot:'var(--alerta)'},
+  falta:{sigla:'FA',classe:'cal-falta',label:'Falta',dot:'var(--erro)'},
+  curso:{sigla:'C',classe:'cal-curso',label:'Curso',dot:'var(--roxo)'}
+};
+// status final do dia = exceção manual, se houver; senão o padrão calculado da escala semanal
+function statusDoDia(colab,dataObj,excecoes){
+  const chave=colab.id+'_'+isoLocal(dataObj);
+  const exc=excecoes[chave];
+  if(exc) return {status:exc.status, hora:exc.hora_inicio||colab.hora_padrao||'', excecao:true};
+  const folga=ehFolgaNoDia(colab,dataObj);
+  return {status:folga?'folga':'trabalho', hora:colab.hora_padrao||'', excecao:false};
+}
 function ehFolgaNoDia(colab,dataObj){
   const wd=dataObj.getDay();
   const wdKey=['dom','seg','ter','qua','qui','sex','sab'][wd];
@@ -359,6 +433,13 @@ function ehFolgaNoDia(colab,dataObj){
 // ============================================================
 const UID_KEY='govLGM_uid';
 let usuarios=[], usuarioLogado=null;
+let govConfig={cobertura_minima:3};
+async function carregarGovConfig(){
+  try{
+    const {data,error}=await supa.from('gov_config').select('*').eq('id','principal').maybeSingle(); if(error) throw error;
+    if(data) govConfig=data; else await supa.from('gov_config').insert([{id:'principal', cobertura_minima:3}]);
+  }catch(e){ console.warn('gov_config', e.message||e); }
+}
 
 async function carregarUsuarios(){
   try{
@@ -414,7 +495,7 @@ document.querySelectorAll('.sidebar nav button').forEach(btn=>{
 });
 
 function carregarTudo(){
-  carregarEscala(); carregarCalendario(); carregarLavanderia(); carregarMatrizLavanderia(); carregarAchados();
+  carregarGovConfig().then(carregarEscala); carregarCalendario(); carregarLavanderia(); carregarMatrizLavanderia(); carregarAchados();
   document.getElementById('calData').value=hoje();
   document.getElementById('lavData').value=hoje();
   document.getElementById('achData').value=hoje();
@@ -428,7 +509,7 @@ document.getElementById('btnAddEscala').addEventListener('click', async ()=>{
   if(!nome){ showMsg('escMsg','Digite o nome.','erro'); return; }
   const dias=[...document.querySelectorAll('#escDias input:checked')].map(c=>c.value).join(',');
   const domingoFolga=document.getElementById('escDomingoFolga').value;
-  const reg={id:uid(),nome,cargo:document.getElementById('escCargo').value.trim(),turno:document.getElementById('escTurno').value,dias_folga:dias,domingo_folga:domingoFolga?parseInt(domingoFolga):null,status:'ativo'};
+  const reg={id:uid(),nome,cargo:document.getElementById('escCargo').value.trim(),turno:document.getElementById('escTurno').value,dias_folga:dias,domingo_folga:domingoFolga?parseInt(domingoFolga):null,hora_padrao:document.getElementById('escHoraPadrao').value||'07:00',status:'ativo'};
   try{
     const {error}=await supa.from('gov_escala').insert([reg]); if(error) throw error;
     document.getElementById('escNome').value=''; document.getElementById('escCargo').value=''; document.getElementById('escDomingoFolga').value='';
@@ -444,30 +525,134 @@ async function carregarEscala(){
   const el=document.getElementById('tabelaEscala');
   document.getElementById('escalaMesLabel').textContent=`${MESES_LBL[escalaMesAtual.getMonth()]} ${escalaMesAtual.getFullYear()}`;
   try{
-    const {data,error}=await supa.from('gov_escala').select('*').eq('status','ativo').order('nome'); if(error) throw error;
-    if(!data.length){ el.innerHTML='<div class="empty">Ninguém na escala ainda.</div>'; return; }
     const ano=escalaMesAtual.getFullYear(), mes=escalaMesAtual.getMonth(), nDias=diasNoMes(ano,mes);
     const diasArr=[...Array(nDias)].map((_,i)=>new Date(ano,mes,i+1));
+    const deMes=isoLocal(diasArr[0]), ateMes=isoLocal(diasArr[nDias-1]);
+    const hojeIso=isoLocal(new Date());
+
+    const [{data,error},{data:excMes,error:errExc},{data:excHoje,error:errHoje}] = await Promise.all([
+      supa.from('gov_escala').select('*').eq('status','ativo').order('nome'),
+      supa.from('gov_escala_excecoes').select('*').gte('data',deMes).lte('data',ateMes),
+      supa.from('gov_escala_excecoes').select('*').eq('data',hojeIso)
+    ]);
+    if(error) throw error; if(errExc) throw errExc;
+    if(!data.length){
+      el.innerHTML='<div class="empty">Ninguém na escala ainda.</div>';
+      ['statEscColabs','statEscFolgas','statEscFerias','statEscAtestados','statEscAlertas'].forEach(id=>document.getElementById(id).textContent='0');
+      return;
+    }
+
+    const excecoes={};
+    (excMes||[]).forEach(e=>{ excecoes[e.colaborador_id+'_'+e.data]=e; });
+    _escalaCache={colabs:data, excecoes, ano, mes, nDias, diasArr};
+
     const wdLbl=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
     const porTurno={};
     data.forEach(c=>{ const t=c.turno||'outro'; (porTurno[t]=porTurno[t]||[]).push(c); });
     const ordem=[...TURNO_ORDEM,...Object.keys(porTurno).filter(t=>!TURNO_ORDEM.includes(t))];
-    let html=`<table class="cal-table"><thead><tr><th class="cal-sticky">Colaborador</th>${diasArr.map(d=>`<th>${d.getDate()}<div style="font-weight:400;font-size:9px;">${wdLbl[d.getDay()]}</div></th>`).join('')}</tr></thead><tbody>`;
+
+    // cobertura por dia (nº de pessoas trabalhando) + contagem de folgas do mês
+    const cobertura=diasArr.map(()=>0);
+    let folgasMes=0;
+    data.forEach(c=>{
+      diasArr.forEach((d,i)=>{
+        const s=statusDoDia(c,d,excecoes).status;
+        if(s==='trabalho') cobertura[i]++;
+        if(s==='folga') folgasMes++;
+      });
+    });
+    const coberturaMin=govConfig.cobertura_minima||3;
+    const alertas=cobertura.filter(n=>n<coberturaMin).length;
+
+    let html=`<table class="cal-table"><thead><tr><th class="cal-sticky">Colaborador</th>${diasArr.map(d=>{
+      const fimSemana=d.getDay()===0||d.getDay()===6, ehHoje=isoLocal(d)===hojeIso;
+      return `<th class="${fimSemana?'cal-fimsemana':''}${ehHoje?' cal-hoje':''}">${d.getDate()}<div style="font-weight:400;font-size:9px;">${wdLbl[d.getDay()]}</div></th>`;
+    }).join('')}</tr></thead><tbody>`;
     ordem.forEach(t=>{
       if(!porTurno[t]||!porTurno[t].length) return;
       html+=`<tr class="cal-turno-row"><td colspan="${nDias+1}">${(TURNO_LBL[t]||t).toUpperCase()}</td></tr>`;
       porTurno[t].forEach(c=>{
-        html+=`<tr><td class="cal-sticky"><b>${esc(c.nome)}</b>${c.cargo?`<div style="font-size:10px;color:var(--texto-suave)">${esc(c.cargo)}</div>`:''}</td>`;
-        diasArr.forEach(d=>{ const folga=ehFolgaNoDia(c,d); html+=`<td><span class="${folga?'cal-f':'cal-t'}">${folga?'F':'T'}</span></td>`; });
+        html+=`<tr><td class="cal-sticky"><b>${esc(c.nome)}</b>${c.cargo?`<div style="font-size:10px;color:var(--texto-suave)">${esc(c.cargo)}${c.hora_padrao?' · '+c.hora_padrao:''}</div>`:''}</td>`;
+        diasArr.forEach(d=>{
+          const {status,hora}=statusDoDia(c,d,excecoes);
+          const info=STATUS_INFO[status]||STATUS_INFO.trabalho;
+          const rotulo=status==='trabalho'&&hora ? `${info.sigla} ${hora}` : info.sigla;
+          const fimSemana=d.getDay()===0||d.getDay()===6, ehHoje=isoLocal(d)===hojeIso;
+          html+=`<td class="cal-cel ${fimSemana?'cal-fimsemana':''}${ehHoje?' cal-hoje':''}" onclick="abrirModalDia('${c.id}','${isoLocal(d)}')"><span class="${info.classe}">${rotulo}</span></td>`;
+        });
         html+='</tr>';
       });
     });
-    html+='</tbody></table><div style="margin-top:10px;font-size:12px;color:var(--texto-suave);">T = Trabalho · F = Folga</div>';
+    html+='</tbody>';
+    html+=`<tfoot><tr><td class="cal-sticky" style="font-weight:700;">Cobertura/dia</td>${cobertura.map(n=>`<td style="font-weight:700;" class="${n<coberturaMin?'cobertura-baixa':''}">${n}</td>`).join('')}</tr></tfoot>`;
+    html+='</table>';
     html+='<div style="margin-top:16px;"><div style="font-size:12px;color:var(--texto-suave);margin-bottom:6px;">Remover da escala:</div>'+
       data.map(c=>`<span class="badge info" style="margin:0 6px 6px 0;display:inline-flex;align-items:center;gap:6px;">${esc(c.nome)} <button class="action-link danger" style="font-size:11px;" onclick="removerEscala('${c.id}')">✕</button></span>`).join('')+'</div>';
     el.innerHTML=html;
+
+    document.getElementById('statEscColabs').textContent=data.length;
+    document.getElementById('statEscFolgas').textContent=folgasMes;
+    document.getElementById('statEscFerias').textContent=new Set((excHoje||[]).filter(e=>e.status==='ferias').map(e=>e.colaborador_id)).size;
+    document.getElementById('statEscAtestados').textContent=new Set((excHoje||[]).filter(e=>e.status==='atestado').map(e=>e.colaborador_id)).size;
+    document.getElementById('statEscAlertas').textContent=alertas;
   }catch(e){ el.innerHTML=`<div class="empty">Erro: ${e.message||e}</div>`; }
 }
+
+// ============================================================
+// MODAL: editar o status de um dia específico
+// ============================================================
+let _escalaCache={colabs:[],excecoes:{}};
+let _modalAtual={colaboradorId:null,data:null,statusSelecionado:null};
+
+function abrirModalDia(colaboradorId,dataIso){
+  const c=_escalaCache.colabs.find(x=>x.id===colaboradorId);
+  if(!c) return;
+  const d=new Date(dataIso+'T00:00:00');
+  const wdLbl=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const {status,hora}=statusDoDia(c,d,_escalaCache.excecoes);
+  _modalAtual={colaboradorId,data:dataIso,statusSelecionado:status};
+
+  document.getElementById('modalDiaTitulo').textContent=`${c.nome} · Dia ${d.getDate()} (${wdLbl[d.getDay()].slice(0,3)})`;
+  document.getElementById('modalDiaSub').textContent=`${c.cargo||''}${c.turno?' · '+(TURNO_LBL[c.turno]||c.turno):''}`;
+  document.getElementById('modalHoraInicio').value=hora||c.hora_padrao||'07:00';
+
+  const grid=document.getElementById('modalStatusGrid');
+  const opcoes=[...Object.entries(STATUS_INFO).filter(([k])=>k!=='trabalho'), ['trabalho',STATUS_INFO.trabalho]];
+  // ordena: Trabalho, Folga, Férias, Atestado, Falta, Curso, Não Alterar
+  const ordemBotoes=['trabalho','folga','ferias','atestado','falta','curso'];
+  grid.innerHTML=ordemBotoes.map(k=>{
+    const info=STATUS_INFO[k];
+    return `<button type="button" class="status-btn" data-status="${k}" onclick="selecionarStatusModal('${k}')"><span class="dot" style="background:${info.dot}"></span>${info.label}</button>`;
+  }).join('') + `<button type="button" class="status-btn" data-status="nao_alterar" onclick="selecionarStatusModal('nao_alterar')"><span class="dot" style="background:var(--texto-suave)"></span>Não Alt.</button>`;
+
+  marcarSelecaoModal();
+  document.getElementById('modalDia').style.display='flex';
+}
+function marcarSelecaoModal(){
+  document.querySelectorAll('#modalStatusGrid .status-btn').forEach(b=>{
+    b.classList.toggle('selecionado', b.dataset.status===_modalAtual.statusSelecionado);
+  });
+  document.getElementById('modalHoraInicio').disabled=_modalAtual.statusSelecionado!=='trabalho';
+}
+function selecionarStatusModal(status){ _modalAtual.statusSelecionado=status; marcarSelecaoModal(); }
+document.getElementById('btnModalCancelar').addEventListener('click',()=>{ document.getElementById('modalDia').style.display='none'; });
+document.getElementById('modalDia').addEventListener('click',(ev)=>{ if(ev.target.id==='modalDia') document.getElementById('modalDia').style.display='none'; });
+document.getElementById('btnModalOk').addEventListener('click', async ()=>{
+  const {colaboradorId,data,statusSelecionado}=_modalAtual;
+  try{
+    if(statusSelecionado==='nao_alterar'){
+      await supa.from('gov_escala_excecoes').delete().eq('colaborador_id',colaboradorId).eq('data',data);
+    } else {
+      const hora=statusSelecionado==='trabalho' ? (document.getElementById('modalHoraInicio').value||null) : null;
+      const reg={id:colaboradorId+'_'+data, colaborador_id:colaboradorId, data, status:statusSelecionado, hora_inicio:hora};
+      const {error}=await supa.from('gov_escala_excecoes').upsert([reg],{onConflict:'id'});
+      if(error) throw error;
+    }
+    document.getElementById('modalDia').style.display='none';
+    carregarEscala();
+  }catch(e){ alert('Erro ao salvar: '+(e.message||e)); }
+});
+
 async function removerEscala(id){ if(!confirm('Remover da escala?')) return; try{ await supa.from('gov_escala').delete().eq('id',id); carregarEscala(); }catch(e){ alert('Erro: '+(e.message||e)); } }
 
 // ============================================================
@@ -645,6 +830,15 @@ async function carregarEquipeDP(){
 // CONFIGURAÇÃO
 // ============================================================
 document.getElementById('cfgUrl').value=config.url||'';
+document.getElementById('cfgCoberturaMinima').value=govConfig.cobertura_minima||3;
+document.getElementById('btnSalvarCobertura').addEventListener('click', async ()=>{
+  const v=parseInt(document.getElementById('cfgCoberturaMinima').value)||0;
+  try{
+    const {error}=await supa.from('gov_config').upsert([{id:'principal', cobertura_minima:v}],{onConflict:'id'}); if(error) throw error;
+    govConfig.cobertura_minima=v;
+    showMsg('cfgCoberturaMsg','Salvo.','ok');
+  }catch(e){ showMsg('cfgCoberturaMsg','Erro: '+(e.message||e),'erro'); }
+});
 document.getElementById('cfgKey').value=config.key||'';
 document.getElementById('btnSalvarConfig').addEventListener('click',()=>{
   config.url=document.getElementById('cfgUrl').value.trim(); config.key=document.getElementById('cfgKey').value.trim();
