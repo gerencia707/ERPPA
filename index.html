@@ -275,8 +275,21 @@ function renderDashboardGeral(main){
         <optgroup label="Voucher LGM">
           <option value="vou_fechamentos">Fechamentos diários</option>
           <option value="vou_danfe">Emissões de DANFE</option>
+          <option value="vou_receitas">Lançamentos de bebidas e passantes</option>
+        </optgroup>
+        <optgroup label="Governança">
+          <option value="gov_calendario">Limpezas concluídas</option>
+          <option value="gov_lavanderia">Registros de lavanderia</option>
+          <option value="gov_achados">Achados e perdidos (devolvidos/descartados)</option>
+        </optgroup>
+        <optgroup label="A&B">
+          <option value="aeb_eventos">Eventos concluídos ou cancelados</option>
+        </optgroup>
+        <optgroup label="Gerência">
+          <option value="ger_notas">Notas já discutidas</option>
         </optgroup>
       </select>
+      <div class="config-note">Testes de função, avaliações e comissões não aparecem aqui de propósito — são histórico permanente do colaborador ou registro financeiro.</div>
 
       <label>2. Apagar registros ATÉ esta data (inclusive)</label>
       <input type="date" id="limpData">
@@ -299,7 +312,13 @@ const TIPOS_LIMPEZA = {
   dp_desligamentos:{ tabela:'dp_desligamentos',    campoData:'data_deslig',   label:'desligamentos',             filtro:function(q){ return q; } },
   dp_ferias:       { tabela:'dp_ferias',           campoData:'data_fim',      label:'férias concluídas',         filtro:function(q){ return q.eq('status','concluida'); } },
   vou_fechamentos: { tabela:'fechamentos_sem_lancamento', campoData:'data',   label:'fechamentos diários',       filtro:function(q){ return q; } },
-  vou_danfe:       { tabela:'danfe_emissoes',      campoData:'data_fim',      label:'emissões de DANFE',         filtro:function(q){ return q; } }
+  vou_danfe:       { tabela:'danfe_emissoes',      campoData:'data_fim',      label:'emissões de DANFE',         filtro:function(q){ return q; } },
+  vou_receitas:    { tabela:'receitas_diarias',    campoData:'data',          label:'lançamentos de bebidas e passantes', filtro:function(q){ return q; } },
+  gov_calendario:  { tabela:'gov_calendario',      campoData:'concluido_em',  label:'limpezas concluídas',        filtro:function(q){ return q.eq('concluido',true); } },
+  gov_lavanderia:  { tabela:'gov_lavanderia',      campoData:'data',          label:'registros de lavanderia',    filtro:function(q){ return q; } },
+  gov_achados:     { tabela:'gov_achados_perdidos',campoData:'data_achado',   label:'achados e perdidos (devolvidos/descartados)', filtro:function(q){ return q.in('status',['devolvido','descartado']); } },
+  aeb_eventos:     { tabela:'aeb_eventos',         campoData:'data',          label:'eventos concluídos ou cancelados', filtro:function(q){ return q.in('status',['concluido','cancelado']); } },
+  ger_notas:       { tabela:'gerencia_notas',      campoData:'criado_em',     label:'notas já discutidas',        filtro:function(q){ return q.eq('status','discutido'); } }
 };
 
 function configurarLimpeza(){
@@ -401,7 +420,7 @@ async function carregarUsoBanco(){
 
     const sistemas = sistemasRes.data || [];
     const totalSistemas = sistemas.reduce((s,x)=>s+(x.bytes||0),0) || 1;
-    const coresSistema = {'DP':'#0A2A22','Voucher LGM':'#4A8C7A','Manutenção':'#A1E19C'};
+    const coresSistema = {'DP':'#0A2A22','Voucher LGM':'#4A8C7A','Manutenção':'#A1E19C','Governança':'#7B52AB','A&B':'#D68910','Gerência':'#2471A3','Outros':'#9AA39C'};
 
     card.innerHTML = `
       ${alerta}
