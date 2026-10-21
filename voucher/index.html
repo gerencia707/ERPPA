@@ -254,7 +254,7 @@
     <section class="view" id="view-receitas">
       <div class="view-header">
         <h2>Bebidas e Passantes</h2>
-        <div class="desc">Lançamento diário da bebida do Restaurante e dos passantes (Rodízio e Fondue). Os passantes usam valores próprios, definidos em Configuração. As informações aparecem no Relatório e nos Gráficos.</div>
+        <div class="desc">Lançamento diário da bebida do Restaurante e dos passantes (Rodízio, Fondue e Sequência infantil). Os passantes usam valores próprios, definidos em Configuração. As informações aparecem no Relatório e nos Gráficos.</div>
       </div>
 
       <div class="card">
@@ -267,6 +267,7 @@
           <div><label style="margin-top:0;font-size:12px;">Bebida do Restaurante (R$)</label><input type="number" min="0" step="0.01" id="recBebida" placeholder="0,00"></div>
           <div><label style="margin-top:0;font-size:12px;">Rodízio passante (quantidade)</label><input type="number" min="0" id="recPassRodizio" placeholder="0"></div>
           <div><label style="margin-top:0;font-size:12px;">Fondue passante (quantidade)</label><input type="number" min="0" id="recPassFondue" placeholder="0"></div>
+          <div><label style="margin-top:0;font-size:12px;">Sequência infantil passante (quantidade)</label><input type="number" min="0" id="recPassInfantil" placeholder="0"></div>
         </div>
         <div id="recPrecos" style="font-size:12.5px;color:var(--texto-suave);margin-top:10px;"></div>
         <div id="recPreview" style="font-size:12.5px;color:var(--texto-suave);margin-top:6px;min-height:16px;"></div>
@@ -337,6 +338,8 @@
         <div class="stat"><div class="num" id="statPassRodizioValor">–</div><div class="lbl">Rodízio passante (valor)</div></div>
         <div class="stat"><div class="num" id="statPassFondue">–</div><div class="lbl">Fondue passante (quantidade)</div></div>
         <div class="stat"><div class="num" id="statPassFondueValor">–</div><div class="lbl">Fondue passante (valor)</div></div>
+        <div class="stat"><div class="num" id="statPassInfantil">–</div><div class="lbl">Sequência infantil passante (quantidade)</div></div>
+        <div class="stat"><div class="num" id="statPassInfantilValor">–</div><div class="lbl">Sequência infantil passante (valor)</div></div>
       </div>
 
       <div class="card">
@@ -472,6 +475,8 @@
           <input type="number" step="0.01" id="cfgValorPassRodizio" placeholder="90">
           <label>Valor do Fondue passante (R$)</label>
           <input type="number" step="0.01" id="cfgValorPassFondue" placeholder="49,90">
+          <label>Valor da Sequência infantil passante (R$)</label>
+          <input type="number" step="0.01" id="cfgValorPassInfantil" placeholder="45">
           <div class="config-note">Os passantes pagam um valor diferente do voucher. Ao mudar o preço, os lançamentos já salvos mantêm o valor da época; só os próximos usam o novo.</div>
 
           <div class="divider"></div>
@@ -605,7 +610,8 @@ if(!config._valoresPreenchidos){
 }
 
 // Valores dos passantes (diferentes do voucher). Vale também para quem já tinha configuração salva.
-if(!config.valor_passante_rodizio || !config.valor_passante_fondue){
+if(!config.valor_passante_rodizio || !config.valor_passante_fondue || !config.valor_passante_infantil){
+  if(!config.valor_passante_infantil) config.valor_passante_infantil = '45';
   if(!config.valor_passante_rodizio) config.valor_passante_rodizio = '90';
   if(!config.valor_passante_fondue) config.valor_passante_fondue = '49.90';
   localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
@@ -733,20 +739,23 @@ function hoje(){
   return local.toISOString().slice(0,10);
 }
 function fmtMoeda(v){ return (v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
-// Preço do passante (diferente do voucher). tipo: 'rodizio' | 'fondue'
+// Preço do passante (diferente do voucher). tipo: 'rodizio' | 'fondue' | 'infantil'
+const PASSANTE_CFG = {rodizio:'valor_passante_rodizio', fondue:'valor_passante_fondue', infantil:'valor_passante_infantil'};
+const PASSANTE_PRECO_COL = {rodizio:'valor_rodizio_passante', fondue:'valor_fondue_passante', infantil:'valor_infantil_passante'};
 function valorPassante(tipo){
-  const v = tipo === 'fondue' ? config.valor_passante_fondue : config.valor_passante_rodizio;
+  const v = config[PASSANTE_CFG[tipo]];
   return parseFloat(String(v ?? '').replace(',', '.')) || 0;
 }
 // Preço unitário de um lançamento: o valor gravado no dia; se for antigo (sem valor gravado), o atual da configuração.
 function precoPassanteReg(r, tipo){
-  const g = r ? (tipo === 'fondue' ? r.valor_fondue_passante : r.valor_rodizio_passante) : null;
+  const g = r ? r[PASSANTE_PRECO_COL[tipo]] : null;
   return (g === null || g === undefined || g === '') ? valorPassante(tipo) : Number(g);
 }
 function valorPassantesReg(r){
   const vR = (r.qtd_rodizio_passante || 0) * precoPassanteReg(r, 'rodizio');
   const vF = (r.qtd_fondue_passante || 0) * precoPassanteReg(r, 'fondue');
-  return {vR, vF};
+  const vI = (r.qtd_infantil_passante || 0) * precoPassanteReg(r, 'infantil');
+  return {vR, vF, vI};
 }
 function valorVoucher(tipo){
   if(tipo === 'rodizio_fondue') return parseFloat(config.valor_fondue || 0);
@@ -1561,19 +1570,20 @@ function atualizarPreviewReceita(){
   const b = parseFloat(document.getElementById('recBebida').value) || 0;
   const qR = parseInt(document.getElementById('recPassRodizio').value) || 0;
   const qF = parseInt(document.getElementById('recPassFondue').value) || 0;
-  if(!b && !qR && !qF){ el.textContent = ''; return; }
-  const pR = precoPassanteReg(window._recExistente, 'rodizio'), pF = precoPassanteReg(window._recExistente, 'fondue');
-  const vR = qR * pR, vF = qF * pF;
-  el.textContent = `Rodízio passante: R$ ${fmtMoeda(vR)}  ·  Fondue passante: R$ ${fmtMoeda(vF)}  ·  Total do dia: R$ ${fmtMoeda(b + vR + vF)}`;
+  const qI = parseInt(document.getElementById('recPassInfantil').value) || 0;
+  if(!b && !qR && !qF && !qI){ el.textContent = ''; return; }
+  const ex = window._recExistente;
+  const vR = qR * precoPassanteReg(ex, 'rodizio'), vF = qF * precoPassanteReg(ex, 'fondue'), vI = qI * precoPassanteReg(ex, 'infantil');
+  el.textContent = `Rodízio passante: R$ ${fmtMoeda(vR)}  ·  Fondue passante: R$ ${fmtMoeda(vF)}  ·  Seq. infantil passante: R$ ${fmtMoeda(vI)}  ·  Total do dia: R$ ${fmtMoeda(b + vR + vF + vI)}`;
 }
 function atualizarPrecosReceita(){
   const el = document.getElementById('recPrecos');
   const ex = window._recExistente;
-  const pR = precoPassanteReg(ex, 'rodizio'), pF = precoPassanteReg(ex, 'fondue');
+  const pR = precoPassanteReg(ex, 'rodizio'), pF = precoPassanteReg(ex, 'fondue'), pI = precoPassanteReg(ex, 'infantil');
   const origem = (ex && ex.valor_rodizio_passante != null) ? 'valores gravados neste lançamento' : 'valores da Configuração';
-  el.textContent = `Valor unitário: Rodízio passante R$ ${fmtMoeda(pR)}  ·  Fondue passante R$ ${fmtMoeda(pF)}  (${origem})`;
+  el.textContent = `Valor unitário: Rodízio passante R$ ${fmtMoeda(pR)}  ·  Fondue passante R$ ${fmtMoeda(pF)}  ·  Seq. infantil passante R$ ${fmtMoeda(pI)}  (${origem})`;
 }
-['recBebida','recPassRodizio','recPassFondue'].forEach(id=> document.getElementById(id).addEventListener('input', atualizarPreviewReceita));
+['recBebida','recPassRodizio','recPassFondue','recPassInfantil'].forEach(id=> document.getElementById(id).addEventListener('input', atualizarPreviewReceita));
 
 // Ao trocar a data, carrega o que já foi lançado nela (pra poder corrigir).
 async function carregarReceitaDoDia(){
@@ -1587,9 +1597,10 @@ async function carregarReceitaDoDia(){
       document.getElementById('recBebida').value = r.valor_bebida_restaurante ?? '';
       document.getElementById('recPassRodizio').value = r.qtd_rodizio_passante ?? '';
       document.getElementById('recPassFondue').value = r.qtd_fondue_passante ?? '';
+      document.getElementById('recPassInfantil').value = r.qtd_infantil_passante || '';
       aviso.textContent = 'Já existe lançamento nesta data — salvar vai atualizá-lo.';
     } else {
-      ['recBebida','recPassRodizio','recPassFondue'].forEach(id=>{ document.getElementById(id).value = ''; });
+      ['recBebida','recPassRodizio','recPassFondue','recPassInfantil'].forEach(id=>{ document.getElementById(id).value = ''; });
       aviso.textContent = '';
     }
   }catch(e){
@@ -1616,6 +1627,8 @@ document.getElementById('btnSalvarReceita').addEventListener('click', async ()=>
     qtd_rodizio_passante: Math.max(0, parseInt(document.getElementById('recPassRodizio').value) || 0),
     qtd_fondue_passante: Math.max(0, parseInt(document.getElementById('recPassFondue').value) || 0),
     // valor unitário gravado no dia: mudar o preço depois não altera lançamentos antigos
+    qtd_infantil_passante: Math.max(0, parseInt(document.getElementById('recPassInfantil').value) || 0),
+    valor_infantil_passante: precoPassanteReg(window._recExistente, 'infantil'),
     valor_rodizio_passante: precoPassanteReg(window._recExistente, 'rodizio'),
     valor_fondue_passante: precoPassanteReg(window._recExistente, 'fondue'),
     lancado_por: usuarioLogado ? usuarioLogado.nome : (config.controlista || null),
@@ -1627,15 +1640,15 @@ document.getElementById('btnSalvarReceita').addEventListener('click', async ()=>
       localDB.receitas.upsertByData(reg);
     } else {
       let {error} = await supabaseClient.from(tabelaReceitas()).upsert([reg], {onConflict:'data'});
-      if(error && /valor_rodizio_passante|valor_fondue_passante/.test(String(error.message))){
-        // colunas de preço ainda não existem no banco: salva sem elas (usa o preço da Configuração)
-        const {valor_rodizio_passante, valor_fondue_passante, ...semPreco} = reg;
+      if(error && /valor_rodizio_passante|valor_fondue_passante|valor_infantil_passante|qtd_infantil_passante/.test(String(error.message))){
+        // colunas novas ainda não existem no banco: salva sem elas (usa o preço da Configuração)
+        const {valor_rodizio_passante, valor_fondue_passante, valor_infantil_passante, qtd_infantil_passante, ...semPreco} = reg;
         ({error} = await supabaseClient.from(tabelaReceitas()).upsert([semPreco], {onConflict:'data'}));
         if(!error) avisoPreco = true;
       }
       if(error) throw error;
     }
-    showMsg('recMsg', `Lançamento de ${dataBr(data)} salvo${modoTeste()?' (modo teste)':''}.` + (avisoPreco ? ' Atenção: rode o SQL alterar_receitas_diarias_precos_passantes.sql no Supabase para o preço do dia ficar gravado.' : ''), avisoPreco ? 'alerta' : 'ok');
+    showMsg('recMsg', `Lançamento de ${dataBr(data)} salvo${modoTeste()?' (modo teste)':''}.` + (avisoPreco ? ' Atenção: rode o SQL alterar_receitas_diarias_precos_passantes.sql no Supabase — sem ele o preço do dia e a Sequência infantil passante NÃO são gravados.' : ''), avisoPreco ? 'alerta' : 'ok');
     document.getElementById('recMes').value = data.slice(0,7);
     await carregarListaReceitas();
     await carregarReceitaDoDia();
@@ -1652,17 +1665,18 @@ async function carregarListaReceitas(){
   try{
     const rows = (await buscarReceitas(de, ate)).sort((a,b)=>b.data.localeCompare(a.data));
     if(!rows.length){ el.innerHTML = '<div class="empty">Nenhum lançamento neste mês.</div>'; return; }
-    let tB = 0, tQR = 0, tQF = 0, tVR = 0, tVF = 0;
+    let tB = 0, tQR = 0, tQF = 0, tQI = 0, tVR = 0, tVF = 0, tVI = 0;
     const linhas = rows.map(r=>{
-      const b = Number(r.valor_bebida_restaurante) || 0, qR = r.qtd_rodizio_passante || 0, qF = r.qtd_fondue_passante || 0;
-      const {vR, vF} = valorPassantesReg(r);
-      tB += b; tQR += qR; tQF += qF; tVR += vR; tVF += vF;
+      const b = Number(r.valor_bebida_restaurante) || 0, qR = r.qtd_rodizio_passante || 0, qF = r.qtd_fondue_passante || 0, qI = r.qtd_infantil_passante || 0;
+      const {vR, vF, vI} = valorPassantesReg(r);
+      tB += b; tQR += qR; tQF += qF; tQI += qI; tVR += vR; tVF += vF; tVI += vI;
       return `<tr>
         <td>${dataBr(r.data)}</td>
         <td>R$ ${fmtMoeda(b)}</td>
         <td>${qR}</td><td>R$ ${fmtMoeda(vR)}</td>
         <td>${qF}</td><td>R$ ${fmtMoeda(vF)}</td>
-        <td><b>R$ ${fmtMoeda(b + vR + vF)}</b></td>
+        <td>${qI}</td><td>R$ ${fmtMoeda(vI)}</td>
+        <td><b>R$ ${fmtMoeda(b + vR + vF + vI)}</b></td>
         <td style="font-size:12px;color:var(--texto-suave);">${r.lancado_por || '—'}</td>
         <td style="white-space:nowrap;">
           <button class="action-link" onclick="editarReceita('${r.data}')">Editar</button>
@@ -1672,9 +1686,9 @@ async function carregarListaReceitas(){
     }).join('');
     el.innerHTML = `<table><thead><tr>
         <th>Data</th><th>Bebida Restaurante</th><th>Rodízio passante (qtd)</th><th>Rodízio passante (R$)</th>
-        <th>Fondue passante (qtd)</th><th>Fondue passante (R$)</th><th>Total do dia</th><th>Lançado por</th><th></th>
+        <th>Fondue passante (qtd)</th><th>Fondue passante (R$)</th><th>Seq. infantil passante (qtd)</th><th>Seq. infantil passante (R$)</th><th>Total do dia</th><th>Lançado por</th><th></th>
       </tr></thead><tbody>${linhas}</tbody>
-      <tfoot><tr class="total-row"><td>Total</td><td>R$ ${fmtMoeda(tB)}</td><td>${tQR}</td><td>R$ ${fmtMoeda(tVR)}</td><td>${tQF}</td><td>R$ ${fmtMoeda(tVF)}</td><td>R$ ${fmtMoeda(tB + tVR + tVF)}</td><td></td><td></td></tr></tfoot></table>`;
+      <tfoot><tr class="total-row"><td>Total</td><td>R$ ${fmtMoeda(tB)}</td><td>${tQR}</td><td>R$ ${fmtMoeda(tVR)}</td><td>${tQF}</td><td>R$ ${fmtMoeda(tVF)}</td><td>${tQI}</td><td>R$ ${fmtMoeda(tVI)}</td><td>R$ ${fmtMoeda(tB + tVR + tVF + tVI)}</td><td></td><td></td></tr></tfoot></table>`;
   }catch(e){
     const msg = String(e.message || e);
     el.innerHTML = `<div class="empty">Erro: ${msg}${/receitas_diarias|relation|schema cache|does not exist/i.test(msg) ? '<br>' + AVISO_SQL_RECEITAS : ''}</div>`;
@@ -1831,9 +1845,9 @@ function metricasFechamento(f){
   return {sem, com, totalQtd: sem+com, valorVouchers: Number(f.valor_total) || 0};
 }
 function metricasReceita(r){
-  const rod = r.qtd_rodizio_passante || 0, fon = r.qtd_fondue_passante || 0;
-  const {vR, vF} = valorPassantesReg(r);
-  return {passQtd: rod+fon, passValor: vR + vF, bebRest: Number(r.valor_bebida_restaurante) || 0};
+  const rod = r.qtd_rodizio_passante || 0, fon = r.qtd_fondue_passante || 0, inf = r.qtd_infantil_passante || 0;
+  const {vR, vF, vI} = valorPassantesReg(r);
+  return {passQtd: rod+fon+inf, passValor: vR + vF + vI, bebRest: Number(r.valor_bebida_restaurante) || 0};
 }
 function totaisDe(linhas){
   const t = {};
@@ -1990,7 +2004,7 @@ async function carregarRelatorio(){
     document.getElementById('statBateram').textContent = `${bateram}/${dias}`;
 
     const somaR = campo => receitas.reduce((s,r)=>s+(Number(r[campo])||0),0);
-    const passRodQtd = somaR('qtd_rodizio_passante'), passFonQtd = somaR('qtd_fondue_passante');
+    const passRodQtd = somaR('qtd_rodizio_passante'), passFonQtd = somaR('qtd_fondue_passante'), passInfQtd = somaR('qtd_infantil_passante');
     document.getElementById('statValorRodizio').textContent = 'R$ ' + fmtMoeda(rodizioTotal * valorVoucher('rodizio'));
     document.getElementById('statValorFondue').textContent = 'R$ ' + fmtMoeda(fondueTotal * valorVoucher('rodizio_fondue'));
     document.getElementById('statBebidaRest').textContent = 'R$ ' + fmtMoeda(somaR('valor_bebida_restaurante'));
@@ -1999,6 +2013,8 @@ async function carregarRelatorio(){
     document.getElementById('statPassRodizioValor').textContent = 'R$ ' + fmtMoeda(somaValor('vR'));
     document.getElementById('statPassFondue').textContent = passFonQtd;
     document.getElementById('statPassFondueValor').textContent = 'R$ ' + fmtMoeda(somaValor('vF'));
+    document.getElementById('statPassInfantil').textContent = passInfQtd;
+    document.getElementById('statPassInfantilValor').textContent = 'R$ ' + fmtMoeda(somaValor('vI'));
 
     // Tabela: um dia por linha, juntando fechamento e lançamento de bebida/passantes.
     const fPorDia = {}, rPorDia = {};
@@ -2007,10 +2023,10 @@ async function carregarRelatorio(){
     const datas = Array.from(new Set([...Object.keys(fPorDia), ...Object.keys(rPorDia)])).sort().reverse();
     if(datas.length === 0){ el.innerHTML = '<div class="empty">Nenhum lançamento encontrado no período.</div>'; return; }
 
-    el.innerHTML = `<table><thead><tr><th>Data</th><th>Rodízio (scan)</th><th>Fondue (scan)</th><th>Rodízio (caixa)</th><th>Fondue (caixa)</th><th>Passante (Rodízio / Fondue)</th><th>Bebida Rest.</th><th>Status</th><th>Valor</th><th>Scan</th><th></th></tr></thead>
+    el.innerHTML = `<table><thead><tr><th>Data</th><th>Rodízio (scan)</th><th>Fondue (scan)</th><th>Rodízio (caixa)</th><th>Fondue (caixa)</th><th>Passante (Rodízio / Fondue / Infantil)</th><th>Bebida Rest.</th><th>Status</th><th>Valor</th><th>Scan</th><th></th></tr></thead>
       <tbody>${datas.map((dt,i)=>{
         const f = fPorDia[dt], r = rPorDia[dt];
-        const passCel = r ? `${r.qtd_rodizio_passante||0} / ${r.qtd_fondue_passante||0}` : '—';
+        const passCel = r ? `${r.qtd_rodizio_passante||0} / ${r.qtd_fondue_passante||0} / ${r.qtd_infantil_passante||0}` : '—';
         const bebCel = r ? 'R$ '+fmtMoeda(r.valor_bebida_restaurante) : '—';
         if(!f){
           return `<tr>
@@ -2248,6 +2264,7 @@ function preencherConfig(){
   document.getElementById('cfgValorFondue').value = config.valor_fondue || '';
   document.getElementById('cfgValorPassRodizio').value = config.valor_passante_rodizio || '';
   document.getElementById('cfgValorPassFondue').value = config.valor_passante_fondue || '';
+  document.getElementById('cfgValorPassInfantil').value = config.valor_passante_infantil || '';
   document.getElementById('cfgCropCabecalhoAltura').value = config.crop_cabecalho_altura ?? 35;
   document.getElementById('cfgCropNumeroX').value = config.crop_numero_x ?? 65;
   document.getElementById('cfgCropNumeroAltura').value = config.crop_numero_altura ?? 20;
@@ -2268,6 +2285,7 @@ document.getElementById('btnSalvarConfig').addEventListener('click', ()=>{
   config.valor_fondue = document.getElementById('cfgValorFondue').value.trim();
   config.valor_passante_rodizio = document.getElementById('cfgValorPassRodizio').value.trim() || '90';
   config.valor_passante_fondue = document.getElementById('cfgValorPassFondue').value.trim() || '49.90';
+  config.valor_passante_infantil = document.getElementById('cfgValorPassInfantil').value.trim() || '45';
   config.crop_cabecalho_altura = parseFloat(document.getElementById('cfgCropCabecalhoAltura').value) || 35;
   config.crop_numero_x = parseFloat(document.getElementById('cfgCropNumeroX').value) || 65;
   config.crop_numero_altura = parseFloat(document.getElementById('cfgCropNumeroAltura').value) || 20;
