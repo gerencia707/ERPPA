@@ -6,7 +6,7 @@
 <title>Relatório Mensal · ERPPA</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
 <style>
 :root{--dk:#0A2A22;--dk2:#12443F;--lt:#C7F1C5;--sg:#A1E19C;--bg:#F0F5FA;--ink:#1c2b27;--mut:#62736d;--line:#d6e1de;--red:#B83227;--grn:#1D7A4C;--warn:#C77700;--app:#E9EFED}
 *{box-sizing:border-box}
@@ -128,23 +128,35 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 .slide .sh{position:absolute;left:56px;right:56px;top:38px;display:flex;align-items:center;gap:14px;padding-bottom:20px;border-bottom:1px solid #cfdcd8}
 .slide .sh svg{width:30px;height:30px;color:var(--dk2);flex:none}
 .slide .sh h2{margin:0;font-family:Archivo,Inter,sans-serif;font-weight:400;font-size:38px;color:var(--dk2);letter-spacing:-.005em}
-.slide .chip{background:var(--lt);color:var(--dk);font-size:11.5px;font-weight:600;padding:6px 11px;border-radius:6px}
+.slide .chip{background:var(--lt);color:var(--dk);font-size:13px;font-weight:700;padding:8px 14px;border-radius:8px;font-family:'Source Sans 3','Source Sans Pro',Inter,sans-serif}
 .slide .chip.pl{background:none;padding:6px 4px}
 .slide .bd{position:absolute;left:56px;right:56px;top:128px;bottom:58px}
 .slide .flogo{position:absolute;right:52px;bottom:22px;width:84px;opacity:.85}
-.slide .note{position:absolute;left:56px;bottom:26px;font-size:12px;color:#40524d}
-.slide .note b{font-style:italic}
+.slide .note{position:absolute;left:56px;bottom:26px;font-size:14px;color:#1d2b27;font-style:italic;font-family:'Source Sans 3','Source Sans Pro',Inter,sans-serif}
+.slide .note b{font-weight:700}
 /* tabelas slide */
-.st{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
-.st thead th{background:var(--dk);color:#fff;font-weight:600;font-size:11.5px;padding:6px 10px;text-align:right;line-height:1.25}
+.st{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums;font-family:'Source Sans 3','Source Sans Pro',Inter,sans-serif;color:#1d2b27}
+.st thead th{background:var(--dk);color:#86D1BA;font-weight:700;font-size:13px;padding:7px 10px;text-align:right;line-height:1.2}
 .st thead th:first-child{text-align:left}
-.st thead tr.tcap th{text-align:center;font-size:12.5px;letter-spacing:.02em;border-bottom:1px solid rgba(255,255,255,.18)}
-.st td{padding:6.5px 10px;text-align:right;border-bottom:1px solid #dde7e4;background:#fff;white-space:nowrap}
-.st td:first-child{text-align:left;font-weight:600;font-size:11.5px;background:#fff}
-.st tr.hl td:first-child{background:var(--lt)}
-.st tr.tot td{background:var(--lt);font-weight:700}
-.st td.g{color:var(--grn)}.st td.r{color:var(--red)}
-.st tr.me td{background:var(--lt)!important;font-weight:700}
+.st thead tr.tcap th{color:#fff;text-align:center;font-size:14px;letter-spacing:.01em;padding:7px 10px}
+.st td{padding:4.5px 10px;text-align:right;background:#F4F8FB;border-bottom:1px dashed #A9DCA5;border-right:1px dashed #CDEACB;white-space:nowrap}
+.st td:last-child{border-right:0}
+.st td:first-child{text-align:left;background:var(--lt);font-size:14px}
+.st tr.b td:first-child{font-weight:700}
+.st tr.hl2 td:first-child{background:#A1E19C}
+.st td.bo{font-weight:700}
+.st td.g{color:#3D8B1F}.st td.r{color:#E3120B}
+.st tr.tot td{background:#A1E19C;font-weight:700}
+.st tr.me td{background:#A1E19C!important;font-weight:700}
+.st.cs td{padding:4px 10px;font-size:13.5px}.st.cs thead th{text-align:center}.st.cs thead th:first-child{text-align:center}
+.st.pvt tr.mh th{background:var(--dk2);color:#86D1BA;font-weight:700;font-size:13px;padding:6px 10px;text-align:right}.st.pvt td{padding:5px 10px}.st.pvt td.dv{font-weight:700}
+.stx.just{text-align:justify}
+.stx.sep p+p+p{border-top:2px solid #cfd8d6;padding-top:14px}
+.slide.conf{text-align:center}
+.slide.conf .ci{position:absolute;left:0;right:0;display:flex;justify-content:center;color:#37474f}
+.slide.conf h2{position:absolute;left:0;right:0;top:118px;margin:0;font-family:Archivo,Inter,sans-serif;font-weight:400;font-size:46px;color:var(--dk2)}
+.slide.conf .ct{position:absolute;left:110px;right:110px;top:208px;font-family:'Source Sans 3','Source Sans Pro',Inter,sans-serif;font-size:16.5px;line-height:1.75;color:#3c4a46}
+.slide.conf .ct p{margin:0 0 20px}
 /* bloco texto */
 .stx{font-size:15px;line-height:1.65;color:#2a3a35}
 .stx p{margin:0 0 16px}
@@ -335,6 +347,8 @@ const DESP_ROWS=[
 const NPS_CATS=['NPS','Recepção','Restaurante','Café da Manhã','Governança','Manutenção','Room Service','Conforto','Área de Lazer'];
 
 const ICO={
+ sprout:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 21v-7.2C11 9.6 8 6.5 3 6.5c0 4.4 3.1 7.3 8 7.3zM13 21v-5.2c0-4 3-7.3 8-7.3 0 4.3-3.2 7.3-8 7.3z"/></svg>',
+ clip:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4" width="15" height="17" rx="2"/><path d="M9 4V2.8h6V4"/><path d="M8.5 15.5v-2M12 15.5v-5M15.5 15.5v-3"/></svg>',
  chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 20v-7M10.5 20V9M16 20V4M21 20v-11"/></svg>',
  thumb:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 10h4v11H2zM8 21V10l5-8c1.6 0 2.6 1.3 2.3 2.8L14.6 9H20a2 2 0 012 2.3l-1.3 7.9A2.2 2.2 0 0118.5 21z"/></svg>',
  tool:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.7 18.6l-7.4-7.4c.7-1.9.3-4.1-1.3-5.6A5.3 5.3 0 007 4.4l3.4 3.4-2.4 2.4L4.6 6.8A5.3 5.3 0 005.6 13c1.5 1.5 3.7 2 5.6 1.3l7.4 7.4c.3.3.8.3 1.1 0l2-2c.3-.3.3-.8 0-1.1z"/></svg>',
@@ -362,15 +376,17 @@ const CFG={
 
 /* ======================= estado vazio do mês ======================= */
 const TXT={
- notas:{dreMes:'Desempenho das principais linhas do mês.',dreAno:'Desempenho das principais linhas do acumulado do início do ano até o mês atual.',despMes:'Despesas referentes ao mês vigente.',despAno:'Despesas acumuladas de janeiro até o mês atual.'},
- cs1Txt:'O Compset é o grupo de hotéis usados como referência para medir nosso desempenho em ocupação, diária média e RevPAR.\n\nEssa análise mostra **como estamos posicionados**, as **tendências de preços e demanda**, e **onde podemos ajustar nossa estratégia** para manter competitividade e crescimento.',
- cs2Txt:'Dentro da Rede Laghetto, o Compset da R2 reúne os hotéis de Gramado.\n\nEssa comparação interna permite avaliar o desempenho relativo entre as unidades, identificando quais hotéis estão acima ou abaixo da média em indicadores como ocupação, ADR e RevPAR.\n\nO acompanhamento do Compset regional é essencial para ajustar estratégias comerciais, fortalecer a competitividade entre unidades e estimular boas práticas de gestão dentro da própria rede.',
+ notas:{dreMes:'**Desempenho das principais linhas do mês.**',dreAno:'**Desempenho das principais linhas do acumulado do início do ano até o mês atual.**',despMes:'Despesas referentes ao mês vigente. **Justificativas das linhas nos próximos slides.**',despAno:'Despesas acumuladas de janeiro até o mês atual. **Justificativas das linhas nos próximos slides.**'},
+ cs1Txt:'O *Compset* é o grupo de hotéis usados como referência para medir nosso desempenho em ocupação, diária média e RevPAR.\n\nEssa análise mostra **como estamos posicionados**, as **tendências de preços e demanda**, e **onde podemos ajustar nossa estratégia** para manter competitividade e crescimento.',
+ cs2Txt:'Dentro da Rede Laghetto, o Compset da **R2** reúne os hotéis de **Gramado**.\n\nEssa comparação interna permite avaliar o **desempenho relativo entre as unidades**, identificando quais hotéis estão acima ou abaixo da média em indicadores como **ocupação, ADR e RevPAR.**\n\nO acompanhamento do Compset regional é essencial para **ajustar estratégias comerciais, fortalecer a competitividade entre unidades e estimular boas práticas de gestão** dentro da própria rede.',
  prevTxt:'Nos próximos três meses, o hotel apresenta **variações esperadas no desempenho** em função da sazonalidade e eventos da região:\n\n**Ocupação:** tendência de crescimento em datas estratégicas, podendo variar em períodos de menor demanda.\n\n**Diária Média (ADR):** ajustes planejados para equilibrar competitividade e receita.\n\n**RevPAR:** refletirá a combinação entre ocupação e tarifa média.',
  ck:['Tratamento da Piscina','Abastecimento e limpeza da área da caldeira',"Conferência da caixa d'água",'Conferência do funcionamento do gerador','Tratamento da ETE','Conferência áreas sociais e seu funcionamento'],
  equipe:[['Eduardo Rohden','Gerente Geral','','gg'],['Thiago Wilson','Gerente de A&B','A&B','gestor'],['Eva Juliana Pimel','Sup. de A&B','A&B','sup'],['Dienifer Freitas','Maître','A&B','equipe'],['Claudia Bohn','Chefe de Cozinha','A&B','equipe'],['Karine Rambo','Governanta','Governança','gestor'],['Adriana França','Sup. de Andares','Governança','equipe'],['Betina Zanatta','Sup. de Recepção','Recepção','gestor'],['Tiago Rosa','Departamento Pessoal','Administrativo','adm'],["Emanuela D'Agnoluzzo",'Financeiro','Administrativo','adm']],
  intro:'Acreditamos que são os detalhes que transformam uma hospedagem em uma experiência inesquecível. Por isso, a Guest Relations oferece um atendimento próximo, personalizado e acolhedor, buscando compreender as expectativas dos hóspedes e atender às suas necessidades. Nosso propósito é criar momentos especiais, fortalecer a relação entre o hóspede e o hotel e fazer com que cada experiência no Laghetto Pedras Altas seja lembrada com carinho.',
  ckl:['**Acompanhamento da ocupação diária**, identificando hóspedes com solicitações especiais, comemorações, aniversários e experiências previamente programadas.','**Gerenciamento da reputação on-line**, por meio das respostas às avaliações nas plataformas **Booking, TripAdvisor, Amplifique.me e Google.**','**Organização e entrega de mimos, decorações e demais solicitações personalizadas**, garantindo que cada experiência ocorra conforme planejado.','**Atendimento aos hóspedes pelos canais oficiais de comunicação**, realizando o acompanhamento de solicitações e pedidos especiais via e-mail e WhatsApp.','**Desenvolvimento de experiências personalizadas**, proporcionando momentos diferenciados e memoráveis durante a hospedagem.','**Planejamento e execução de ações internas**, contribuindo para o fortalecimento da cultura de hospitalidade e do engajamento da equipe.']
 };
+const OLDTXT={cs1Txt:'O Compset é o grupo de hotéis usados como referência para medir nosso desempenho em ocupação, diária média e RevPAR.\n\nEssa análise mostra **como estamos posicionados**, as **tendências de preços e demanda**, e **onde podemos ajustar nossa estratégia** para manter competitividade e crescimento.',cs2Txt:'Dentro da Rede Laghetto, o Compset da R2 reúne os hotéis de Gramado.\n\nEssa comparação interna permite avaliar o desempenho relativo entre as unidades, identificando quais hotéis estão acima ou abaixo da média em indicadores como ocupação, ADR e RevPAR.\n\nO acompanhamento do Compset regional é essencial para ajustar estratégias comerciais, fortalecer a competitividade entre unidades e estimular boas práticas de gestão dentro da própria rede.',dreMes:'Desempenho das principais linhas do mês.',dreAno:'Desempenho das principais linhas do acumulado do início do ano até o mês atual.',despMes:'Despesas referentes ao mês vigente.',despAno:'Despesas acumuladas de janeiro até o mês atual.'};
+function upgradeTxt(g){if(!g)return;if(g.cs1Txt===OLDTXT.cs1Txt)g.cs1Txt=TXT.cs1Txt;if(g.cs2Txt===OLDTXT.cs2Txt)g.cs2Txt=TXT.cs2Txt;if(g.notas)['dreMes','dreAno','despMes','despAno'].forEach(k=>{if(g.notas[k]===OLDTXT[k])g.notas[k]=TXT.notas[k]})}
 function emptyState(mes,ano){const blank=defs=>defs.filter(d=>!d.auto).map(d=>({k:d.k,orc:null,real:null,ant:null}));
  return {v:2,mes,ano,cfg:{uhs:171,map:{}},crm:null,
   ger:{dreMes:blank(DRE_ROWS),dreAno:blank(DRE_ROWS),despMes:blank(DESP_ROWS),despAno:blank(DESP_ROWS),notas:clone(TXT.notas),cs1:[],cs2:[],cs1Txt:TXT.cs1Txt,cs2Txt:TXT.cs2Txt,
@@ -390,7 +406,9 @@ function carryGuest(p,mes,ano){const e=emptyState(mes,ano).guest;if(!p||!p.guest
  return Object.assign(e,{cli:(q.cli||[]).map(b=>({t:b.t,f:[]})),dest:Object.assign(e.dest,{t:(q.dest||{}).t||e.dest.t}),intro:q.intro||e.intro,ckl:q.ckl||e.ckl,nome:q.nome||e.nome,contato:q.contato||e.contato})}
 
 /* ======================= sessão, Drive e armazenamento ======================= */
-let S=null,ROLE=null,MODE=null,USER='',TOKEN=null,TOKEN_EXP=0,TC=null;
+let S=null,ROLE=null,MODE=null,USER='',TOKEN=null,TOKEN_EXP=0,TC=null,LASTTOK=null,FORCE_CONSENT=false;
+const DRIVE_SCOPE='https://www.googleapis.com/auth/drive';
+function temDrive(r){try{if(google.accounts.oauth2.hasGrantedAllScopes)return google.accounts.oauth2.hasGrantedAllScopes(r,DRIVE_SCOPE)}catch(e){}return String((r&&r.scope)||'').split(' ').includes(DRIVE_SCOPE)}
 const IMG={},IMGFAIL={};let db=null;
 const mk=(m,a)=>`${a}-${String(m).padStart(2,'0')}`;
 function idb(){return new Promise(res=>{try{const r=indexedDB.open('erppa_relatorio_imgs',1);r.onupgradeneeded=()=>r.result.createObjectStore('i');r.onsuccess=()=>{db=r.result;res()};r.onerror=()=>res()}catch(e){res()}})}
@@ -417,12 +435,12 @@ const GAPI='https://www.googleapis.com/drive/v3',UAPI='https://www.googleapis.co
 const FOLDER='application/vnd.google-apps.folder';
 function initGIS(){if(TC||!window.google||!google.accounts)return !!TC;TC=google.accounts.oauth2.initTokenClient({client_id:CFG.CLIENT_ID,scope:SCOPES,hd:CFG.DOMINIO,callback:()=>{}});return true}
 function getToken(prompt){return new Promise((res,rej)=>{if(!initGIS())return rej(new Error('Biblioteca do Google não carregou. Verifique a internet.'));
- TC.callback=r=>{if(r.error)return rej(new Error(r.error_description||r.error));TOKEN=r.access_token;TOKEN_EXP=Date.now()+(r.expires_in||3600)*1000;res()};
+ TC.callback=r=>{if(r.error)return rej(new Error(r.error_description||r.error));LASTTOK=r;TOKEN=r.access_token;TOKEN_EXP=Date.now()+(r.expires_in||3600)*1000;res()};
  TC.error_callback=e=>rej(new Error(e&&e.type==='popup_closed'?'Janela de login fechada.':'Não foi possível abrir o login do Google (verifique bloqueador de pop-up).'));
  TC.requestAccessToken({prompt:prompt||''})})}
 async function ensureToken(){if(TOKEN&&Date.now()<TOKEN_EXP-60000)return;await getToken('')}
 async function gfetch(url,opt={},retry=true){await ensureToken();const r=await fetch(url,Object.assign({},opt,{headers:Object.assign({},opt.headers||{},{Authorization:'Bearer '+TOKEN})}));
- if(r.status===401&&retry){TOKEN=null;return gfetch(url,opt,false)}if(!r.ok){let t='';try{t=(await r.json()).error.message}catch(e){}throw new Error(`Drive ${r.status}${t?': '+t:''}`)}return r}
+ if(r.status===401&&retry){TOKEN=null;return gfetch(url,opt,false)}if(!r.ok){let t='';try{t=(await r.json()).error.message}catch(e){}if(r.status===403&&/scope/i.test(t)){FORCE_CONSENT=true;throw new Error('falta a permissão do Google Drive. Use Menu → Sair, entre de novo e marque a caixa do Google Drive na tela do Google.')}throw new Error(`Drive ${r.status}${t?': '+t:''}`)}return r}
 const qs=o=>new URLSearchParams(o).toString();
 const qEsc=x=>String(x).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 async function dList(q){let out=[],pt='';do{const p={q,fields:'nextPageToken,files(id,name,mimeType,thumbnailLink,modifiedTime)',pageSize:1000,supportsAllDrives:true,includeItemsFromAllDrives:true};if(pt)p.pageToken=pt;
@@ -446,14 +464,14 @@ async function loadMonth(m,a){setSync('Carregando…');GAL={man:null,guest:null}
  try{
   if(MODE==='local'){let st=null;try{const t=localStorage.getItem('erppa_rel_'+mk(m,a));if(t)st=JSON.parse(t)}catch(e){}
    if(!st){let pv=null;try{const[pm,pa]=prevMonth(m,a);const t=localStorage.getItem('erppa_rel_'+mk(pm,pa));if(t)pv=JSON.parse(t)}catch(e){}st=carryGer(pv,m,a);st.guest=carryGuest(pv,m,a)}
-   S=st;setSync('Modo de teste: dados só neste navegador','');render();return}
+   upgradeTxt(st.ger);S=st;setSync('Modo de teste: dados só neste navegador','');render();return}
   FID={ger:null,guest:null};const st=emptyState(m,a);const[pm,pa]=prevMonth(m,a);
   if(ROLE==='ger'){const g=await readMonth('ger',m,a);if(g){FID.ger=g.id;Object.assign(st,{cfg:g.data.cfg||st.cfg,crm:g.data.crm||null});st.ger=Object.assign(st.ger,g.data.ger)}
    else{const p=await readMonth('ger',pm,pa);const c=carryGer(p&&p.data,m,a);st.cfg=c.cfg;st.ger=c.ger}}
   const q=await readMonth('guest',m,a);
   if(q){FID.guest=q.id;st.guest=Object.assign(st.guest,q.data.guest)}
   else if(ROLE==='guest'){const p=await readMonth('guest',pm,pa);st.guest=carryGuest(p&&p.data,m,a)}
-  S=st;setSync(ROLE==='ger'&&!q?'Guest ainda não começou este mês':'Dados carregados do Drive','ok');render()}
+  upgradeTxt(st.ger);S=st;setSync(ROLE==='ger'&&!q?'Guest ainda não começou este mês':'Dados carregados do Drive','ok');render()}
  catch(e){S=S||emptyState(m,a);setSync('Erro: '+e.message,'err');render()}}
 async function reloadGuest(){if(MODE!=='drive')return;try{setSync('Atualizando parte da Guest…');const q=await readMonth('guest',S.mes,S.ano);if(q){FID.guest=q.id;S.guest=Object.assign(emptyState(S.mes,S.ano).guest,q.data.guest)}setSync(q?'Parte da Guest atualizada':'Guest ainda não começou este mês','ok');render()}catch(e){setSync('Erro: '+e.message,'err')}}
 let svT=null,SAVING=null;
@@ -473,7 +491,9 @@ function gate(msg){const g=$('#gate');g.style.display='flex';const ok=!!CFG.CLIE
  g.innerHTML=`<div class="box"><img src="${ASSETS.logoD}" alt="Laghetto"><h1>Relatório Mensal</h1><p>Gerência e Guest Relations · Laghetto Pedras Altas</p>${msg?`<div class="err">${esc(msg)}</div>`:''}
  ${ok?`<button class="btn" data-act="login">Entrar com Google</button><p style="font-size:12px;margin:4px 0 0">Use o e-mail @${CFG.DOMINIO}.</p>`:`<div class="err">O login com Google ainda não foi configurado (falta o ID do cliente em CFG.CLIENT_ID).</div>`}
  <div class="alt">Modo de teste, sem Drive (os dados ficam só neste navegador):<br><button class="btn ghost" data-act="local" data-r="ger">Testar como Gerência</button><button class="btn ghost" data-act="local" data-r="guest">Testar como Guest</button></div></div>`}
-async function doLogin(){try{await getToken('select_account');
+async function doLogin(){try{await getToken(FORCE_CONSENT?'consent select_account':'select_account');
+ if(!temDrive(LASTTOK)){TOKEN=null;FORCE_CONSENT=true;return gate('O Google não liberou o acesso ao Drive. Clique em Entrar com Google de novo e, na tela de permissões, marque a caixa do Google Drive ("Ver, editar, criar e excluir todos os seus arquivos do Google Drive") ou clique em "Selecionar tudo". Sem ela o sistema não consegue ler as fotos nem salvar os dados.')}
+ FORCE_CONSENT=false;
  const u=await (await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+TOKEN}})).json();USER=(u.email||'').toLowerCase();
  if(!USER.endsWith('@'+CFG.DOMINIO)){TOKEN=null;return gate(`A conta ${USER} não é do domínio ${CFG.DOMINIO}.`)}
  ROLE=CFG.GERENCIA.includes(USER)?'ger':CFG.GUEST.includes(USER)?'guest':null;
@@ -486,9 +506,11 @@ async function start(){$('#gate').style.display='none';TAB=ROLE==='ger'?'ger':'g
  await loadMonth(m,a)}
 
 /* ======================= cálculos ======================= */
-function varRow(r){const v={};
- v.d1=(r.real??NaN)-(r.orc??NaN); v.p1=r.orc?((r.real/r.orc)-1)*100:NaN;
- v.d2=(r.real??NaN)-(r.ant??NaN); v.p2=r.ant?((r.real/r.ant)-1)*100:NaN; return v}
+function varRow(r,d,isD){const v={};const exp=isD&&d&&d.neg;
+ v.d1=exp?(r.orc??NaN)-(r.real??NaN):(r.real??NaN)-(r.orc??NaN); v.p1=r.orc?((r.real/r.orc)-1)*100:NaN;
+ v.d2=(r.real??NaN)-(r.ant??NaN); v.p2=r.ant?((r.real/r.ant)-1)*100:NaN;
+ const gb=(a,b)=>{if(a==null||b==null||isNaN(a-b)||Math.abs(a-b)<1e-9)return '';const up=a>b;return (d&&d.neg?!up:up)?'g':'r'};
+ v.c1=gb(r.real,r.orc);v.c2=gb(r.real,r.ant);return v}
 function despRows(which){ // RESULTADO FINAL puxa do DRE
  const rows=S.ger[which].slice(0,10); const rf=S.ger[which==='despMes'?'dreMes':'dreAno'][12];
  return rows.concat([{k:'RESULTADO FINAL',orc:rf.orc,real:rf.real,ant:rf.ant}])}
@@ -501,7 +523,8 @@ const autoTxt={
  txtB:()=>`No Booking.com, o hotel mantém uma excelente **nota de ${nf1(S.guest.rep.bk)}**, resultado que reflete a satisfação dos hóspedes, a qualidade no atendimento e o padrão de excelência mantido pela equipe em todas as áreas.`
 };
 function nf1(n){return n==null?'—':Number(n).toFixed(1).replace('.',',')}
-const md=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').split(/\n\s*\n/).map(p=>`<p>${p.replace(/\n/g,'<br>')}</p>`).join('');
+const mdi=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\*([^*\n]+?)\*/g,'<i>$1</i>');
+const md=s=>mdi(s).split(/\n\s*\n/).map(p=>`<p>${p.replace(/\n/g,'<br>')}</p>`).join('');
 
 /* ======================= colar do CRM ======================= */
 function numsIn(line){const re=/-?\s?R?\$?\s?-?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?%?/g;return (line.match(re)||[]).map(parseBR).filter(n=>n!=null)}
@@ -562,13 +585,13 @@ function dreForm(key){const isD=key.startsWith('desp');const defs=isD?DESP_ROWS:
  const titles={dreMes:['Desempenho do Mês',`Realizado ${MESES[S.mes-1].toLowerCase()} / ${S.ano}`],dreAno:['Desempenho do Ano',`Realizado acumulado ${S.ano}`],despMes:['Análise das Despesas',`Realizado ${MESES[S.mes-1].toLowerCase()} / ${S.ano}`],despAno:['Despesas Acumuladas',`Acumulado de ${S.ano}`]};
  const [t,s]=titles[key];
  return `<div class="card"><h3>${t}</h3><p class="sub">${s}. Os valores vêm da colagem única em <button class="lnk" data-act="goto" data-t="ger" data-s="crm" style="font-size:13px">Importar do CRM</button>; aqui você confere ou corrige à mão. As variações são calculadas automaticamente.</p>
- <h5>Valores</h5><div class="tbw"><table class="tb" data-tbl="${key}"><thead><tr><th>Linha</th><th>Orçado</th><th>Realizado</th><th>Realizado ${S.ano-1}</th><th>Var. R$ (Real − Orç)</th><th>Var. %</th><th>Var. R$ (${String(S.ano).slice(2)} x ${String(S.ano-1).slice(2)})</th><th>Var. %</th></tr></thead><tbody>
+ <h5>Valores</h5><div class="tbw"><table class="tb" data-tbl="${key}"><thead><tr><th>Linha</th><th>Orçado</th><th>Realizado</th><th>Realizado ${S.ano-1}</th><th>${isD?'Var. R$ (Orç − Real)':'Var. R$ (Real − Orç)'}</th><th>Var. %</th><th>Var. R$ (${String(S.ano).slice(2)} x ${String(S.ano-1).slice(2)})</th><th>Var. %</th></tr></thead><tbody>
  ${rows.map((r,i)=>{const d=defs[i];const v=varRow(r);const f=d.t==='pct'?pp:brl;const base=`ger.${key}.${i}`;
   if(d.auto)return `<tr class="auto"><td class="lb">${d.k}</td><td class="cv">${brl(r.orc)}</td><td class="cv">${brl(r.real)}</td><td class="cv">${brl(r.ant)}</td><td class="cv ${cls(v.d1,d)==='g'?'good':cls(v.d1,d)==='r'?'bad':''}">${brl(v.d1)}</td><td class="cv">${pct(v.p1)}</td><td class="cv">${brl(v.d2)}</td><td class="cv">${pct(v.p2)}</td></tr>`;
-  return `<tr data-row="${i}"><td class="lb">${d.k}</td><td>${ninp(base+'.orc',r.orc,d.t)}</td><td>${ninp(base+'.real',r.real,d.t)}</td><td>${ninp(base+'.ant',r.ant,d.t)}</td>${calcCells(r,d)}</tr>`}).join('')}
+  return `<tr data-row="${i}"><td class="lb">${d.k}</td><td>${ninp(base+'.orc',r.orc,d.t)}</td><td>${ninp(base+'.real',r.real,d.t)}</td><td>${ninp(base+'.ant',r.ant,d.t)}</td>${calcCells(r,d,isD)}</tr>`}).join('')}
  </tbody></table></div>${isD?'<p class="hint">A linha Resultado Final vem automaticamente do Desempenho, então os dois slides nunca divergem.</p>':''}
  <h5>Observação no rodapé do slide</h5>${inp('ger.notas.'+key,S.ger.notas[key])}</div>`}
-function calcCells(r,d){const v=varRow(r);const f=d.t==='pct'?pp:brl;const c1=cls(v.d1,d),c2=cls(v.d2,d);const k=c=>c==='g'?'good':c==='r'?'bad':'';
+function calcCells(r,d,isD){const v=varRow(r,d,isD);const f=d.t==='pct'?pct:brl;const c1=v.c1,c2=v.c2;const k=c=>c==='g'?'good':c==='r'?'bad':'';
  return `<td class="cv ${k(c1)}">${f(v.d1)}</td><td class="cv ${k(c1)}">${pct(v.p1)}</td><td class="cv ${k(c2)}">${f(v.d2)}</td><td class="cv ${k(c2)}">${pct(v.p2)}</td>`}
 function csTable(key){const a=S.ger[key];return `<div class="tbw"><table class="tb"><thead><tr><th>Hotel</th><th>Pool</th><th>Ocupação %</th><th>Diária Média</th><th>RevPar</th><th></th></tr></thead><tbody>
  ${a.map((r,i)=>`<tr><td>${inp(`ger.${key}.${i}.h`,r.h,'','tx')}</td><td>${ninp(`ger.${key}.${i}.pool`,r.pool,'i')}</td><td>${ninp(`ger.${key}.${i}.occ`,r.occ,'i')}</td><td>${ninp(`ger.${key}.${i}.adr`,r.adr,'i')}</td><td>${ninp(`ger.${key}.${i}.rev`,r.rev,'i')}</td><td><button class="x" data-act="rmRow" data-p="ger.${key}" data-i="${i}">×</button></td></tr>`).join('')}
@@ -624,19 +647,28 @@ const mesN=()=>MESES[S.mes-1],mesL=()=>MESES[S.mes-1].toLowerCase();
 function sCapa(kind){const g=kind==='guest';return sl(`<img class="lw" src="${ASSETS.logoW}"><div class="tr"><span>${g?'Guest Relations':'Relatório de Desempenho'}</span><span>${mesN()}</span><span>${S.ano}</span></div>
  <div class="bigt" style="top:${g?250:262}px;font-size:66px">${g?'<div class="kick">Relatório de Desempenho</div>Guest Relations':'Laghetto<br>Pedras Altas'}</div>
  <div class="cph" style="top:96px;background-image:url('${ASSETS.cover1}')"></div><div class="cph" style="top:376px;background-image:url('${ASSETS.cover2}')"></div>`,'dark')}
-function sConf(){return sl(`<img class="lw" src="${ASSETS.logoW}"><div class="bigt" style="top:230px;font-size:40px;max-width:900px">Aviso de confidencialidade</div><div style="position:absolute;left:68px;top:300px;max-width:860px;font-size:17px;line-height:1.7;color:rgba(255,255,255,.85)">Este arquivo contém Informações Confidenciais e Privilegiadas. O seu conteúdo é exclusivo para uso do destinatário indicado e não pode ser divulgado, copiado, exibido, compartilhado ou distribuído sem autorização prévia.</div>`,'dark2')}
+function sConf(){const eye='<svg width="58" height="58" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>';
+ const warn='<svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4.5M12 17h.01"/></svg>';
+ return sl(`<div class="ci" style="top:44px">${eye}</div><h2>Aviso de confidencialidade</h2><div class="ct">
+ <p>Este arquivo contém Informações Confidenciais e Privilegiadas. O seu conteúdo é exclusivo para uso do destinatário indicado e não pode ser divulgado, copiado, exibido, compartilhado ou distribuído sem autorização expressa.</p>
+ <p>Este Aviso é dirigido a qualquer pessoa que receba este arquivo, incluindo seus colaboradores ou prepostos. Caso você não seja o destinatário pretendido, por favor, notifique o remetente imediatamente e exclua o arquivo e suas cópias de seu sistema de armazenamento.</p>
+ <p>A expressão “Informações Confidenciais e Privilegiadas”, para fins deste Aviso, significa toda e qualquer informação, que por sua natureza, não são e não deveriam ser de conhecimento de terceiros (e.g. dados comerciais, financeiros, estratégicos, operacionais e/ou técnicos). Qualquer uso ou reprodução não autorizada dessas informações pode causar danos à empresa e/ou aos seus parceiros comerciais.</p>
+ <p>Agradecemos a sua compreensão e cooperação na manutenção da confidencialidade dessas informações.</p></div><div class="ci" style="bottom:34px">${warn}</div>`,'conf')}
 function sDiv(kick,t){return sl(`<img class="lw" src="${ASSETS.logoW}"><div class="tr"><span>Relatório</span><span>${mesN()}</span><span>${S.ano}</span></div><div class="bigt" style="bottom:110px;font-size:58px"><div class="kick">${kick}</div>${t}</div>`,'dark2')}
 function sDRE(key){const isD=key.startsWith('desp');const defs=isD?DESP_ROWS:DRE_ROWS;const rows=isD?despRows(key):S.ger[key];
  const cap={dreMes:`REALIZADO ${mesN().toUpperCase()} / ${S.ano}`,dreAno:`REALIZADO ACUMULADO ${S.ano}`,despMes:`REALIZADO ${mesN().toUpperCase()} / ${S.ano}`,despAno:`DESPESAS ACUMULADAS DE ${S.ano}`}[key];
- const y=String(S.ano).slice(2),y0=String(S.ano-1).slice(2);
- return sl(H('chart',isD?'Análise das Despesas':(key==='dreMes'?'Desempenho do Mês':'Desempenho do Ano'),'Laghetto Pedras Altas')+`<div class="bd"><table class="st"><thead><tr class="tcap"><th></th><th colspan="7">${cap}</th></tr><tr><th>${isD?'Linhas de Despesas':''}</th><th>Orçado</th><th>Realizado</th><th>Variação R$<br>(Real − Orç)</th><th>Variação %<br>(Real x Orç)</th><th>Realizado ${S.ano-1}</th><th>Variação R$<br>(${y} x ${y0})</th><th>Variação %<br>(${y} x ${y0})</th></tr></thead><tbody>
- ${rows.map((r,i)=>{const d=defs[i],v=varRow(r),f=d.t==='pct'?(n=>n==null?'—':nf2.format(n)+'%'):brl,fd=d.t==='pct'?pp:brl;const c1=cls(v.d1,d),c2=cls(v.d2,d);
-  return `<tr class="${d.tot?'tot':d.hl?'hl':''}"><td>${d.k}</td><td>${f(r.orc)}</td><td>${f(r.real)}</td><td class="${c1}">${fd(v.d1)}</td><td class="${c1}">${pct(v.p1)}</td><td>${f(r.ant)}</td><td class="${c2}">${fd(v.d2)}</td><td class="${c2}">${pct(v.p2)}</td></tr>`}).join('')}
- </tbody></table></div><div class="note">${esc(S.ger.notas[key])}</div>`+L())}
+ const y=String(S.ano).slice(2),y0=String(S.ano-1).slice(2);const op=isD?'-':'x';
+ const HL2=['RECEITA BRUTA','IMPOSTOS DIRETOS','RECEITA LÍQUIDA TOTAL'],NB=['RECEITA DE HOSPEDAGEM','RECEITA DE A&B','OUTRAS RECEITAS'];
+ const pf=n=>n==null?'—':nf2.format(n)+'%';
+ return sl(H(isD?'clip':'sprout',isD?'Análise das Despesas':(key==='dreMes'?'Desempenho do Mês':'Desempenho do Ano'),'Laghetto Pedras Altas')+`<div class="bd" style="top:120px"><table class="st"><thead><tr class="tcap"><th></th><th colspan="7">${cap}</th></tr><tr><th style="${isD?'text-align:center':''}">${isD?'Linhas de Despesas':''}</th><th>Orçado</th><th>Realizado</th><th>Variação R$<br>(Orç ${op} Real)</th><th>Variação %<br>(Orç ${op} Real)</th><th>Realizado ${S.ano-1}</th><th>Variação R$<br>(${y} ${op} ${y0})</th><th>Variação %<br>(${y} ${op} ${y0})</th></tr></thead><tbody>
+ ${rows.map((r,i)=>{const d=defs[i],v=varRow(r,d,isD),f=d.t==='pct'?pf:brl;
+  const tr=[d.tot?'tot':'',(isD||!NB.includes(d.k))?'b':'',!isD&&HL2.includes(d.k)?'hl2':''].join(' ');
+  return `<tr class="${tr}"><td>${d.k}</td><td>${f(r.orc)}</td><td class="bo">${f(r.real)}</td><td class="${v.c1}">${f(v.d1)}</td><td class="${v.c1}">${pct(v.p1)}</td><td class="bo">${f(r.ant)}</td><td class="${v.c2}">${f(v.d2)}</td><td class="${v.c2}">${pct(v.p2)}</td></tr>`}).join('')}
+ </tbody></table></div><div class="note">${mdi(S.ger.notas[key]||'')}</div>`+L())}
 function sCS(key){const a=[...S.ger[key]].sort((x,y)=>(y.rev||0)-(x.rev||0));const ref=S.ger.csRef[key]||`${mesN()} ${S.ano}`;const t=key==='cs1'?`CompSet - Concorrentes Diretos / ${ref}`:`CompSet - Laghetto R2 / ${ref}`;
- return sl(H('chart','CompSet - Gramado','Análise Market Share')+`<div class="bd" style="display:grid;grid-template-columns:400px 1fr;gap:48px"><div class="stx">${md(S.ger[key+'Txt'])}</div><div><table class="st" style="font-size:12.5px"><thead><tr class="tcap"><th colspan="5">${t}</th></tr><tr><th>Hotel</th><th>Pool</th><th>Ocupação</th><th>Diária Média</th><th>RevPar</th></tr></thead><tbody>${a.map(r=>`<tr class="${/pedras altas/i.test(r.h)?'me':''}"><td>${esc(r.h)}</td><td>${r.pool??''}</td><td>${r.occ!=null?nf0.format(r.occ)+'%':''}</td><td>${brl0(r.adr)}</td><td>${brl0(r.rev)}</td></tr>`).join('')}</tbody></table></div></div>`+L())}
+ return sl(H('chart','CompSet - Gramado','Análise Market Share')+`<div class="bd" style="display:grid;grid-template-columns:440px 1fr;gap:56px"><div class="stx just">${md(S.ger[key+'Txt'])}</div><div><table class="st cs"><thead><tr class="tcap"><th colspan="5">${t}</th></tr><tr><th>Hotel</th><th>Pool</th><th>Ocupação</th><th>Diária<br>Média</th><th>RevPar</th></tr></thead><tbody>${a.map(r=>`<tr class="${/pedras\s*altas/i.test(r.h)?'me':''}"><td>${esc(r.h)}</td><td>${r.pool??''}</td><td>${r.occ!=null?nf0.format(r.occ)+'%':''}</td><td>${brl0(r.adr)}</td><td>${brl0(r.rev)}</td></tr>`).join('')}</tbody></table></div></div>`+L())}
 function sPrev(){const nm=[0,1,2].map(i=>MESES[(S.mes+i)%12]);const Lr=[['occ','Ocupação','p'],['adr','Diária Média'],['rev','RevPar'],['rec','Receita de Hospedagem']];
- return sl(H('chart','Ocupação e Receita','Previsão')+`<div class="bd" style="display:grid;grid-template-columns:400px 1fr;gap:48px"><div class="stx" style="font-size:14.5px">${md(S.ger.prevTxt)}</div><div><table class="st" style="font-size:12.5px"><thead><tr class="tcap"><th colspan="4">Projeção dos próximos meses</th></tr></thead>${S.ger.prev.map((p,i)=>{const c=prevCalc(i);return `<thead><tr><th>${nm[i]}</th><th>Orçado</th><th>Previsto</th><th>Orc - Prev</th></tr></thead><tbody>${Lr.map(([k,l,t])=>{const a=c[k];const d=a[0]?(a[1]/a[0]-1)*100:NaN;const f=t?(n=>nf2.format(n)+'%'):brl;return `<tr><td>${l}</td><td>${a[0]==null?'—':f(a[0])}</td><td>${a[1]==null?'—':f(a[1])}</td><td class="${d<0?'r':d>0?'g':''}">${pct(d)}</td></tr>`}).join('')}</tbody>`}).join('')}</table></div></div>`+L())}
+ return sl(H('chart','Ocupação e Receita','Previsão')+`<div class="bd" style="display:grid;grid-template-columns:420px 1fr;gap:56px"><div class="stx just sep" style="font-size:15px">${md(S.ger.prevTxt)}</div><div><table class="st pvt"><thead><tr class="tcap"><th colspan="4">Projeção dos próximos meses</th></tr></thead><tbody>${S.ger.prev.map((p,i)=>{const c=prevCalc(i);return `<tr class="mh"><th style="text-align:center">${nm[i]}</th><th>Orçado</th><th>Previsto</th><th>Orc - Prev</th></tr>${Lr.map(([k,l,t])=>{const a=c[k];const d=a[0]?(a[1]/a[0]-1)*100:NaN;const f=t?(n=>nf2.format(n)+'%'):brl;return `<tr><td>${l}</td><td>${a[0]==null?'—':f(a[0])}</td><td>${a[1]==null?'—':f(a[1])}</td><td class="dv ${d<0?'r':d>0?'g':''}">${pct(d)}</td></tr>`}).join('')}`}).join('')}</tbody></table></div></div>`+L())}
 function sPhotos(ico,title,chip,b){const out=[];const f=b.f;for(let i=0;i<f.length;i+=3){const g=f.slice(i,i+3);
  out.push(sl(H(ico,title,chip,true)+`<div class="bd" style="bottom:80px"><div class="ph3 n${g.length}">${g.map(x=>`<figure><div class="ft" style="background-image:url('${src(x.id)}')"></div>${x.leg?`<figcaption>${esc(x.leg)}</figcaption>`:''}</figure>`).join('')}</div></div>${capI(b.t)}`+L()))}return out}
 const ini=n=>String(n||'').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
@@ -706,7 +738,7 @@ async function doPDF(){const ids=allImgIds().filter(id=>!IMG[id]&&!IMGFAIL[id]);
 function upd(){save();renderNav()}
 document.addEventListener('input',e=>{const t=e.target;const p=t.dataset.bind;if(!p)return;
  if(t.dataset.num){const v=parseBR(t.value);setP(S,p,v);const tr=t.closest('tr');
-  if(tr&&tr.dataset.row!=null){const key=tr.closest('table').dataset.tbl;const i=+tr.dataset.row;const defs=key.startsWith('desp')?DESP_ROWS:DRE_ROWS;const cells=[...tr.children];const tmp=document.createElement('tr');tmp.innerHTML=calcCells(S.ger[key][i],defs[i]);cells.slice(4).forEach((c,j)=>{c.outerHTML=tmp.children[j].outerHTML})}
+  if(tr&&tr.dataset.row!=null){const key=tr.closest('table').dataset.tbl;const i=+tr.dataset.row;const defs=key.startsWith('desp')?DESP_ROWS:DRE_ROWS;const cells=[...tr.children];const tmp=document.createElement('tr');tmp.innerHTML=calcCells(S.ger[key][i],defs[i],key.startsWith('desp'));cells.slice(4).forEach((c,j)=>{c.outerHTML=tmp.children[j].outerHTML})}
   if(p.startsWith('ger.prev')||p==='cfg.uhs')refreshPrev();
  } else setP(S,p,t.value);
  livePh(); upd()});
@@ -718,7 +750,7 @@ document.addEventListener('change',async e=>{const t=e.target;
  if(t.dataset.up){const ids=await addFiles(t.files);const arr=getP(S,t.dataset.up);ids.forEach(id=>arr.push(t.dataset.plain?id:{id,leg:''}));save();render()}
  if(t.dataset.up1){const ids=await addFiles(t.files);if(ids[0]){setP(S,t.dataset.up1,ids[0]);save();render()}}
  if(t.id==='impInput'&&t.files[0]){importFile(t.files[0]);t.value=''}
- if(t.dataset.map){S.cfg.map[t.dataset.map]=t.value;applyCRM();save();render()}
+ if(t.dataset.map){setMap(t)}
  if(t.dataset.gal){await loadGallery(t.dataset.gal,t.files);t.value=''}
 });
 document.addEventListener('dragstart',e=>{const g=e.target.closest&&e.target.closest('.gt');if(g)e.dataTransfer.setData('text/plain','relimg:'+g.dataset.gid)});
@@ -772,6 +804,8 @@ document.addEventListener('click',e=>{
   case 'reloadAll':flushSave().then(()=>{IMGFAIL_reset();loadMonth(S.mes,S.ano)});break;
   case 'reloadGuest':reloadGuest();break;
   case 'pullMan':pullMan();break;
+  case 'addMap':{const mk=a.dataset.mk;const arr=mapList(mk).filter(x=>x!=='-'&&x!==RESTO);arr.push('');S.cfg.map[mk]=arr;render();break}
+  case 'rmMap':{const mk=a.dataset.mk;const arr=mapList(mk);arr.splice(+a.dataset.i,1);S.cfg.map[mk]=arr.length>1?arr:arr[0];applyCRM();save();render();break}
   case 'galReload':GAL[a.dataset.k]=null;render();break;
   case 'galBlock':{const k=a.dataset.k;const groups=[];(GAL[k]||[]).forEach(x=>{let gr=groups.find(y=>y.n===x.grp);if(!gr){gr={n:x.grp,a:[]};groups.push(gr)}gr.a.push(x)});const gr=groups[+a.dataset.g];if(!gr)break;
    const ar=getP(S,a.dataset.dest);const nm=(gr.n||'').split(' / ').pop();const empty=ar.findIndex(b=>!b.f.length&&!b.t);const blk={t:nm,f:gr.a.map(x=>({id:x.id,leg:''}))};if(empty>=0)ar[empty]=blk;else ar.push(blk);save();render();break} }
@@ -797,17 +831,35 @@ function parseCRM(text){const lines=[];let abbr=null;const mm=text.match(/Or[çc
  return {abbr,lines}}
 const lineKey=l=>l.c||norm(l.d);
 function matchLine(d,L){const keys=[d.k].concat(d.al||[]).map(norm);return L.find(l=>keys.includes(norm(l.d)))||L.find(l=>keys.some(k=>norm(l.d).startsWith(k)))}
-function applyCRM(){const res={ok:0,miss:[]};if(!S.crm)return res;const L=S.crm.lines;
- const run=(grp,defs,mes,ano)=>defs.forEach((d,i)=>{if(d.auto)return;const mk=grp+':'+d.k;const key=S.cfg.map[mk];if(key==='-')return;let ln=key?L.find(l=>lineKey(l)===key):null;
-  if(!ln){ln=matchLine(d,L);if(ln)S.cfg.map[mk]=lineKey(ln)}
-  if(!ln){res.miss.push(d.k);return}res.ok++;const n=ln.n;Object.assign(S.ger[mes][i],{orc:n[0],real:n[1],ant:n[2]});Object.assign(S.ger[ano][i],{orc:n[7],real:n[8],ant:n[9]})});
- run('dre',DRE_ROWS,'dreMes','dreAno');run('desp',DESP_ROWS,'despMes','despAno');return res}
+const RESTO='=resto';
+function mapList(mk){const v=S.cfg.map[mk];return Array.isArray(v)?v:(v?[v]:[])}
+function applyCRM(){const res={ok:0,miss:[]};if(!S.crm)return res;const L=S.crm.lines;const find=k=>L.find(l=>lineKey(l)===k);
+ const run=(grp,defs,mes,ano)=>defs.forEach((d,i)=>{if(d.auto)return;const mk=grp+':'+d.k;
+  if(grp==='dre'&&d.k==='OUTRAS RECEITAS'&&(S.cfg.map[mk]===undefined||S.cfg.map[mk]===RESTO)){S.cfg.map[mk]=RESTO;res.ok++;return}
+  let keys=mapList(mk);if(keys[0]==='-')return;let lns=keys.map(find).filter(Boolean);
+  if(!lns.length){
+   if(grp==='dre'&&d.k==='RECEITA DE A&B'){lns=L.filter(l=>/^RESTAURANTE|^ROOMSERVICE/.test(norm(l.d)));if(!lns.length){const one=matchLine(d,L);if(one)lns=[one]}}
+   else{const one=matchLine(d,L);if(one)lns=[one]}
+   if(lns.length)S.cfg.map[mk]=lns.length>1?lns.map(lineKey):lineKey(lns[0])}
+  if(!lns.length){res.miss.push(d.k);return}res.ok++;
+  const sum=j=>{let t=null;lns.forEach(l=>{const x=l.n[j];if(x!=null&&!isNaN(x))t=(t||0)+x});return t};
+  Object.assign(S.ger[mes][i],{orc:sum(0),real:sum(1),ant:sum(2)});Object.assign(S.ger[ano][i],{orc:sum(7),real:sum(8),ant:sum(9)})});
+ run('dre',DRE_ROWS,'dreMes','dreAno');run('desp',DESP_ROWS,'despMes','despAno');
+ if(S.cfg.map['dre:OUTRAS RECEITAS']===RESTO)['dreMes','dreAno'].forEach(t=>{const R=k=>S.ger[t].find(r=>r.k===k);const rb=R('RECEITA BRUTA'),rh=R('RECEITA DE HOSPEDAGEM'),ab=R('RECEITA DE A&B'),ou=R('OUTRAS RECEITAS');
+  ['orc','real','ant'].forEach(c=>{ou[c]=rb[c]==null?null:rb[c]-(rh[c]||0)-(ab[c]||0)})});
+ return res}
+function setMap(t){const mk=t.dataset.map,mi=+t.dataset.mi,v=t.value;
+ if(v==='-'||v===RESTO){S.cfg.map[mk]=v}else{const arr=mapList(mk).filter(x=>x!=='-'&&x!==RESTO);arr[mi]=v;S.cfg.map[mk]=arr.length>1?arr:arr[0]}
+ applyCRM();save();render()}
 function mapCard(){const L=S.crm.lines;
- const opts=v=>`<option value="" disabled ${!v?'selected':''}>Escolha a linha do CRM…</option><option value="-" ${v==='-'?'selected':''}>— não usar —</option>`+L.map(l=>`<option value="${esc(lineKey(l))}" ${v===lineKey(l)?'selected':''}>${esc((l.c?l.c+'   ':'')+l.d)}</option>`).join('');
- const rows=(grp,defs,mes)=>defs.filter(d=>!d.auto).map((d,i)=>{const mk=grp+':'+d.k;const v=S.cfg.map[mk];const ok=v==='-'||(v&&L.some(l=>lineKey(l)===v));const r=S.ger[mes][i];const f=d.t==='pct'?(n=>n==null?'—':nf2.format(n)+'%'):brl;
-  return `<tr class="${ok?'':'miss'}"><td class="lb">${d.k}</td><td><select data-map="${esc(mk)}">${opts(ok?v:'')}</select></td><td class="cv">${ok&&v!=='-'?f(r.real):'—'}</td></tr>`}).join('');
+ const opts=(v,extra)=>`<option value="" disabled ${!v?'selected':''}>Escolha a linha do CRM…</option><option value="-" ${v==='-'?'selected':''}>— não usar —</option>${extra?`<option value="${RESTO}" ${v===RESTO?'selected':''}>Automático: Receita Bruta − Hospedagem − A&B</option>`:''}`+L.map(l=>`<option value="${esc(lineKey(l))}" ${v===lineKey(l)?'selected':''}>${esc((l.c?l.c+'   ':'')+l.d)}</option>`).join('');
+ const rows=(grp,defs,mes)=>defs.filter(d=>!d.auto).map((d,i)=>{const mk=grp+':'+d.k;const arr=mapList(mk);const valid=k=>k==='-'||k===RESTO||L.some(l=>lineKey(l)===k);
+  const ok=arr.length&&arr.every(valid);const list=arr.length?arr:[''];const r=S.ger[mes][i];const f=d.t==='pct'?(n=>n==null?'—':nf2.format(n)+'%'):brl;const extra=grp==='dre'&&d.k==='OUTRAS RECEITAS';
+  const sels=list.map((k,j)=>`<div style="display:flex;gap:6px;align-items:center;${j?'margin-top:6px':''}">${j?'<span style="color:var(--mut);font-weight:700">+</span>':''}<select data-map="${esc(mk)}" data-mi="${j}">${opts(valid(k)?k:'',extra&&!j)}</select>${j?`<button class="x" data-act="rmMap" data-mk="${esc(mk)}" data-i="${j}">×</button>`:''}</div>`).join('');
+  const canAdd=list[0]!=='-'&&list[0]!==RESTO;
+  return `<tr class="${ok?'':'miss'}"><td class="lb" style="vertical-align:top;padding-top:10px">${d.k}</td><td>${sels}${canAdd?`<button class="lnk" data-act="addMap" data-mk="${esc(mk)}" style="margin-top:6px">+ somar outra linha</button>`:''}</td><td class="cv" style="vertical-align:top;padding-top:10px">${ok&&list[0]!=='-'?f(r.real):'—'}</td></tr>`}).join('');
  const sep=t=>`<tr><td colspan="3" style="padding-top:14px;font-size:11px;letter-spacing:.06em;color:var(--mut);font-weight:600">${t}</td></tr>`;
- return `<div class="card mapt"><h3>Correspondência de linhas</h3><p class="sub">${L.length} linhas lidas${S.crm.abbr?` (mês da colagem: ${esc(S.crm.abbr)})`:''}. Confira se cada linha do relatório puxou a linha certa do CRM. Isso se faz uma vez só: o sistema guarda a escolha e usa nos próximos meses.</p><table class="tb"><thead><tr><th>Linha do relatório</th><th>Linha do CRM</th><th>Realizado no mês</th></tr></thead><tbody>${sep('DESEMPENHO')}${rows('dre',DRE_ROWS,'dreMes')}${sep('DESPESAS')}${rows('desp',DESP_ROWS,'despMes')}</tbody></table></div>`}
+ return `<div class="card mapt"><h3>Correspondência de linhas</h3><p class="sub">${L.length} linhas lidas${S.crm.abbr?` (mês da colagem: ${esc(S.crm.abbr)})`:''}. Confira se cada linha do relatório puxou a linha certa do CRM. Uma linha do relatório pode somar várias do CRM (ex.: Receita de A&B = Restaurante + Room Service). Outras Receitas é calculada sozinha: Receita Bruta − Hospedagem − A&B. Isso se faz uma vez só: o sistema guarda a escolha e usa nos próximos meses.</p><table class="tb"><thead><tr><th>Linha do relatório</th><th>Linha(s) do CRM</th><th>Realizado no mês</th></tr></thead><tbody>${sep('DESEMPENHO')}${rows('dre',DRE_ROWS,'dreMes')}${sep('DESPESAS')}${rows('desp',DESP_ROWS,'despMes')}</tbody></table></div>`}
 function parseCSAll(text){const res={cs1:null,cs2:null,ref1:'',ref2:''};let cur='cs1';const MRE=/(janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*(?:\/|de|-)?\s*(\d{4})/i;
  text.split(/\r?\n/).forEach(l=>{const t=l.trim();if(!t)return;
   if(/compset|r2|desempenho|concorrent/i.test(t)&&numsIn(t).length<4){cur=/\br2\b|laghetto/i.test(t)?'cs2':'cs1';const m=t.match(MRE);if(m)res[cur==='cs1'?'ref1':'ref2']=m[1][0].toUpperCase()+m[1].slice(1).toLowerCase()+' '+m[2];return}
