@@ -261,6 +261,20 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 .st.js tr.par td{font-weight:700;background:#fff}.st.js tr.par td:first-child{background:#A1E19C}
 .jx{display:grid;grid-template-columns:repeat(4,auto);gap:4px 18px;font-size:12.5px;color:var(--mut);margin:4px 0 10px}.jx b{color:var(--ink)}
 .blk.off{opacity:.55}
+/* A&B */
+.ak{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.ak>div{background:#fff;border:1px solid #d8e3e0;border-radius:12px;padding:16px 18px}
+.ak small{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#53655f;font-weight:600;margin-bottom:8px}
+.ak b{display:block;font-size:30px;font-weight:600;color:var(--dk);font-variant-numeric:tabular-nums;line-height:1.1}
+.ak i{display:block;font-style:normal;font-size:12.5px;color:#53655f;margin-top:6px}
+.ak.hero>div:first-child{background:var(--dk);border-color:var(--dk)}.ak.hero>div:first-child small{color:var(--sg)}.ak.hero>div:first-child b{color:#fff}.ak.hero>div:first-child i{color:rgba(255,255,255,.75)}
+.dl{font-weight:700}.dl.up{color:#2F8A5F}.dl.dn{color:#C0392B}.ak.hero>div:first-child .dl.up{color:var(--sg)}.ak.hero>div:first-child .dl.dn{color:#ffb4a8}
+.ah{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#53655f;font-weight:600;margin:0 0 10px}
+.cbar{display:flex;gap:2px;height:34px}.cbar span{display:block;height:100%}.cbar span:first-child{border-radius:4px 0 0 4px}.cbar span:last-child{border-radius:0 4px 4px 0}
+.clg{display:flex;flex-direction:column;gap:10px;margin-top:16px}.clg div{display:grid;grid-template-columns:14px 1fr auto 64px;gap:10px;align-items:center;font-size:14px;color:#1d2b27}.clg em{width:14px;height:14px;border-radius:3px;display:block}.clg b{font-variant-numeric:tabular-nums}.clg span{color:#53655f;text-align:right;font-variant-numeric:tabular-nums}
+.sr{display:flex;flex-direction:column;gap:12px}.sr>div{background:#fff;border:1px solid #d8e3e0;border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}.sr small{font-size:13px;color:#53655f}.sr b{font-size:22px;color:var(--dk);font-variant-numeric:tabular-nums;text-align:right}.sr i{display:block;font-style:normal;font-size:12px;text-align:right}
+.lgd{display:flex;gap:18px;font-size:13px;color:#1d2b27;align-items:center}.lgd em{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.aebn{font-size:13px;color:#40524d;margin-top:10px}
 /* ---------- impressão ---------- */
 #printRoot{display:none}
 @page{size:1280px 720px;margin:0}
@@ -351,6 +365,7 @@ const DESP_ROWS=[
 const NPS_CATS=['NPS','Recepção','Restaurante','Café da Manhã','Governança','Manutenção','Room Service','Conforto','Área de Lazer'];
 
 const ICO={
+ food:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a2 2 0 002 2h0a2 2 0 002-2V3M8 12v9M18 21V3c-2.2 1-3.5 3.6-3.5 7.2 0 1.6.9 2.8 3.5 2.8"/></svg>',
  cash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="9" rx="1.5"/><circle cx="12" cy="8.5" r="2"/><path d="M3 16.5h18M3 20h18"/></svg>',
  sprout:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 21v-7.2C11 9.6 8 6.5 3 6.5c0 4.4 3.1 7.3 8 7.3zM13 21v-5.2c0-4 3-7.3 8-7.3 0 4.3-3.2 7.3-8 7.3z"/></svg>',
  clip:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4" width="15" height="17" rx="2"/><path d="M9 4V2.8h6V4"/><path d="M8.5 15.5v-2M12 15.5v-5M15.5 15.5v-3"/></svg>',
@@ -397,7 +412,7 @@ function emptyState(mes,ano){const blank=defs=>defs.filter(d=>!d.auto).map(d=>({
   ger:{dreMes:blank(DRE_ROWS),dreAno:blank(DRE_ROWS),despMes:blank(DESP_ROWS),despAno:blank(DESP_ROWS),notas:clone(TXT.notas),cs1:[],cs2:[],cs1Txt:TXT.cs1Txt,cs2Txt:TXT.cs2Txt,
    prev:[0,1,2].map(()=>({occ:[null,null],adr:[null,null]})),prevTxt:TXT.prevTxt,
    man:{ab:null,co:null,tm:'',re:null,ur:null,txt:'',ck:clone(TXT.ck),bl:[{t:'',f:[]}]},
-   equipe:TXT.equipe.map(r=>({n:r[0],s:r[1],set:r[2],nv:r[3],f:''})),csRef:{cs1:'',cs2:''},just:{},contato:'gerencia@laghettopedrasaltas.com.br  |  54 3421 8181'},
+   equipe:TXT.equipe.map(r=>({n:r[0],s:r[1],set:r[2],nv:r[3],f:''})),csRef:{cs1:'',cs2:''},just:{},aeb:{on:true,txt:'',snap:null},contato:'gerencia@laghettopedrasaltas.com.br  |  54 3421 8181'},
   guest:{rep:{tp:null,tt:null,tn:null,bk:null,gg:null,nps:NPS_CATS.map(()=>[null,null]),txtT:'',txtG:'',txtB:''},pr:{amp:[],trip:[],goo:[],book:[]},
    cli:['Decorações de Aniversários','Decorações Românticas','Decorações de Boas-Vindas','Visita do Sr. Laghettinho','Mimos para Pequenos Hóspedes','Redes Sociais'].map(t=>({t,f:[]})),
    dest:{n:'',s:'',f:'',t:'Colaborador destaque - Maior número de avaliações nominais nas plataformas digitais'},elo:[],ani:[],fer:[],evt:[],
@@ -406,7 +421,7 @@ function emptyState(mes,ano){const blank=defs=>defs.filter(d=>!d.auto).map(d=>({
 function carryGer(p,mes,ano){const e=emptyState(mes,ano);if(!p)return e;const g=p.ger||{};
  e.cfg=Object.assign(e.cfg,p.cfg||{});Object.assign(e.ger,{notas:g.notas||e.ger.notas,cs1Txt:g.cs1Txt||e.ger.cs1Txt,cs2Txt:g.cs2Txt||e.ger.cs2Txt,prevTxt:g.prevTxt||e.ger.prevTxt,equipe:g.equipe||e.ger.equipe,contato:g.contato||e.ger.contato,
   cs1:(g.cs1||[]).filter(r=>!r.auto).map(r=>({h:r.h,pool:r.pool,occ:null,adr:null,rev:null})),cs2:(g.cs2||[]).map(r=>({h:r.h,pool:r.pool,occ:null,adr:null,rev:null}))});
- if(g.man&&g.man.ck)e.ger.man.ck=g.man.ck;return e}
+ if(g.man&&g.man.ck)e.ger.man.ck=g.man.ck;if(g.aeb)e.ger.aeb.on=g.aeb.on!==false;return e}
 function carryGuest(p,mes,ano){const e=emptyState(mes,ano).guest;if(!p||!p.guest)return e;const q=p.guest;
  return Object.assign(e,{cli:(q.cli||[]).map(b=>({t:b.t,f:[]})),dest:Object.assign(e.dest,{t:(q.dest||{}).t||e.dest.t}),intro:q.intro||e.intro,ckl:q.ckl||e.ckl,nome:q.nome||e.nome,contato:q.contato||e.contato})}
 
@@ -508,7 +523,8 @@ async function start(){$('#gate').style.display='none';TAB=ROLE==='ger'?'ger':'g
  $('#who').textContent=(MODE==='local'?'Teste · ':'')+(ROLE==='ger'?'Gerência':'Guest Relations')+(USER?' · '+USER:'');
  const now=new Date();let m=now.getMonth(),a=now.getFullYear();if(m===0){m=12;a--} // por padrão, o mês anterior (o que está sendo fechado)
  if(MODE==='drive'){setSync('Preparando pastas no Drive…');try{await dataFolders()}catch(e){setSync('Erro: '+e.message,'err')}}
- await loadMonth(m,a)}
+ await loadMonth(m,a);autoAeb()}
+function autoAeb(){try{if(ROLE==='ger'&&S&&AEB().on&&!aebSnap())pullAeb()}catch(e){}}
 
 /* ======================= cálculos ======================= */
 function varRow(r,d,isD){const v={};const exp=isD&&d&&d.neg;
@@ -549,7 +565,7 @@ function parseCS(text){const out=[];text.split(/\r?\n/).forEach(l=>{l=l.trim();i
 /* ======================= navegação ======================= */
 let TAB='ger',SEC={ger:'crm',guest:'rep'},REVMODE='full';
 const SECS={
- ger:[['crm','Importar do CRM'],['dreMes','Desempenho do Mês'],['dreAno','Desempenho do Ano'],['despMes','Despesas do Mês'],['despAno','Despesas Acumuladas'],['just','Justificativas'],['cs','CompSet'],['prev','Previsão 3 meses'],['man','Manutenção'],['eq','Equipe e contato']],
+ ger:[['crm','Importar do CRM'],['dreMes','Desempenho do Mês'],['dreAno','Desempenho do Ano'],['despMes','Despesas do Mês'],['despAno','Despesas Acumuladas'],['just','Justificativas'],['aeb','A&B · Vouchers LGM'],['cs','CompSet'],['prev','Previsão 3 meses'],['man','Manutenção'],['eq','Equipe e contato']],
  guest:[['rep','Reputação (notas e NPS)'],['prints','Prints das plataformas'],['cli','Experiência do Cliente'],['colab','Experiência do Colaborador'],['gapr','Apresentação Guest']]
 };
 function status(sec){const G=S.ger,Q=S.guest;
@@ -559,6 +575,7 @@ function status(sec){const G=S.ger,Q=S.guest;
   case 'despMes':return full(G.despMes)?'ok':'warn';case 'despAno':return full(G.despAno)?'ok':'warn';
   case 'cs':return G.cs1.length&&G.cs2.length?'ok':'warn';case 'prev':return G.prev.every(p=>p.occ[0]!=null)?'ok':'warn';
   case 'man':return G.man.bl.some(b=>b.f.length)?(G.man.bl.some(b=>!b.f.length)?'warn':'ok'):'warn';
+  case 'aeb':{const a=AEB();return !a.on||aebSnap()?'ok':'warn'}
   case 'just':return estouros().filter(e=>e.j.on).every(e=>String(e.j.txt||'').trim())?'ok':'warn';
   case 'eq':return 'ok';case 'crm':return S.crm?'ok':'warn';
   case 'rep':return Q.rep.nps.every(r=>r[0]!=null)?'ok':'warn';
@@ -630,6 +647,13 @@ const FORMS={
   ${galleryBox('man')}<div class="card"><h3>Fotos da manutenção</h3><p class="sub">Cada bloco vira uma página com até 3 fotos. Escreva a observação do que está sendo feito; ela aparece como legenda no slide. Blocos sem fotos ficam fora do PDF.</p>${photoBlocks('ger.man.bl',m.bl,'O que está sendo feito (ex.: Reparo nas calhas do telhado)','man')}</div>`},
  eq:()=>{const NV=[['gg','Gerente Geral'],['gestor','Gestor de setor'],['sup','Supervisão'],['equipe','Equipe'],['adm','Administrativo']];
   return `<div class="card"><h3>Nossa Equipe</h3><p class="sub">Cada pessoa tem foto, cargo, coluna e nível. No slide, cada coluna é um setor (na ordem da lista) e a cor do cartão segue o nível. Clique no quadrado para trocar a foto.</p><div class="ppl">${S.ger.equipe.map((p,i)=>`<div class="pp" style="grid-template-columns:56px 1.2fr 1fr .8fr .9fr auto auto"><label class="av" style="background-image:url('${src(p.f)}')">${p.f?'':'foto'}<input type="file" accept="image/*" data-up1="ger.equipe.${i}.f"></label>${inp(`ger.equipe.${i}.n`,p.n,'Nome')}${inp(`ger.equipe.${i}.s`,p.s,'Cargo')}${inp(`ger.equipe.${i}.set`,p.set,'Coluna (ex.: A&B)')}<select class="in" data-bind="ger.equipe.${i}.nv">${NV.map(([v,l])=>`<option value="${v}" ${p.nv===v?'selected':''}>${l}</option>`).join('')}</select><button class="x" title="Subir" data-act="mvF" data-p="ger.equipe" data-i="${i}" data-d="-1">↑</button><button class="x" data-act="rmRow" data-p="ger.equipe" data-i="${i}">×</button></div>`).join('')}</div><button class="btn ghost sm" data-act="addEq" style="margin-top:10px">+ Pessoa</button><h5>Contato no encerramento</h5>${inp('ger.contato',S.ger.contato)}</div>`},
+ aeb:()=>{const a=AEB();const sn=aebSnap();if(!sn&&!AEB_LOADING&&a.on)setTimeout(pullAeb,0);
+  const al=sn?aebAlerts(sn):[];const k=(l,v,sub)=>`<div class="fld"><label>${l}</label><input type="text" disabled value="${esc(v)}">${sub?`<span class="hint" style="margin:2px 0 0">${sub}</span>`:''}</div>`;
+  return `<div class="card"><h3>A&B · Vendas do Restaurante</h3><p class="sub">Os dados vêm do <b>Voucher LGM</b> do ERPPA: fechamentos de vouchers, bebidas do restaurante e passantes de ${MESES[S.mes-1].toLowerCase()}, comparados com o mês anterior. Viram três slides na seção "Alimentos e Bebidas", logo depois da Previsão.</p>
+  <div class="row" style="align-items:center;margin-bottom:14px"><button class="btn" data-act="pullAeb">${sn?'Atualizar dados do Voucher LGM':'Puxar dados do Voucher LGM'}</button><label style="display:flex;gap:8px;align-items:center;font-size:13.5px"><input type="checkbox" data-bind="ger.aeb.on" ${a.on?'checked':''} style="width:17px;height:17px"> Incluir a seção A&B no relatório</label><span class="hint" style="margin:0">${AEB_LOADING?'Buscando…':sn?'Atualizado em '+new Date(sn.em).toLocaleString('pt-BR'):''}</span></div>
+  ${sn?`<div class="kpis" style="grid-template-columns:repeat(4,1fr)">${k('Receita do restaurante',brl(sn.tot),'vouchers + passantes + bebidas')}${k('Vouchers LGM',brl(sn.v.val),`${sn.v.qr+sn.v.qf} vouchers`)}${k('Bebidas',brl(sn.b.val),`${sn.b.nd} dia(s) lançado(s)`)}${k('Passantes',brl(sn.p.val),`${sn.p.qr+sn.p.qf+sn.p.qi} pessoas`)}${k('Clientes atendidos',nf0.format(sn.cli),'')}${k('Ticket médio por cliente',brl(sn.tkt),'')}${k('Bebida por cliente',brl(sn.bpc),'')}${k('Conferência com o caixa',`${sn.v.ok} de ${sn.v.nd} dias sem divergência`,'')}</div>
+  ${al.length?`<div class="warnbox" style="margin-top:14px"><b>Conferir antes de enviar:</b><br>${al.map(x=>'· '+esc(x)).join('<br>')}</div>`:'<div class="msg show ok" style="margin-top:14px">Nenhuma inconsistência encontrada nos dados do mês.</div>'}`:`<div class="msg show">${AEB_LOADING?'Buscando os dados no Voucher LGM…':esc(AEB_ERR||'Ainda sem dados deste mês.')}</div>`}
+  <h5>Comentário do mês (opcional, aparece no slide Vendas do Restaurante)</h5><textarea data-bind="ger.aeb.txt" placeholder="Ex.: Mês com **forte procura pelo rodízio** nos fins de semana; ação de vinhos elevou a venda de bebidas.">${esc(a.txt||'')}</textarea></div>`},
  just:()=>{const E=estouros();const ab=MESES[S.mes-1].slice(0,3);
   return `<div class="card"><h3>Justificativas das despesas</h3><p class="sub">O sistema lista sozinho as linhas de despesa de ${MESES[S.mes-1].toLowerCase()} que ficaram acima do orçado, com as sub linhas do CRM que mais estouraram. Escreva a justificativa de cada uma (use **texto** para negrito). Cada linha marcada vira um slide "Despesa Justificada", logo depois das tabelas de despesas.</p>
   ${!S.crm?'<div class="warnbox">Cole a tabela do CRM em <b>Importar do CRM</b> para o sistema trazer as sub linhas de cada despesa.</div>':''}
@@ -725,6 +749,7 @@ function guestSlides(){const G=S.guest,out=[];const k=x=>x.filter(Boolean);
 function buildSlides(mode){const out=[];
  if(mode==='guest'){out.push(sCapa('guest'),sGuestIntro(),sGuestCk(),...guestSlides(),sFim(`${S.guest.nome.toUpperCase()}  ·  GUEST RELATIONS  ·  ${S.guest.contato}`));return out}
  out.push(sCapa(),sConf(),sDiv(`Relatório ${mesN()} ${S.ano}`,'Desempenho Financeiro'),sDRE('dreMes'),sDRE('dreAno'),sDRE('despMes'),sDRE('despAno'),...estouros().filter(e=>e.j.on).map(sJust),sCS('cs1'),sCS('cs2'),sPrev());
+ out.push(...aebSlides());
  out.push(...guestSlides());
  out.push(sDiv(`Relatório ${mesN()} ${S.ano}`,'Gestão da Manutenção'),sManCk(),sManKpi());
  S.ger.man.bl.filter(b=>b.f.length).forEach(b=>out.push(...sPhotos('tool','Conservação do Patrimônio','',b)));
@@ -748,9 +773,78 @@ function sJust(e){const ab=MESES[S.mes-1].slice(0,3);const rows=e.sub.rows.slice
   ${rows.map(x=>`<tr><td>${esc(x.c)}</td><td>${esc(x.d)}</td><td>${brl(x.orc)}</td><td>${brl(x.real)}</td></tr>`).join('')}</tbody></table>`:'';
  return sl(H('cash','Despesa Justificada',esc(e.j.chip||tcase(e.d.k)),true)+`<div class="bd" style="top:132px"><div class="stx" style="font-size:16.5px;line-height:1.6;max-width:1120px">${md(e.j.txt||'')}</div><div style="margin-top:30px">${tbl}</div></div>`+L())}
 
+/* ======================= A&B · Voucher LGM ======================= */
+const AEB_TAB={fech:'fechamentos_sem_lancamento',rec:'receitas_diarias'};
+const AEB_COR={vou:'#2F8A5F',pas:'#3D7FB8',beb:'#D99A2B',rod:'#2F8A5F',fon:'#D99A2B'};
+let AEB_LOADING=false,AEB_ERR='';
+function AEB(){S.ger.aeb=S.ger.aeb||{on:true,txt:'',snap:null};return S.ger.aeb}
+function aebSnap(){const sn=AEB().snap;return sn&&sn.mes===S.mes&&sn.ano===S.ano?sn:null}
+const mRange=(m,a)=>{const ini=`${a}-${String(m).padStart(2,'0')}-01`;const nx=m===12?`${a+1}-01-01`:`${a}-${String(m+1).padStart(2,'0')}-01`;return [ini,nx]};
+async function sbq(tab,a,b){const r=await fetch(`${CFG.SUPA_URL}/rest/v1/${tab}?select=*&data=gte.${a}&data=lt.${b}&order=data`,{headers:{apikey:CFG.SUPA_KEY,Authorization:'Bearer '+CFG.SUPA_KEY}});if(!r.ok)throw new Error(`${tab}: HTTP ${r.status}`);return r.json()}
+function aebAgg(F,R){const sm=(a,f)=>a.reduce((t,x)=>t+(Number(f(x))||0),0);
+ const v={qr:sm(F,x=>x.qtd_rodizio_ocr),qf:sm(F,x=>x.qtd_fondue_ocr),ni:sm(F,x=>x.qtd_nao_identificados),val:sm(F,x=>x.valor_total),nd:F.length,ok:F.filter(x=>x.bateu===true).length,nok:F.filter(x=>x.bateu===false).length};
+ const b={val:sm(R,x=>x.valor_bebida_restaurante),nd:R.length};
+ const p={qr:sm(R,x=>x.qtd_rodizio_passante),qf:sm(R,x=>x.qtd_fondue_passante),qi:sm(R,x=>x.qtd_infantil_passante),vr:sm(R,x=>(x.qtd_rodizio_passante||0)*(x.valor_rodizio_passante||0)),vf:sm(R,x=>(x.qtd_fondue_passante||0)*(x.valor_fondue_passante||0)),vi:sm(R,x=>(x.qtd_infantil_passante||0)*(x.valor_infantil_passante||0)),
+  semPreco:R.filter(x=>(x.qtd_rodizio_passante>0&&!x.valor_rodizio_passante)||(x.qtd_fondue_passante>0&&!x.valor_fondue_passante)||(x.qtd_infantil_passante>0&&!x.valor_infantil_passante)).length};
+ p.val=p.vr+p.vf+p.vi;const tot=v.val+p.val+b.val,cli=v.qr+v.qf+p.qr+p.qf+p.qi;
+ return {v,b,p,tot,cli,tkt:cli?tot/cli:null,bpc:cli?b.val/cli:null}}
+async function pullAeb(){if(AEB_LOADING)return;AEB_LOADING=true;AEB_ERR='';softRender();setSync('Buscando dados do Voucher LGM…');
+ try{const[a,b]=mRange(S.mes,S.ano);const[pm,pa]=S.mes===1?[12,S.ano-1]:[S.mes-1,S.ano];const[c,d]=mRange(pm,pa);
+  const[F,R,Fp,Rp]=await Promise.all([sbq(AEB_TAB.fech,a,b),sbq(AEB_TAB.rec,a,b),sbq(AEB_TAB.fech,c,d),sbq(AEB_TAB.rec,c,d)]);
+  const N=new Date(S.ano,S.mes,0).getDate();const byD={};F.forEach(x=>{byD[+String(x.data).slice(8,10)]=x});const rD={};R.forEach(x=>{rD[+String(x.data).slice(8,10)]=x});
+  const hoje=new Date();const ateDia=(hoje.getFullYear()===S.ano&&hoje.getMonth()+1===S.mes)?hoje.getDate()-1:N;
+  const sn=Object.assign(aebAgg(F,R),{mes:S.mes,ano:S.ano,em:new Date().toISOString(),N,ant:aebAgg(Fp,Rp),
+   dias:Array.from({length:N},(_,i)=>{const x=byD[i+1];return {d:i+1,r:x?Number(x.qtd_rodizio_ocr)||0:0,f:x?Number(x.qtd_fondue_ocr)||0:0,tem:!!x}}),
+   semFech:Array.from({length:Math.max(0,ateDia)},(_,i)=>i+1).filter(d=>!byD[d]),semRec:Array.from({length:Math.max(0,ateDia)},(_,i)=>i+1).filter(d=>!rD[d]),
+   divergentes:F.filter(x=>x.bateu===false).map(x=>+String(x.data).slice(8,10))});
+  AEB().snap=sn;save();setSync(`Voucher LGM: ${F.length} fechamento(s) e ${R.length} lançamento(s) de ${MESES[S.mes-1]}`,'ok')}
+ catch(e){AEB_ERR='Não consegui ler o Voucher LGM: '+e.message;setSync(AEB_ERR,'err')}finally{AEB_LOADING=false;softRender()}}
+function aebAlerts(sn){const al=[];const ds=a=>a.length>8?a.slice(0,8).join(', ')+'…':a.join(', ');
+ if(sn.semFech.length)al.push(`${sn.semFech.length} dia(s) sem fechamento de vouchers: ${ds(sn.semFech)}`);
+ if(sn.semRec.length)al.push(`${sn.semRec.length} dia(s) sem lançamento de bebidas e passantes: ${ds(sn.semRec)}`);
+ if(sn.divergentes.length)al.push(`${sn.divergentes.length} dia(s) em que a conferência com o caixa não bateu: ${ds(sn.divergentes)}`);
+ if(sn.v.ni)al.push(`${sn.v.ni} voucher(s) não identificado(s) no scan`);
+ if(sn.p.semPreco)al.push(`${sn.p.semPreco} dia(s) com passantes sem preço gravado (a receita de passantes fica menor)`);
+ if(S.crm){const L=S.crm.lines;const rest=mapList('dre:RECEITA DE A&B').map(k=>L.find(l=>lineKey(l)===k)).filter(l=>l&&/^RESTAURANTE/.test(norm(l.d)));
+  if(rest.length){const crm=rest.reduce((t,l)=>t+(l.n[1]||0),0);const df=sn.tot-crm,pc=crm?df/crm*100:0;if(Math.abs(pc)>5)al.push(`Receita do restaurante no Voucher LGM (${brl(sn.tot)}) difere ${pct(pc)} da linha Restaurante do CRM (${brl(crm)})`)}}
+ return al}
+function dlt(a,b,inv){if(a==null||!b)return '';const p=(a/b-1)*100;if(!isFinite(p))return '';const up=p>=0;return `<span class="dl ${(inv?!up:up)?'up':'dn'}">${up?'▲':'▼'} ${nf1p(Math.abs(p))}%</span> vs ${MESES[(S.mes+10)%12].toLowerCase()}`}
+const nf1p=n=>new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}).format(n);
+function dayChart(sn){const W=1168,H=300,l=44,t=14,bt=24;const N=sn.N;const mx=Math.max(1,...sn.dias.map(x=>x.r+x.f));const st=Math.pow(10,Math.floor(Math.log10(mx))-1);const step=[1,2,2.5,5,10].map(k=>k*st).find(k=>mx/k<=5)||st*10;const top=Math.ceil(mx/step)*step;
+ const ph=H-t-bt,cw=(W-l)/N,bw=Math.max(4,cw-6),y=v=>t+ph-(v/top)*ph;let g='';
+ for(let v=0;v<=top+1e-9;v+=step)g+=`<line x1="${l}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="#dbe5e2" stroke-width="1"/><text x="${l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="#6b7c77">${nf0.format(v)}</text>`;
+ const peak=sn.dias.reduce((a,b)=>b.r+b.f>a.r+a.f?b:a,sn.dias[0]);
+ sn.dias.forEach((x,i)=>{const cx=l+i*cw+(cw-bw)/2;const hr=(x.r/top)*ph,hf=(x.f/top)*ph;
+  if(x.r)g+=`<rect x="${cx}" y="${y(x.r)}" width="${bw}" height="${hr}" fill="${AEB_COR.rod}" rx="${x.f?0:2}"/>`;
+  if(x.f)g+=`<rect x="${cx}" y="${y(x.r+x.f)}" width="${bw}" height="${Math.max(0,hf-2)}" fill="${AEB_COR.fon}" rx="2"/>`;
+  g+=`<text x="${cx+bw/2}" y="${H-6}" text-anchor="middle" font-size="10.5" fill="${x.tem?'#53655f':'#b7c3bf'}">${x.d}</text>`;
+  if(x===peak&&x.r+x.f)g+=`<text x="${cx+bw/2}" y="${y(x.r+x.f)-6}" text-anchor="middle" font-size="12" font-weight="700" fill="#1d2b27">${x.r+x.f}</text>`});
+ return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Vouchers por dia">${g}<line x1="${l}" x2="${W}" y1="${y(0)}" y2="${y(0)}" stroke="#9fb1ac"/></svg>`}
+function aebSlides(){const a=AEB(),sn=aebSnap();if(!a.on||!sn)return [];const an=sn.ant;
+ const s1=sl(H('food','Vendas do Restaurante','Alimentos e Bebidas')+`<div class="bd" style="top:124px">
+  <div class="ak hero"><div><small>Receita do restaurante</small><b>${brl0(sn.tot)}</b><i>${dlt(sn.tot,an.tot)}</i></div><div><small>Vouchers LGM</small><b>${brl0(sn.v.val)}</b><i>${dlt(sn.v.val,an.v.val)}</i></div><div><small>Bebidas</small><b>${brl0(sn.b.val)}</b><i>${dlt(sn.b.val,an.b.val)}</i></div><div><small>Passantes</small><b>${brl0(sn.p.val)}</b><i>${dlt(sn.p.val,an.p.val)}</i></div></div>
+  <div style="display:grid;grid-template-columns:1.45fr 1fr;gap:40px;margin-top:30px"><div><div class="ah">Composição da receita do restaurante</div>
+   <div class="cbar">${[['vou',sn.v.val],['pas',sn.p.val],['beb',sn.b.val]].filter(x=>x[1]>0).map(x=>`<span style="flex:${x[1]};background:${AEB_COR[x[0]]}"></span>`).join('')}</div>
+   <div class="clg">${[['vou','Vouchers LGM',sn.v.val],['pas','Passantes',sn.p.val],['beb','Bebidas',sn.b.val]].map(x=>`<div><em style="background:${AEB_COR[x[0]]}"></em>${x[1]}<b>${brl(x[2])}</b><span>${sn.tot?nf1p(x[2]/sn.tot*100):'0'}%</span></div>`).join('')}</div>
+   ${a.txt?`<div class="stx" style="font-size:14.5px;margin-top:22px">${md(a.txt)}</div>`:''}</div>
+   <div class="sr"><div><small>Clientes atendidos<br><span style="font-size:11.5px">vouchers + passantes</span></small><div><b>${nf0.format(sn.cli)}</b><i>${dlt(sn.cli,an.cli)}</i></div></div><div><small>Ticket médio por cliente</small><div><b>${brl(sn.tkt)}</b><i>${dlt(sn.tkt,an.tkt)}</i></div></div><div><small>Bebida por cliente</small><div><b>${brl(sn.bpc)}</b><i>${dlt(sn.bpc,an.bpc)}</i></div></div></div></div></div>`+L());
+ const md2=sn.v.nd?(sn.v.qr+sn.v.qf)/sn.v.nd:0;
+ const s2=sl(H('food','Vouchers LGM','Alimentos e Bebidas')+`<div class="bd" style="top:124px">
+  <div class="ak"><div><small>Valor dos vouchers</small><b>${brl0(sn.v.val)}</b><i>${dlt(sn.v.val,an.v.val)}</i></div><div><small>Vouchers utilizados</small><b>${nf0.format(sn.v.qr+sn.v.qf)}</b><i>Rodízio ${nf0.format(sn.v.qr)} · Rodízio + Fondue ${nf0.format(sn.v.qf)}</i></div><div><small>Média por dia</small><b>${nf1p(md2)}</b><i>${sn.v.nd} dia(s) com fechamento</i></div><div><small>Conferência com o caixa</small><b>${sn.v.ok}/${sn.v.nd}</b><i>dias sem divergência${sn.v.ni?` · ${sn.v.ni} não identificado(s)`:''}</i></div></div>
+  <div style="margin-top:26px;display:flex;justify-content:space-between;align-items:center"><div class="ah" style="margin:0">Vouchers por dia</div><div class="lgd"><span><em style="background:${AEB_COR.rod}"></em>Rodízio</span><span><em style="background:${AEB_COR.fon}"></em>Rodízio + Fondue</span></div></div>
+  <div style="margin-top:8px">${dayChart(sn)}</div></div>`+L());
+ const tp=sn.p.qr+sn.p.qf+sn.p.qi,tpa=an.p.qr+an.p.qf+an.p.qi;const row=(n,q,v,qa)=>`<tr><td>${n}</td><td>${nf0.format(q)}</td><td class="bo">${brl(v)}</td><td>${nf0.format(qa)}</td></tr>`;
+ const s3=sl(H('food','Bebidas e Passantes','Alimentos e Bebidas')+`<div class="bd" style="top:124px">
+  <div class="ak"><div><small>Bebidas do restaurante</small><b>${brl0(sn.b.val)}</b><i>${dlt(sn.b.val,an.b.val)}</i></div><div><small>Média de bebidas por dia</small><b>${brl0(sn.b.nd?sn.b.val/sn.b.nd:0)}</b><i>${sn.b.nd} dia(s) lançado(s)</i></div><div><small>Bebida por cliente</small><b>${brl(sn.bpc)}</b><i>${dlt(sn.bpc,an.bpc)}</i></div><div><small>Participação das bebidas</small><b>${sn.tot?nf1p(sn.b.val/sn.tot*100):'0'}%</b><i>da receita do restaurante</i></div></div>
+  <div style="display:grid;grid-template-columns:1fr 380px;gap:40px;margin-top:30px;align-items:start"><div><div class="ah">Passantes</div><table class="st"><thead><tr><th>Tipo</th><th>Quantidade</th><th>Receita</th><th>Qtd. ${MESES[(S.mes+10)%12].toLowerCase()}</th></tr></thead><tbody>
+   ${row('Rodízio',sn.p.qr,sn.p.vr,an.p.qr)}${row('Fondue',sn.p.qf,sn.p.vf,an.p.qf)}${row('Sequência infantil',sn.p.qi,sn.p.vi,an.p.qi)}<tr class="tot"><td>Total</td><td>${nf0.format(tp)}</td><td>${brl(sn.p.val)}</td><td>${nf0.format(tpa)}</td></tr></tbody></table></div>
+   <div class="sr"><div><small>Participação dos passantes<br><span style="font-size:11.5px">na receita do restaurante</span></small><b>${sn.tot?nf1p(sn.p.val/sn.tot*100):'0'}%</b></div><div><small>Passantes no total<br><span style="font-size:11.5px">de clientes atendidos</span></small><b>${sn.cli?nf1p(tp/sn.cli*100):'0'}%</b></div><div><small>Receita de passantes</small><div><b>${brl0(sn.p.val)}</b><i>${dlt(sn.p.val,an.p.val)}</i></div></div></div></div></div>`+L());
+ return [sDiv(`Relatório ${mesN()} ${S.ano}`,'Alimentos e Bebidas'),s1,s2,s3]}
+
 /* ======================= revisão ======================= */
 let PV=[];
 function pend(){const r=[];const G=S.ger,Q=S.guest;
+ if(AEB().on&&!aebSnap())r.push(['ger','aeb','A&B: dados do Voucher LGM ainda não puxados']);
  estouros().filter(e=>e.j.on&&!String(e.j.txt||'').trim()).forEach(e=>r.push(['ger','just',`Justificativa sem texto: ${e.j.chip||e.d.k}`]));
  if(!Object.values(Q.pr).some(a=>a.length))r.push(['guest','prints','Prints das plataformas ainda não enviados']);
  G.man.bl.forEach(b=>{if(!b.f.length)r.push(['ger','man',`Manutenção: "${b.t||'bloco sem título'}" sem fotos (fica fora do PDF)`])});
@@ -782,7 +876,7 @@ function livePh(){const m=document.querySelector('[data-bind="ger.man.txt"]');if
  ['txtT','txtG','txtB'].forEach(k=>{const el=document.querySelector(`[data-bind="guest.rep.${k}"]`);if(el)el.placeholder=autoTxt[k]().replace(/\*\*/g,'')})}
 document.addEventListener('change',async e=>{const t=e.target;
  if(t.dataset.num&&t.dataset.bind){const v=getP(S,t.dataset.bind);if(v!=null)t.value=fmtIn(v,t.dataset.num)}
- if(t.id==='selMes'||t.id==='selAno'){await flushSave();await loadMonth(+$('#selMes').value,+$('#selAno').value)}
+ if(t.id==='selMes'||t.id==='selAno'){await flushSave();await loadMonth(+$('#selMes').value,+$('#selAno').value);autoAeb()}
  if(t.dataset.up){const ids=await addFiles(t.files);const arr=getP(S,t.dataset.up);ids.forEach(id=>arr.push(t.dataset.plain?id:{id,leg:''}));save();render()}
  if(t.dataset.up1){const ids=await addFiles(t.files);if(ids[0]){setP(S,t.dataset.up1,ids[0]);save();render()}}
  if(t.id==='impInput'&&t.files[0]){importFile(t.files[0]);t.value=''}
@@ -840,6 +934,7 @@ document.addEventListener('click',e=>{
   case 'reloadAll':flushSave().then(()=>{IMGFAIL_reset();loadMonth(S.mes,S.ano)});break;
   case 'reloadGuest':reloadGuest();break;
   case 'pullMan':pullMan();break;
+  case 'pullAeb':pullAeb();break;
   case 'addMap':{const mk=a.dataset.mk;const arr=mapList(mk).filter(x=>x!=='-'&&x!==RESTO);arr.push('');S.cfg.map[mk]=arr;render();break}
   case 'rmMap':{const mk=a.dataset.mk;const arr=mapList(mk);arr.splice(+a.dataset.i,1);S.cfg.map[mk]=arr.length>1?arr:arr[0];applyCRM();save();render();break}
   case 'galReload':GAL[a.dataset.k]=null;render();break;
