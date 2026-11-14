@@ -307,7 +307,7 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
     <div class="nav-sec">Sistema</div>
     <div class="ni" data-page="configuracoes" onclick="navTo(this)"><span class="ic">◎</span>Configurações</div>
   </div>
-  <div class="sb-footer">Portal DP v3.0 · <span id="sb-hora"></span></div>
+  <div class="sb-footer">Portal DP v3.1 · <span id="sb-hora"></span></div>
 </nav>
 
 <div id="main" style="display:none;">
@@ -316,6 +316,7 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
     <div class="topbar-right">
       <div class="date-tag" id="top-data"></div>
       <span id="dp-user-chip" style="font-size:12.5px;color:var(--text2);padding:0 4px;"></span>
+      <button class="btn btn-s btn-sm" onclick="atualizarDadosDP()" title="Buscar no banco as alterações feitas por outras pessoas">↻ Atualizar</button>
       <button class="btn btn-s btn-sm" onclick="abrirTrocaSenhaDP(false,'')" title="Alterar minha senha">Alterar senha</button>
       <button class="btn btn-s btn-sm" onclick="sairDP()" title="Sair">⎋ Sair</button>
       <button class="btn btn-s btn-sm" onclick="imprimirColabs()" title="Imprimir lista de colaboradores">🖨 Imprimir</button>
@@ -340,6 +341,26 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
       <div class="card mt4">
         <div class="card-hdr"><span class="card-title">Testes de função em andamento</span></div>
         <div class="card-body" id="dash-testes" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+      <div class="g2 mt4">
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Férias — em curso e próximos 30 dias</span></div>
+          <div class="card-body" id="dash-ferias" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Pendências de cadastro</span></div>
+          <div class="card-body" id="dash-pend" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+      </div>
+      <div class="g2 mt4">
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Quadro por setor</span></div>
+          <div class="card-body" id="dash-setores" style="display:flex;flex-direction:column;gap:7px"></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Indicadores</span></div>
+          <div class="card-body" id="dash-ind" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+        </div>
       </div>
       <div class="card mt4">
         <div class="card-hdr"><span class="card-title">Candidatos por etapa</span></div>
@@ -1808,11 +1829,12 @@ function fConf(ok){document.getElementById('co').classList.remove('open');if(ok&
 function aMo(id){document.getElementById(id).classList.add('open');}
 function fMo(id){document.getElementById(id).classList.remove('open');}
 function mCPF(el){let v=el.value.replace(/\D/g,'').slice(0,11);v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');el.value=v;}
-function hoje(){return new Date().toISOString().split('T')[0];}
+function ymdLocal(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function hoje(){return ymdLocal(new Date());}
 function fmD(d){if(!d)return'—';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;}
 function fmDlabel(d){if(!d)return'—';const[,m,dd]=d.split('-');return`${dd}/${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(m)-1]}`;}
-function diasAte(d){if(!d)return null;return Math.round((new Date(d+'T12:00:00')-new Date())/(86400000));}
-function addDias(d,n){const dt=new Date(d+'T12:00:00');dt.setDate(dt.getDate()+n);return dt.toISOString().split('T')[0];}
+function diasAte(d){if(!d)return null;const p=String(d).split('-');const a=new Date(+p[0],+p[1]-1,+p[2]);const n=new Date();const b=new Date(n.getFullYear(),n.getMonth(),n.getDate());return Math.round((a-b)/86400000);}
+function addDias(d,n){const dt=new Date(d+'T12:00:00');dt.setDate(dt.getDate()+n);return ymdLocal(dt);}
 function initials(nm){return (nm||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();}
 
 /* ===== RELÓGIO ===== */
@@ -1857,15 +1879,20 @@ function renderDash(){
   colabs.filter(c=>c.contrato==='experiencia'&&c.adm).forEach(c=>{
     const d45=addDias(c.adm,45);const d90=addDias(c.adm,90);
     const da45=diasAte(d45);const da90=diasAte(d90);
-    if(da45>=0&&da45<=10) alertas.push({tipo:'or',ic:'⏰',at:`Contrato 45 dias — ${c.nome}`,as:`Vence ${da45===0?'HOJE':da45+' dias'} (${fmD(d45)})`});
-    else if(da90>=0&&da90<=14) alertas.push({tipo:'re',ic:'⚠',at:`Contrato 90 dias — ${c.nome}`,as:`Vence ${da90===0?'HOJE':da90+' dias'} (${fmD(d90)}) — definir efetivação!`});
+    if(da45>=0&&da45<=10) alertas.push({tipo:'or',ic:'⏰',at:`Contrato 45 dias — ${esc(c.nome)}`,as:`Vence ${da45===0?'HOJE':da45+' dias'} (${fmD(d45)})`});
+    else if(da90>=0&&da90<=14) alertas.push({tipo:'re',ic:'⚠',at:`Contrato 90 dias — ${esc(c.nome)}`,as:`Vence ${da90===0?'HOJE':da90+' dias'} (${fmD(d90)}) — definir efetivação!`});
   });
+  colabs.filter(c=>c.aso&&diasAte(c.aso)<0).forEach(c=>{
+    alertas.push({tipo:'re',ic:'🩺',at:`ASO vencido — ${esc(c.nome)}`,as:`Exame periódico venceu há ${Math.abs(diasAte(c.aso))} dia(s) (${fmD(c.aso)}) — agendar com urgência`});
+  });
+  const expVencida=colabs.filter(c=>c.contrato==='experiencia'&&c.adm&&diasAte(addDias(c.adm,90))<0);
+  if(expVencida.length) alertas.push({tipo:'or',ic:'⚠',at:`${expVencida.length} colaborador(es) ainda cadastrado(s) como experiência após os 90 dias`,as:`${nomesResumo(expVencida)} — atualizar o tipo de contrato no cadastro`});
   colabs.filter(c=>c.aso&&diasAte(c.aso)<=30&&diasAte(c.aso)>=0).forEach(c=>{
     const da=diasAte(c.aso);
-    alertas.push({tipo:'or',ic:'🩺',at:`ASO vencendo — ${c.nome}`,as:`Exame periódico em ${da===0?'hoje':da+' dias'} (${fmD(c.aso)})`});
+    alertas.push({tipo:'or',ic:'🩺',at:`ASO vencendo — ${esc(c.nome)}`,as:`Exame periódico em ${da===0?'hoje':da+' dias'} (${fmD(c.aso)})`});
   });
   colabs.filter(c=>c.aniv&&c.aniv.slice(5)===hj.slice(5)).forEach(c=>{
-    alertas.push({tipo:'gr',ic:'🎂',at:`Aniversário hoje — ${c.nome}`,as:`${c.cargo||'—'} · ${c.setor||'—'}`});
+    alertas.push({tipo:'gr',ic:'🎂',at:`Aniversário hoje — ${esc(c.nome)}`,as:`${esc(c.cargo||'—')} · ${esc(c.setor||'—')}`});
   });
   const testesAtivos=gTestes().filter(t=>t.status==='em_teste');
   const cfgTeste=gCfg();
@@ -1874,13 +1901,13 @@ function renderDash(){
     if(!c) return;
     const fim=addDias(t.dataInicio,duracaoTeste(t.tipo));
     const dias=diasAte(fim);
-    if(dias<0) alertas.push({tipo:'re',ic:'🧪',at:`Teste de função vencido — ${c.nome}`,as:`${TESTE_LBL[t.tipo]||t.tipo} venceu há ${Math.abs(dias)} dia(s) (${fmD(fim)}) — decidir aprovação!`});
-    else if(dias<=(cfgTeste.testeAlertaDias||15)) alertas.push({tipo:'or',ic:'🧪',at:`Teste de função — ${c.nome}`,as:`${TESTE_LBL[t.tipo]||t.tipo} vence ${dias===0?'HOJE':'em '+dias+' dias'} (${fmD(fim)})`});
+    if(dias<0) alertas.push({tipo:'re',ic:'🧪',at:`Teste de função vencido — ${esc(c.nome)}`,as:`${TESTE_LBL[t.tipo]||t.tipo} venceu há ${Math.abs(dias)} dia(s) (${fmD(fim)}) — decidir aprovação!`});
+    else if(dias<=(cfgTeste.testeAlertaDias||15)) alertas.push({tipo:'or',ic:'🧪',at:`Teste de função — ${esc(c.nome)}`,as:`${TESTE_LBL[t.tipo]||t.tipo} vence ${dias===0?'HOJE':'em '+dias+' dias'} (${fmD(fim)})`});
   });
 
   const aEl=document.getElementById('dash-alertas');
   aEl.innerHTML=alertas.map(a=>`<div class="alert alert-${a.tipo}"><span class="alert-ic">${a.ic}</span><div><div class="at">${a.at}</div><div class="as">${a.as}</div></div></div>`).join('')
-    ||'<div class="alert alert-gr"><span class="alert-ic">✓</span><div><div class="at">Nenhum alerta crítico</div><div class="as">Contratos e ASOs em dia.</div></div></div>';
+    ||'<div class="alert alert-gr"><span class="alert-ic">✓</span><div><div class="at">Nenhum alerta crítico</div><div class="as">Contratos, ASOs e testes de função em dia.</div></div></div>';
 
   // Stats
   const ativos=colabs.filter(c=>c.status==='ativo').length;
@@ -1891,6 +1918,8 @@ function renderDash(){
     <div class="sc or"><div class="sl">Em experiência</div><div class="sv">${emExp}</div><div class="ss">contratos monitorados</div></div>
     <div class="sc bl"><div class="sl">ASOs nos 30 dias</div><div class="sv">${asoProx}</div><div class="ss">exames a agendar</div></div>
     <div class="sc re"><div class="sl">Candidatos no processo</div><div class="sv">${cands.length}</div></div>
+    <div class="sc bl"><div class="sl">De férias agora</div><div class="sv">${colabs.filter(c=>c.status==='ferias').length}</div></div>
+    <div class="sc or"><div class="sl">Afastados</div><div class="sv">${colabs.filter(c=>c.status==='afastado').length}</div></div>
   `;
 
   // Contratos vencendo (30d)
@@ -1907,7 +1936,7 @@ function renderDash(){
     <div style="width:34px;height:34px;border-radius:7px;background:${c.dias<=7?'var(--red)':c.dias<=15?'var(--orange)':'var(--verde)'};color:${c.dias<=7?'#fff':'var(--verde-l)'};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;text-align:center">
       <span style="font-size:14px;line-height:1;font-family:'DM Mono',monospace">${c.dias===0?'hj':c.dias}</span><span>${c.dias>0?'d':''}</span>
     </div>
-    <div style="flex:1"><div style="font-size:13px;font-weight:500">${c.nome}</div><div class="tsm tmut">${c.cargo||'—'} · ${c.fase} · vence ${fmD(c.data)}</div></div>
+    <div style="flex:1"><div style="font-size:13px;font-weight:500">${esc(c.nome)}</div><div class="tsm tmut">${esc(c.cargo||'—')} · ${c.fase} · vence ${fmD(c.data)}</div></div>
     <span class="badge ${c.dias<=7?'b-re':c.dias<=15?'b-or':'b-gy'}">${c.fase}</span>
   </div>`).join('')||'<div class="tsm tmut" style="padding:8px 0">Nenhum contrato vencendo nos próximos 30 dias</div>';
 
@@ -1919,7 +1948,7 @@ function renderDash(){
   const anivEl=document.getElementById('dash-aniv');
   anivEl.innerHTML=anivs.map(c=>`<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
     <div class="av" style="width:34px;height:34px;font-size:12px">${initials(c.nome)}</div>
-    <div style="flex:1"><div style="font-size:13px;font-weight:500">${c.nome}</div><div class="tsm tmut">${c.cargo||'—'}</div></div>
+    <div style="flex:1"><div style="font-size:13px;font-weight:500">${esc(c.nome)}</div><div class="tsm tmut">${esc(c.cargo||'—')}</div></div>
     <span class="badge ${c.aniv.slice(5)===hj.slice(5)?'b-gr':'b-gy'}">${fmDlabel(c.aniv)}${c.aniv.slice(5)===hj.slice(5)?' 🎂':''}</span>
   </div>`).join('')||'<div class="tsm tmut" style="padding:8px 0">Nenhum aniversário neste mês</div>';
 
@@ -1936,7 +1965,7 @@ function renderDash(){
     <div style="width:34px;height:34px;border-radius:7px;background:${t.dias<0?'var(--red)':t.dias<=15?'var(--orange)':'var(--verde)'};color:${t.dias<0||t.dias<=15?'#fff':'var(--verde-l)'};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;text-align:center">
       <span style="font-size:14px;line-height:1;font-family:'DM Mono',monospace">${t.dias===0?'hj':Math.abs(t.dias)}</span><span>${t.dias<0?'venc.':t.dias>0?'d':''}</span>
     </div>
-    <div style="flex:1"><div style="font-size:13px;font-weight:500">${t.nome}${t.cargoNovo?' → '+t.cargoNovo:''}</div><div class="tsm tmut">${TESTE_LBL[t.tipo]||t.tipo} · previsão ${fmD(t.fim)}</div></div>
+    <div style="flex:1"><div style="font-size:13px;font-weight:500">${esc(t.nome)}${t.cargoNovo?' → '+esc(t.cargoNovo):''}</div><div class="tsm tmut">${TESTE_LBL[t.tipo]||t.tipo} · previsão ${fmD(t.fim)}</div></div>
     <span class="badge ${t.dias<0?'b-re':t.dias<=15?'b-or':'b-gy'}">${TESTE_LBL[t.tipo]||t.tipo}</span>
   </div>`).join('')||'<div class="tsm tmut" style="padding:8px 0">Nenhum teste de função em andamento</div>';
 
@@ -1952,6 +1981,80 @@ function renderDash(){
       <span class="badge ${ECOR[et]}" style="margin-top:6px">${et}</span>
     </div>`;
   }).join('');
+  renderDashExtra(colabs);
+}
+
+function cpfValido(v){
+  const d=String(v||'').replace(/\D/g,'');
+  if(d.length!==11||/^(\d)\1{10}$/.test(d)) return false;
+  for(let t=9;t<11;t++){
+    let soma=0;
+    for(let i=0;i<t;i++) soma+=parseInt(d[i],10)*(t+1-i);
+    if(((soma*10)%11)%10!==parseInt(d[t],10)) return false;
+  }
+  return true;
+}
+function linhaDash(titulo,sub,badge,cls){
+  return '<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">'
+    +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+titulo+'</div><div class="tsm tmut">'+sub+'</div></div>'
+    +(badge?'<span class="badge '+cls+'">'+badge+'</span>':'')+'</div>';
+}
+function nomesResumo(lista){
+  const n=lista.slice(0,4).map(function(c){return esc(c.nome);}).join(', ');
+  return n+(lista.length>4?' e mais '+(lista.length-4):'');
+}
+function renderDashExtra(colabs){
+  const todos=gD('colabs');
+  const nomeDe={}; todos.forEach(function(c){ nomeDe[c.id]=c.nome; });
+
+  // Férias em curso e nos próximos 30 dias
+  const fer=gD('ferias').filter(function(f){ return f.ini&&f.fim&&diasAte(f.fim)>=0&&diasAte(f.ini)<=30; })
+    .sort(function(a,b){ return a.ini.localeCompare(b.ini); });
+  document.getElementById('dash-ferias').innerHTML=fer.map(function(f){
+    const emCurso=diasAte(f.ini)<=0;
+    return linhaDash(esc(nomeDe[f.colabId]||'—'), fmD(f.ini)+' a '+fmD(f.fim), emCurso?'Em curso':'Em '+diasAte(f.ini)+'d', emCurso?'b-bl':'b-gy');
+  }).join('')||'<div class="tsm tmut" style="padding:8px 0">Nenhuma férias em curso ou programada para os próximos 30 dias</div>';
+
+  // Pendências de cadastro
+  const cont={};
+  colabs.forEach(function(c){ const k=String(c.cpf||'').replace(/\D/g,''); if(k.length===11){ (cont[k]=cont[k]||[]).push(c); } });
+  const repetidos=[]; Object.keys(cont).forEach(function(k){ if(cont[k].length>1) cont[k].forEach(function(c){ repetidos.push(c); }); });
+  const itens=[
+    ['CPF repetido', repetidos, 'b-re'],
+    ['CPF inválido', colabs.filter(function(c){ return c.cpf&&!cpfValido(c.cpf); }), 'b-re'],
+    ['Sem CPF', colabs.filter(function(c){ return !c.cpf; }), 'b-or'],
+    ['Sem data de admissão', colabs.filter(function(c){ return !c.adm; }), 'b-or'],
+    ['Sem setor', colabs.filter(function(c){ return !c.setor; }), 'b-or'],
+    ['Sem ASO cadastrado', colabs.filter(function(c){ return !c.aso; }), 'b-gy'],
+    ['Sem telefone', colabs.filter(function(c){ return !c.tel; }), 'b-gy']
+  ].filter(function(x){ return x[1].length; });
+  document.getElementById('dash-pend').innerHTML=itens.map(function(x){
+    return linhaDash(x[0], nomesResumo(x[1]), x[1].length, x[2]);
+  }).join('')||'<div class="tsm tmut" style="padding:8px 0">Cadastros completos</div>';
+
+  // Quadro por setor
+  const porSetor={}; colabs.forEach(function(c){ const k=c.setor||'Sem setor'; porSetor[k]=(porSetor[k]||0)+1; });
+  const ordem=Object.keys(porSetor).sort(function(a,b){ return porSetor[b]-porSetor[a]; });
+  const maxS=ordem.length?porSetor[ordem[0]]:1;
+  document.getElementById('dash-setores').innerHTML=ordem.map(function(k){
+    return '<div style="display:flex;align-items:center;gap:10px"><div style="width:130px;font-size:12.5px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(k)+'</div>'
+      +'<div style="flex:1;background:var(--surface2);border-radius:6px;height:14px;overflow:hidden"><div style="width:'+Math.round(porSetor[k]/maxS*100)+'%;height:100%;background:var(--verde)"></div></div>'
+      +'<div class="fmono" style="width:28px;text-align:right;font-size:12.5px">'+porSetor[k]+'</div></div>';
+  }).join('')||'<div class="tsm tmut">Sem dados</div>';
+
+  // Indicadores
+  const comAdm=colabs.filter(function(c){ return c.adm; });
+  const mediaMeses=comAdm.length?comAdm.reduce(function(a,c){ return a+(-diasAte(c.adm)); },0)/comAdm.length/30.44:0;
+  const anos=Math.floor(mediaMeses/12), meses=Math.round(mediaMeses%12);
+  const adm90=comAdm.filter(function(c){ const d=diasAte(c.adm); return d<=0&&d>=-90; }).length;
+  const des12=gD('desligados').filter(function(d){ const x=d.dataDeslig?diasAte(d.dataDeslig):null; return x!==null&&x<=0&&x>=-365; }).length;
+  const turn=colabs.length?(des12/colabs.length*100):0;
+  const box=function(v,l){ return '<div style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center"><div style="font-size:20px;font-weight:700;font-family:\'DM Mono\',monospace">'+v+'</div><div style="font-size:11.5px;color:var(--text2);margin-top:3px">'+l+'</div></div>'; };
+  document.getElementById('dash-ind').innerHTML=
+    box(comAdm.length?(anos?anos+'a ':'')+meses+'m':'—','Tempo médio de casa')
+    +box(adm90,'Admissões (90 dias)')
+    +box(des12,'Desligamentos (12 meses)')
+    +box(turn.toFixed(1)+'%','Turnover 12 meses');
 }
 
 /* ===== COLABORADORES ===== */
@@ -2105,9 +2208,9 @@ function renderColabRow(c){
 
   return '<div class="colab-row"' + rowStyle + '>'
     + '<div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:28px;height:28px;font-size:10px">' + initials(c.nome) + '</div>'
-    + '<div><div class="nm" style="font-size:13px">' + liderTag + c.nome + '</div>'
-    + (c.tel ? '<div class="tsm tmut">' + c.tel + '</div>' : '') + '</div></div>'
-    + '<div class="tsm">' + (c.cargo||'—') + '</div>'
+    + '<div><div class="nm" style="font-size:13px">' + liderTag + esc(c.nome) + '</div>'
+    + (c.tel ? '<div class="tsm tmut">' + esc(c.tel) + '</div>' : '') + '</div></div>'
+    + '<div class="tsm">' + esc(c.cargo||'—') + '</div>'
     + '<div class="fmono tsm">' + fmD(c.adm) + '</div>'
     + '<div>' + contratoTag + '</div>'
     + '<div><span class="badge ' + (ST_COR[c.status]||'b-gy') + '">' + (ST_LBL[c.status]||c.status||'—') + '</span></div>'
@@ -2183,6 +2286,14 @@ function abrirColab(id=null){
 function salvColab(){
   const nm=document.getElementById('c-nm').value.trim();if(!nm){toast('Nome obrigatório',true);return;}
   const C=gD('colabs');const id=document.getElementById('c-id').value;
+  const cpfNovo=document.getElementById('c-cpf').value.trim();
+  if(cpfNovo){
+    const antes=id?C.find(x=>x.id===id):null;
+    const mudou=!antes||String(antes.cpf||'').replace(/\D/g,'')!==cpfNovo.replace(/\D/g,'');
+    if(mudou&&!cpfValido(cpfNovo)){toast('CPF inválido — confira os números.',true);return;}
+    const dup=C.find(x=>x.id!==id&&x.cpf&&x.cpf.replace(/\D/g,'')===cpfNovo.replace(/\D/g,''));
+    if(dup){toast('Este CPF já está cadastrado para '+dup.nome+'.',true);return;}
+  }
   // coletar idades dos filhos
   const temFilhos=document.getElementById('c-filhos').value==='sim';
   const nFilhos=temFilhos?parseInt(document.getElementById('c-nfilhos').value)||0:0;
@@ -2192,12 +2303,18 @@ function salvColab(){
   if(id){const i=C.findIndex(x=>x.id===id);if(i>-1)C[i]=obj;}else C.push(obj);
   sD('colabs',C,obj.id);fMo('m-colab');renderColabs();atualizarStatusFeriasAutomatico();renderDash();toast('Colaborador salvo!');
 }
-function delColab(id){conf('Remover colaborador?',()=>{sD('colabs',gD('colabs').filter(c=>c.id!==id));renderColabs();renderDash();toast('Removido');});}
+function delColab(id){if(!ehAdminDP()){toast('Só Administradores podem remover colaboradores. Para quem saiu da empresa, use Desligar.',true);return;}conf('Remover colaborador definitivamente? Isso apaga o cadastro e o histórico. Para quem saiu da empresa, use Desligar.',()=>{sD('colabs',gD('colabs').filter(c=>c.id!==id));renderColabs();renderDash();toast('Removido');});}
+function csvCel(v){
+  let t=String(v==null?'':v).replace(/\r?\n/g,' ');
+  if(/^[=+\-@]/.test(t)) t="'"+t;
+  return '"'+t.replace(/"/g,'""')+'"';
+}
 function expColabCSV(){
   const C=gD('colabs');
-  let csv='Nome;CPF;PIS;Cargo;Setor;Líder;Admissão;Contrato;Status;ASO;Aniversário;Est.Civil;Escolaridade;Banco;Conta;Filhos;Qtd Filhos;Docs Pendentes\n';
-  C.forEach(c=>csv+=`${c.nome||''};${c.cpf||''};${c.pis||''};${c.cargo||''};${c.setor||''};${c.lider==='sim'?'Sim':'Não'};${c.adm||''};${c.contrato||''};${c.status||''};${c.aso||''};${c.aniv||''};${c.ecivil||''};${c.esc||''};${c.banco||''};${c.conta||''};${c.filhos||'nao'};${c.nfilhos||0};${c.docs||''}\n`);
-  const b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='colaboradores-dp.csv';a.click();URL.revokeObjectURL(u);
+  const cab=['Nome','CPF','PIS','Cargo','Setor','Líder','Admissão','Contrato','Status','ASO','Aniversário','Telefone','E-mail','Est.Civil','Escolaridade','Banco','Conta','Filhos','Qtd Filhos','Docs Pendentes','Obs'];
+  const linhas=[cab.map(csvCel).join(';')];
+  C.forEach(c=>linhas.push([c.nome,c.cpf,c.pis,c.cargo,c.setor,c.lider==='sim'?'Sim':'Não',c.adm,c.contrato,c.status,c.aso,c.aniv,c.tel,c.email,c.ecivil,c.esc,c.banco,c.conta,c.filhos||'nao',c.nfilhos||0,c.docs,c.obs].map(csvCel).join(';')));
+  const b=new Blob(['\uFEFF'+linhas.join('\r\n')],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='colaboradores-dp-'+hoje()+'.csv';a.click();URL.revokeObjectURL(u);
   toast('CSV exportado!');
 }
 
@@ -2220,8 +2337,8 @@ function renderPipeline(){
         <span class="badge ${ECOR[et]}">${cards.length}</span>
       </div>
       ${cards.map(c=>`<div class="pipe-card">
-        <div class="pc-nome">${c.nome}</div>
-        <div class="pc-cargo">${c.cargo||'—'} · ${c.setor||'—'}</div>
+        <div class="pc-nome">${esc(c.nome)}</div>
+        <div class="pc-cargo">${esc(c.cargo||'—')} · ${esc(c.setor||'—')}</div>
         <div class="pc-data">📅 ${fmD(c.data)}${c.prev?` → ${fmD(c.prev)}`:''}</div>
         ${c.obs?`<div class="tsm tmut" style="margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.obs}</div>`:''}
         <div style="display:flex;gap:5px;margin-top:8px">
@@ -2676,7 +2793,7 @@ function delMatriz(id){
 
 function abrirFerias(colabId=null){
   const colabs=gD('colabs').filter(c=>c.status!=='desligado'&&c.adm);
-  document.getElementById('fer-colab').innerHTML='<option value="">Selecione...</option>'+colabs.map(c=>`<option value="${c.id}" ${c.id===colabId?'selected':''}>${c.nome}</option>`).join('');
+  document.getElementById('fer-colab').innerHTML='<option value="">Selecione...</option>'+colabs.map(c=>`<option value="${c.id}" ${c.id===colabId?'selected':''}>${esc(c.nome)}</option>`).join('');
   document.getElementById('fer-id').value='';
   document.getElementById('fer-ini').value='';
   document.getElementById('fer-fim').value='';
@@ -3027,7 +3144,7 @@ function imprimirColabs(){
   <h1>Quadro de Colaboradores — Laghetto Pedras Altas</h1>
   <p>Gerado em ${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} · Total: ${colabs.length} colaboradores</p>
   <table><thead><tr><th>#</th><th>Nome</th><th>Cargo</th><th>Setor</th><th>Admissão</th><th>Contrato</th><th>ASO</th><th>Status</th></tr></thead><tbody>
-  ${colabs.map((c,i)=>`<tr><td>${i+1}</td><td>${c.nome}</td><td>${c.cargo||'—'}</td><td>${c.setor||'—'}</td><td>${fmD(c.adm)}</td><td>${c.contrato||'CLT'}</td><td>${fmD(c.aso)}</td><td>${c.status}</td></tr>`).join('')}
+  ${colabs.map((c,i)=>`<tr><td>${i+1}</td><td>${esc(c.nome)}</td><td>${esc(c.cargo||'—')}</td><td>${esc(c.setor||'—')}</td><td>${fmD(c.adm)}</td><td>${c.contrato||'CLT'}</td><td>${fmD(c.aso)}</td><td>${c.status}</td></tr>`).join('')}
   </tbody></table></body></html>`);
   win.document.close();win.print();
 }
@@ -4455,6 +4572,12 @@ function mostrarAppDP(){
       renderDash();
     }
   });
+}
+
+async function atualizarDadosDP(){
+  await carregarDoSupabase();
+  const ativo=document.querySelector('.ni.active'); if(ativo) navTo(ativo);
+  toast('Dados atualizados!');
 }
 
 async function manterSessaoDP(){
