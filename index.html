@@ -78,6 +78,67 @@
   .sidebar button:disabled{opacity:.35;cursor:not-allowed;color:var(--verde-claro);}
   .sidebar button .traco{font-size:12px;color:var(--texto-suave);}
   main{flex:1;padding:30px 34px 60px;max-width:1100px;}
+
+  /* ===== MENU INICIAL (QUADRADOS) ===== */
+  main.home{max-width:1180px;margin:0 auto;padding:34px 28px 60px;}
+  .home-head{margin-bottom:22px;}
+  .home-head h1{font-size:22px;margin:0 0 4px;color:var(--verde-escuro);}
+  .home-head p{margin:0;font-size:13.5px;color:var(--texto-suave);}
+  .tile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;}
+  .tile{
+    position:relative;display:flex;flex-direction:column;justify-content:flex-end;
+    aspect-ratio:4/3;min-height:170px;padding:18px 20px;border:none;border-radius:14px;
+    text-align:left;cursor:pointer;color:#fff;overflow:hidden;font-family:inherit;
+    background-color:var(--verde-mid);
+    background-size:cover;background-position:center;
+    box-shadow:0 2px 6px rgba(10,42,34,.18);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .tile::before{ /* película escura para o texto ficar legível sobre qualquer foto */
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(10,42,34,.10) 0%,rgba(10,42,34,.55) 55%,rgba(10,42,34,.88) 100%);
+  }
+  .tile:hover:not(.bloqueado){transform:translateY(-3px);box-shadow:0 10px 22px rgba(10,42,34,.28);}
+  .tile:focus-visible{outline:3px solid var(--sage);outline-offset:2px;}
+  .tile .ico{position:absolute;top:16px;right:16px;width:44px;height:44px;opacity:.55;color:var(--verde-claro);}
+  .tile .t-nome{position:relative;font-size:19px;font-weight:700;line-height:1.2;}
+  .tile .t-sub{position:relative;font-size:12.5px;color:var(--verde-claro);margin-top:3px;letter-spacing:.02em;}
+  .tile.bloqueado{cursor:not-allowed;filter:grayscale(.85);opacity:.55;}
+  .tile .t-soon{position:absolute;top:14px;left:16px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(255,255,255,.18);padding:3px 8px;border-radius:20px;}
+  .home-rodape{margin-top:34px;text-align:center;font-size:11.5px;color:var(--texto-suave);opacity:.8;}
+  .sys-wrap{position:relative;}
+  .sys-status{
+    position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;background:#fff;color:var(--texto-suave);font-size:14px;text-align:center;padding:24px;
+  }
+  .sys-status[hidden]{display:none;}
+  .sys-spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--verde-claro);border-top-color:var(--verde-mid);animation:sysgira .8s linear infinite;}
+  @keyframes sysgira{to{transform:rotate(360deg);}}
+  .sys-erro h3{margin:0;font-size:17px;color:var(--verde-escuro);}
+  .sys-erro p{margin:0;max-width:380px;}
+  .sys-erro .acoes{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px;}
+  .sys-erro button{font-family:inherit;font-size:13.5px;font-weight:700;padding:10px 18px;border-radius:8px;cursor:pointer;border:1px solid var(--verde-mid);background:var(--verde-mid);color:#fff;}
+  .sys-erro button.sec{background:#fff;color:var(--verde-mid);}
+  .btn-voltar{
+    display:flex;align-items:center;gap:8px;flex-shrink:0;
+    background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);color:#fff;
+    padding:0 16px;height:36px;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer;
+    margin-right:10px;font-family:inherit;
+  }
+  .btn-voltar:hover{background:rgba(255,255,255,.20);}
+  .topbar nav button.btn-voltar{opacity:1;height:36px;padding:0 16px;color:#fff;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);}
+  .topbar nav button.btn-voltar:hover{background:rgba(255,255,255,.22);}
+  .btn-voltar svg{width:16px;height:16px;}
+  .topbar .setor-atual{color:var(--sage);font-size:14px;font-weight:700;letter-spacing:.02em;white-space:nowrap;}
+  @media (max-width:560px){
+    main.home{padding:22px 14px 40px;}
+    .tile-grid{grid-template-columns:repeat(2,1fr);gap:12px;}
+    .tile{aspect-ratio:1/1;min-height:140px;padding:14px;}
+    .tile .t-nome{font-size:16px;}
+    .topbar{padding:0 12px;}
+    .topbar .brand{margin-right:8px;}
+    .topbar .brand .txt .sub{display:none;}
+  }
   main.encaixado{padding:14px;max-width:none;}
 
   .bloqueado-msg{
@@ -174,6 +235,8 @@
 // ============================================================
 const SETORES = {
   gerencia: {
+    sub: 'Gestão',
+    img: './img/gerencia.jpg',
     nome: 'Gerência',
     ativo: true,
     submenus: [
@@ -186,24 +249,32 @@ const SETORES = {
     ]
   },
   manutencao: {
+    sub: 'Ferramentas',
+    img: './img/manutencao.jpg',
     nome: 'Manutenção',
     ativo: true,
     url: './manutencao/',
     submenus: []
   },
   dp: {
+    sub: 'Pessoas',
+    img: './img/dp.jpg',
     nome: 'DP',
     ativo: true,
     url: './dp/',
     submenus: []
   },
   voucher: {
+    sub: 'Papelada',
+    img: './img/voucher.jpg',
     nome: 'Voucher LGM',
     ativo: true,
     url: './voucher/',
     submenus: []
   },
   recepcao: {
+    sub: 'Em breve',
+    img: './img/recepcao.jpg',
     nome: 'Recepção',
     ativo: false,
     submenus: [
@@ -212,18 +283,24 @@ const SETORES = {
     ]
   },
   governanca: {
+    sub: 'Quartos',
+    img: './img/governanca.jpg',
     nome: 'Governança',
     ativo: true,
     url: './governanca/',
     submenus: []
   },
   aeb: {
+    sub: 'Alimentos e Bebidas',
+    img: './img/aeb.jpg',
     nome: 'A&B',
     ativo: true,
     url: './aeb/',
     submenus: []
   },
   relatorio: {
+    sub: 'Diretoria',
+    img: './img/relatorio.jpg',
     nome: 'Relatório Mensal',
     ativo: true,
     url: './relatorio/',
@@ -239,8 +316,33 @@ const NIVEIS = [
   {v:5, d:'Admin'},
 ];
 
-let setorAtual = 'gerencia';
-let submenuAtual = 'notas';
+let setorAtual = 'home';   // 'home' = menu de quadrados
+let submenuAtual = null;
+
+function setorDoHash(){
+  const h = decodeURIComponent((location.hash||'').replace('#','')).trim();
+  return (h && SETORES[h]) ? h : 'home';
+}
+// Troca de sistema. Usa o hash da URL para o botão voltar do navegador/celular funcionar.
+function irPara(id){
+  if(id !== 'home' && !(SETORES[id] && SETORES[id].ativo)) return;
+  const alvo = id==='home' ? '' : '#'+id;
+  if((location.hash||'') === alvo || (!alvo && !location.hash)){ aplicarSetor(id); }
+  else { location.hash = alvo; }   // dispara hashchange -> aplicarSetor
+}
+function aplicarSetor(id){
+  setorAtual = id;
+  if(id==='home'){ submenuAtual = null; }
+  else {
+    const s = SETORES[id];
+    submenuAtual = s.submenus.length ? (s.submenus.find(sm=>sm.ativo)?.id || s.submenus[0].id) : null;
+  }
+  renderTopNav();
+  renderSidebar();
+  renderMain();
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange', ()=>aplicarSetor(setorDoHash()));
 
 // ============================================================
 // CONEXÃO SUPABASE (só leitura do uso do banco)
@@ -919,29 +1021,25 @@ async function removerGerUsuario(id){
 // ============================================================
 function renderTopNav(){
   const nav = document.getElementById('topNav');
-  nav.innerHTML = Object.entries(SETORES).map(([id,s])=>`
-    <button data-setor="${id}" class="${id===setorAtual?'active':''}">
-      ${s.nome}${!s.ativo?'<span class="lock">— não conectado</span>':''}
+  if(setorAtual === 'home'){ nav.innerHTML = ''; return; }
+  const s = SETORES[setorAtual];
+  nav.innerHTML = `
+    <button class="btn-voltar" id="btnVoltar" title="Voltar ao menu de sistemas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      VOLTAR
     </button>
-  `).join('');
-  nav.querySelectorAll('button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      setorAtual = btn.dataset.setor;
-      const s = SETORES[setorAtual];
-      submenuAtual = s.submenus.length ? (s.submenus.find(sm=>sm.ativo)?.id || s.submenus[0].id) : null;
-      renderTopNav();
-      renderSidebar();
-      renderMain();
-    });
-  });
+    <span class="setor-atual">${s.nome}</span>`;
+  nav.style.alignItems = 'center';
+  document.getElementById('btnVoltar').addEventListener('click', ()=>irPara('home'));
 }
 
 // ============================================================
 // SIDEBAR
 // ============================================================
 function renderSidebar(){
-  const s = SETORES[setorAtual];
   const sidebarWrap = document.getElementById('sidebarWrap');
+  if(setorAtual === 'home'){ sidebarWrap.style.display = 'none'; return; }
+  const s = SETORES[setorAtual];
 
   // A barra lateral só faz sentido na Gerência (Usuários e Permissões, etc).
   // Nos outros setores, o sistema encaixado já tem a navegação dele mesmo —
@@ -978,10 +1076,72 @@ function renderSidebar(){
 // ============================================================
 // CONTEÚDO PRINCIPAL
 // ============================================================
+const ICONES = {
+  gerencia:'<path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/>',
+  manutencao:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',
+  dp:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.4"/><path d="M16.5 14.2c2.6.2 4.5 2.3 4.5 5.1"/>',
+  voucher:'<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h7"/>',
+  recepcao:'<circle cx="8" cy="14" r="3.5"/><path d="M11.5 14H21M17 14v3M20 14v2"/>',
+  governanca:'<path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 21v-3M21 21v-3M6 10V7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>',
+  aeb:'<path d="M7 3v8a2 2 0 0 0 4 0V3M9 3v18M17 3c-2 2-3 4.5-3 7 0 1.7.9 3 3 3zM17 13v8"/>',
+  relatorio:'<path d="M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-3"/>'
+};
+const PORTAL_ATUALIZADO = '14/11/2026'; // atualizar a cada publicação do menu
+function renderHome(main){
+  main.classList.remove('encaixado');
+  main.classList.add('home');
+  main.innerHTML = `
+    <div class="home-head">
+      <h1>Escolha o sistema</h1>
+      <p>Toque em um quadrado para entrar. Dentro de cada sistema, o botão VOLTAR traz você de volta para cá.</p>
+    </div>
+    <div class="tile-grid">
+      ${Object.entries(SETORES).map(([id,t])=>`
+        <button class="tile ${t.ativo?'':'bloqueado'}" data-setor="${id}" ${t.ativo?'':'disabled'}
+          style="background-image:url('${t.img||''}')">
+          ${t.ativo?'':'<span class="t-soon">Em breve</span>'}
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICONES[id]||''}</svg>
+          <span class="t-nome">${esc(t.nome)}</span>
+          <span class="t-sub">${esc(t.sub||'')}</span>
+        </button>`).join('')}
+    </div>
+    <div class="home-rodape">Portal Pedras Altas · atualizado em ${PORTAL_ATUALIZADO}</div>`;
+  main.querySelectorAll('.tile:not(:disabled)').forEach(b=>{
+    b.addEventListener('click', ()=>irPara(b.dataset.setor));
+  });
+}
+
+// Acompanha o carregamento do sistema encaixado: some o "Carregando…" quando
+// o iframe abre; se passar de 15s sem abrir (ou o navegador acusar erro),
+// mostra a mensagem com "Tentar de novo" e "Voltar ao menu".
+function carregarIframe(main, s){
+  const fr = main.querySelector('iframe');
+  const st = document.getElementById('sysStatus');
+  if(!fr || !st) return;
+  let fim = false;
+  const alvo = setorAtual;
+  const ok = ()=>{ if(fim) return; fim = true; clearTimeout(t); st.hidden = true; };
+  const falha = ()=>{
+    if(fim || setorAtual !== alvo) return;
+    fim = true;
+    st.className = 'sys-status sys-erro';
+    st.innerHTML = `<h3>${esc(s.nome)} não abriu</h3>
+      <p>Pode ser a conexão ou o sistema fora do ar no momento. Confira a internet e tente de novo.</p>
+      <div class="acoes"><button id="sysRetry">Tentar de novo</button><button class="sec" id="sysMenu">Voltar ao menu</button></div>`;
+    document.getElementById('sysRetry').onclick = ()=>renderMain();
+    document.getElementById('sysMenu').onclick = ()=>irPara('home');
+  };
+  const t = setTimeout(falha, 15000);
+  fr.addEventListener('load', ok);
+  fr.addEventListener('error', ()=>{ clearTimeout(t); falha(); });
+}
+
 function renderMain(){
   const main = document.getElementById('mainArea');
-  const s = SETORES[setorAtual];
   main.classList.remove('encaixado');
+  main.classList.remove('home');
+  if(setorAtual === 'home'){ renderHome(main); return; }
+  const s = SETORES[setorAtual];
 
   if(!s.ativo){
     main.innerHTML = `
@@ -1029,9 +1189,11 @@ function renderMain(){
   if(s.url){
     main.classList.add('encaixado');
     main.innerHTML = `
-      <div style="height:calc(100vh - var(--topbar-h) - 22px);border:1px solid var(--borda);border-radius:var(--radius);overflow:hidden;background:#fff;">
-        <iframe src="${s.url}" style="width:100%;height:100%;border:none;" title="${s.nome}"></iframe>
+      <div class="sys-wrap" style="height:calc(100vh - var(--topbar-h) - 22px);border:1px solid var(--borda);border-radius:var(--radius);overflow:hidden;background:#fff;">
+        <iframe src="${s.url}" style="width:100%;height:100%;border:none;" title="${esc(s.nome)}"></iframe>
+        <div class="sys-status" id="sysStatus"><div class="sys-spin"></div><div>Carregando ${esc(s.nome)}…</div></div>
       </div>`;
+    carregarIframe(main, s);
     return;
   }
 
@@ -1061,9 +1223,7 @@ function renderMain(){
 // ============================================================
 (async function iniciar(){
   await carregarGerenciaUsuarios();
-  renderTopNav();
-  renderSidebar();
-  renderMain();
+  aplicarSetor(setorDoHash());
 })();
 </script>
 
