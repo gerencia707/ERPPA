@@ -877,6 +877,17 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
         <div class="fgr full"><label>Observacoes</label><input type="text" id="c-obs" placeholder="Qualquer informacao relevante"></div>
       </div>
     </div>
+    <div id="c-acoes" style="display:none;margin:0 18px 16px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px">Ações do colaborador</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-s btn-sm" onclick="acaoColab('hist')">📋 Histórico</button>
+        <button class="btn btn-s btn-sm" onclick="acaoColab('teste')">🧪 Teste de Função</button>
+        <button class="btn btn-s btn-sm" onclick="acaoColab('aval')">📝 Avaliações</button>
+        <button class="btn btn-d btn-sm" onclick="acaoColab('deslig')">📦 Desligar</button>
+        <button class="btn btn-d btn-sm" id="c-btn-remover" onclick="acaoColab('rem')">✕ Remover</button>
+      </div>
+      <div class="tsm tmut" style="margin-top:8px">Salve as alterações do cadastro antes de abrir uma ação.</div>
+    </div>
     <div class="mf">
       <button class="btn btn-s" onclick="fMo('m-colab')">Cancelar</button>
       <button class="btn btn-p" onclick="salvColab()">Salvar colaborador</button>
@@ -2110,11 +2121,11 @@ function renderColabs(){
       return dias <= 15;
     }).length;
 
-    const isOpen = sf || membros.length <= 10;
+    const isOpen = !!_acordAbertos[setor] || !!q;
     const countCls = alertas > 0 ? 'critico' : '';
 
     html += '<div class="acord" id="acord-' + setor.replace(/[^a-z0-9]/gi,'') + '">';
-    html += '<div class="acord-hdr' + (isOpen?' open':'') + '" onclick="togAcord(this)">';
+    html += '<div class="acord-hdr' + (isOpen?' open':'') + '" data-setor="' + esc(setor) + '" onclick="togAcord(this)">';
     html += '<div class="acord-left">';
     html += '<div class="acord-arrow">▼</div>';
     html += '<div class="acord-setor">' + setor + '</div>';
@@ -2152,10 +2163,11 @@ function renderColabs(){
   // Sem setor
   if(semSetor.length && !sf){
     html += '<div class="acord">';
-    html += '<div class="acord-hdr open" onclick="togAcord(this)">';
+    const semAberto = !!_acordAbertos['__sem'] || !!q;
+    html += '<div class="acord-hdr' + (semAberto?' open':'') + '" data-setor="__sem" onclick="togAcord(this)">';
     html += '<div class="acord-left"><div class="acord-arrow">▼</div><div class="acord-setor" style="color:var(--text3)">Sem setor definido</div><span class="acord-count" style="background:var(--text3)">' + semSetor.length + '</span></div>';
     html += '</div>';
-    html += '<div class="acord-body open">';
+    html += '<div class="acord-body' + (semAberto?' open':'') + '">';
     html += '<div class="colab-th"><span>Colaborador</span><span>Cargo</span><span>Admissão</span><span>Contrato</span><span>Status</span><span style="text-align:right">Ações</span></div>';
     semSetor.forEach(function(c){ html += renderColabRow(c); });
     html += '</div></div>';
@@ -2215,24 +2227,22 @@ function renderColabRow(c){
     + '<div>' + contratoTag + '</div>'
     + '<div><span class="badge ' + (ST_COR[c.status]||'b-gy') + '">' + (ST_LBL[c.status]||c.status||'—') + '</span></div>'
     + '<div class="colab-acoes">'
-      + '<button class="btn btn-s btn-sm btn-ic" onclick="abrirColab(this.dataset.id)" data-id="' + c.id + '" title="Editar">✎</button>'
-      + '<button class="btn btn-s btn-sm btn-ic" onclick="abrirHistorico(this.dataset.id)" data-id="' + c.id + '" title="Histórico">📋</button>'
-      + '<button class="btn btn-s btn-sm btn-ic" onclick="abrirTeste(this.dataset.id)" data-id="' + c.id + '" title="Teste de Função">🧪</button>'
-      + '<button class="btn btn-s btn-sm btn-ic" onclick="abrirAval(this.dataset.id)" data-id="' + c.id + '" title="Avaliações">📝</button>'
-      + '<button class="btn btn-d btn-sm" onclick="abrirDesligamento(this.dataset.id)" data-id="' + c.id + '" style="font-size:11px">📦 Desligar</button>'
-      + '<button class="btn btn-d btn-sm btn-ic" onclick="delColab(this.dataset.id)" data-id="' + c.id + '" title="Remover">✕</button>'
+      + '<button class="btn btn-s btn-sm" onclick="abrirColab(this.dataset.id)" data-id="' + c.id + '" title="Editar colaborador">✎ Editar</button>'
     + '</div>'
     + '</div>';
 }
 
+const _acordAbertos = {};
 function togAcord(hdr){
   hdr.classList.toggle('open');
   hdr.nextElementSibling.classList.toggle('open');
+  _acordAbertos[hdr.dataset.setor||'__sem'] = hdr.classList.contains('open');
 }
 function togTodosAcord(abrir){
-  document.querySelectorAll('.acord-hdr').forEach(function(h){
+  document.querySelectorAll('#col-acordeao .acord-hdr').forEach(function(h){
     if(abrir){ h.classList.add('open'); h.nextElementSibling.classList.add('open'); }
     else { h.classList.remove('open'); h.nextElementSibling.classList.remove('open'); }
+    _acordAbertos[h.dataset.setor||'__sem'] = !!abrir;
   });
 }
 
@@ -2281,7 +2291,18 @@ function abrirColab(id=null){
       calcContrato();
     }
   }
+  document.getElementById('c-acoes').style.display=id&&document.getElementById('c-id').value?'block':'none';
+  document.getElementById('c-btn-remover').style.display=ehAdminDP()?'':'none';
   aMo('m-colab');
+}
+function acaoColab(tipo){
+  const id=document.getElementById('c-id').value; if(!id) return;
+  fMo('m-colab');
+  if(tipo==='hist') abrirHistorico(id);
+  else if(tipo==='teste') abrirTeste(id);
+  else if(tipo==='aval') abrirAval(id);
+  else if(tipo==='deslig') abrirDesligamento(id);
+  else if(tipo==='rem') delColab(id);
 }
 function salvColab(){
   const nm=document.getElementById('c-nm').value.trim();if(!nm){toast('Nome obrigatório',true);return;}
