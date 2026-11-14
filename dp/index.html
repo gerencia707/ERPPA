@@ -256,7 +256,7 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
 #cm{font-size:14px;color:var(--text);margin-bottom:14px;line-height:1.5}
 #ca{display:flex;gap:8px;justify-content:flex-end}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -316,6 +316,7 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
     <div class="topbar-right">
       <div class="date-tag" id="top-data"></div>
       <span id="dp-user-chip" style="font-size:12.5px;color:var(--text2);padding:0 4px;"></span>
+      <button class="btn btn-s btn-sm" onclick="abrirTrocaSenhaDP(false,'')" title="Alterar minha senha">Alterar senha</button>
       <button class="btn btn-s btn-sm" onclick="sairDP()" title="Sair">⎋ Sair</button>
       <button class="btn btn-s btn-sm" onclick="imprimirColabs()" title="Imprimir lista de colaboradores">🖨 Imprimir</button>
     </div>
@@ -584,7 +585,7 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
             <div class="fg" style="margin-top:8px;">
               <div class="fgr"><label>Nome</label><input type="text" id="novo-dp-usr-nome"></div>
               <div class="fgr"><label>Login</label><input type="text" id="novo-dp-usr-login"></div>
-              <div class="fgr"><label>Senha</label><input type="text" id="novo-dp-usr-senha"></div>
+              <div class="fgr"><label>Senha provisória (mín. 8)</label><input type="text" id="novo-dp-usr-senha" autocomplete="off"></div>
               <div class="fgr"><label>Perfil</label>
                 <select id="novo-dp-usr-perfil">
                   <option value="operador">Operador</option>
@@ -1284,7 +1285,44 @@ tbody td{padding:10px 12px;font-size:13px;color:var(--text2)}
 /* ===== SUPABASE ===== */
 const SUPA_URL = 'https://xdnnngifpbrbhxyluans.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhkbm5uZ2lmcGJyYmh4eWx1YW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODgwODQsImV4cCI6MjA5NjI2NDA4NH0.1HmvUOo56BhCdLTjJH3UfTMkq8uO7-EK_zg3W0hX46A';
-const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+/* Token da sessão do DP: vai em todo pedido ao banco (cabeçalho x-dp-token).
+   O banco só libera os dados do DP para quem tem um token válido. */
+let DP_TOKEN = '';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY, {
+  global: { fetch: function(url, opts){
+    opts = opts || {};
+    const h = new Headers(opts.headers || {});
+    if(DP_TOKEN) h.set('x-dp-token', DP_TOKEN);
+    opts.headers = h;
+    return fetch(url, opts);
+  } }
+});
+function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+/* Dados sensíveis (CPF, PIS, e-mail, banco, conta) ficam em tabelas separadas,
+   que só abrem com a sessão do DP. */
+const SENSMAP = {
+  colabs:     { tb:'dp_colaboradores_sens', fk:'colab_id' },
+  desligados: { tb:'dp_desligamentos_sens', fk:'deslig_id' }
+};
+function sensRow(k, r){
+  if(k === 'colabs'){
+    return { colab_id:r.id, cpf:r.cpf||null, pis:r.pis||null, email:r.email||null,
+             banco:r.banco||null, conta:r.conta||null, atualizado_em:new Date().toISOString() };
+  }
+  if(k === 'desligados'){
+    const sn = r.snap || {};
+    return { deslig_id:r.id, snap_cpf:sn.cpf||null, snap_pis:sn.pis||null,
+             snap_banco:sn.banco||null, snap_conta:sn.conta||null };
+  }
+  return null;
+}
+async function gravarSens(k, regs){
+  const m = SENSMAP[k];
+  if(!m || !regs.length) return;
+  const res = await supa.from(m.tb).upsert(regs.map(function(r){ return sensRow(k, r); }), { onConflict: m.fk });
+  if(res.error){ console.error('ERRO sens ('+k+'):', res.error); toast('Erro ao salvar dados sensíveis: '+res.error.message, true); }
+}
 
 /* ===== STORAGE — Cache local + Supabase sync ===== */
 
@@ -1329,12 +1367,12 @@ async function upsertUm(k, reg){
   if(!map){ console.warn('TBMAP nao tem chave:', k); return; }
   try {
     var row = supaRow(k, reg);
-    console.log('Salvando no Supabase:', map.tb, row);
     var res = await supa.from(map.tb).upsert(row, {onConflict:'id'});
     if(res.error){
       console.error('ERRO upsert ('+k+'):', res.error);
       toast('Erro ao salvar: '+res.error.message, true);
     } else {
+      await gravarSens(k, [reg]);
       console.log('Salvo com sucesso:', map.tb);
     }
   } catch(e){
@@ -1369,6 +1407,7 @@ async function syncSupabase(k, v, anterior){
         v.map(function(r){ return supaRow(k, r); }),
         { onConflict: 'id' }
       );
+      await gravarSens(k, v);
     }
     // Apaga de verdade, no Supabase, os que sumiram do array local desde
     // a última vez (isso é o que faltava — antes só reenviava os que
@@ -1387,13 +1426,11 @@ async function syncSupabase(k, v, anterior){
 function supaRow(k, r){
   if(k === 'colabs'){
     return {
-      id: r.id, nome: r.nome, cpf: r.cpf||null, pis: r.pis||null,
-      email: r.email||null, tel: r.tel||null,
+      id: r.id, nome: r.nome, tel: r.tel||null,
       cargo: r.cargo||null, setor_slug: slugSetor(r.setor),
       lider: r.lider==='sim', adm: r.adm||null,
       contrato: r.contrato||'clt', status: r.status||'ativo',
       aniv: r.aniv||null, ecivil: r.ecivil||null, esc: r.esc||null,
-      banco: r.banco||null, conta: r.conta||null,
       filhos: r.filhos==='sim', n_filhos: parseInt(r.nfilhos)||0,
       idades_filhos: r.idadesFilhos||null,
       aso: r.aso||null, docs_pendentes: r.docs||null, obs: r.obs||null
@@ -1457,14 +1494,10 @@ function supaRow(k, r){
       id: r.id, colab_id: r.colabId,
       setor_slug: slugSetor(r.snap&&r.snap.setor),
       snap_nome: r.snap&&r.snap.nome||'',
-      snap_cpf: r.snap&&r.snap.cpf||null,
-      snap_pis: r.snap&&r.snap.pis||null,
       snap_cargo: r.snap&&r.snap.cargo||null,
       snap_setor: r.snap&&r.snap.setor||null,
       snap_adm: r.snap&&r.snap.adm||null,
       snap_contrato: r.snap&&r.snap.contrato||null,
-      snap_banco: r.snap&&r.snap.banco||null,
-      snap_conta: r.snap&&r.snap.conta||null,
       data_deslig: r.dataDeslig||null,
       motivo: r.motivo||'outro',
       dias_aviso: r.diasAviso||0,
@@ -1637,7 +1670,7 @@ async function carregarDoSupabase(){
     const [
       colabs, candidatos, ferias, hist, docs,
       epiTipos, epiEntregas, deslig, cargos, matriz, cfg,
-      testesFuncao, avaliacoes
+      testesFuncao, avaliacoes, sensColabs, sensDeslig
     ] = await Promise.all([
       supa.from('dp_colaboradores').select('*').neq('status','desligado'),
       supa.from('dp_candidatos').select('*'),
@@ -1651,8 +1684,20 @@ async function carregarDoSupabase(){
       supa.from('dp_matriz').select('*'),
       supa.from('dp_config').select('*').limit(1).maybeSingle(),
       supa.from('dp_testes_funcao').select('*'),
-      supa.from('dp_avaliacoes').select('*')
+      supa.from('dp_avaliacoes').select('*'),
+      supa.from('dp_colaboradores_sens').select('*'),
+      supa.from('dp_desligamentos_sens').select('*')
     ]);
+    const mapSensC = {}; (sensColabs.data||[]).forEach(function(x){ mapSensC[x.colab_id] = x; });
+    const mapSensD = {}; (sensDeslig.data||[]).forEach(function(x){ mapSensD[x.deslig_id] = x; });
+    (colabs.data||[]).forEach(function(r){
+      const sx = mapSensC[r.id];
+      if(sx){ r.cpf=sx.cpf; r.pis=sx.pis; r.email=sx.email; r.banco=sx.banco; r.conta=sx.conta; }
+    });
+    (deslig.data||[]).forEach(function(r){
+      const sx = mapSensD[r.id];
+      if(sx){ r.snap_cpf=sx.snap_cpf; r.snap_pis=sx.snap_pis; r.snap_banco=sx.snap_banco; r.snap_conta=sx.snap_conta; }
+    });
 
     _cache.colabs       = (colabs.data||[]).map(fromSupaColab);
     _cache.candidatos   = (candidatos.data||[]).map(fromSupaCand);
@@ -4129,7 +4174,7 @@ async function delHierarquia(id){
   }catch(e){ toast('Erro ao remover: '+(e.message||e), true); }
 }
 
-function renderCfgUsuariosDP(){
+async function renderCfgUsuariosDP(){
   const el = document.getElementById('cfg-usuarios-lista');
   if(!el) return;
   if(!ehAdminDP()){
@@ -4137,48 +4182,58 @@ function renderCfgUsuariosDP(){
     document.getElementById('novo-dp-usr-nome').closest('.fg').style.display = 'none';
     return;
   }
+  const r = await supa.rpc('dp_usuarios_listar', { p_token: DP_TOKEN });
+  if(r.error || !r.data || !r.data.ok){ el.innerHTML = '<span class="tsm tmut">Não foi possível carregar os usuários.</span>'; return; }
+  usuariosDP = r.data.lista || [];
   if(!usuariosDP.length){ el.innerHTML = '<span class="tsm tmut">Nenhum usuário cadastrado.</span>'; return; }
   el.innerHTML = usuariosDP.map(function(u){
     return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'+
-      '<div style="flex:1"><b>'+u.nome+'</b> <span class="tsm tmut">('+u.login+')</span></div>'+
+      '<div style="flex:1"><b>'+esc(u.nome)+'</b> <span class="tsm tmut">('+esc(u.login||'')+')</span>'+(u.trocar_senha?' <span class="tsm tmut">· senha provisória</span>':'')+'</div>'+
       '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;background:'+(u.perfil==='admin'?'var(--verde-ll)':'var(--surface2)')+'">'+(u.perfil==='admin'?'Admin':'Operador')+'</span>'+
-      '<button onclick="delUsuarioDP(\''+u.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--red)" title="Remover">✕</button>'+
+      '<button onclick="redefinirSenhaUsuarioDP(\''+esc(u.id)+'\')" style="background:none;border:none;cursor:pointer;color:var(--text2);font-size:12px" title="Definir nova senha provisória">Redefinir senha</button>'+
+      '<button onclick="delUsuarioDP(\''+esc(u.id)+'\')" style="background:none;border:none;cursor:pointer;color:var(--red)" title="Remover">✕</button>'+
     '</div>';
   }).join('');
+}
+
+function msgErroUsuarioDP(c){
+  return ({sem_permissao:'Só Administradores podem fazer isso.', nome:'Informe o nome.', fraca:'Senha fraca: use pelo menos 8 caracteres e diferente do login.',
+           perfil:'Perfil inválido.', proprio:'Você não pode remover o seu próprio usuário.', ultimo_admin:'Não é possível remover o único Administrador.'})[c] || 'Não foi possível concluir.';
 }
 
 async function addUsuarioDP(){
   if(!ehAdminDP()){ toast('Só Administradores podem adicionar usuários.', true); return; }
   const nome = document.getElementById('novo-dp-usr-nome').value.trim();
   const login = document.getElementById('novo-dp-usr-login').value.trim();
-  const senha = document.getElementById('novo-dp-usr-senha').value.trim();
+  const senha = document.getElementById('novo-dp-usr-senha').value;
   const perfil = document.getElementById('novo-dp-usr-perfil').value;
-  if(!nome || !senha){ toast('Preencha nome e senha.', true); return; }
+  if(!nome || !senha){ toast('Preencha nome e senha provisória.', true); return; }
+  const r = await supa.rpc('dp_usuario_criar', { p_token: DP_TOKEN, p_nome: nome, p_login: login, p_senha: senha, p_perfil: perfil });
+  if(r.error || !r.data || !r.data.ok){ toast(r.error ? 'Erro ao adicionar: '+r.error.message : msgErroUsuarioDP(r.data && r.data.erro), true); return; }
+  document.getElementById('novo-dp-usr-nome').value='';
+  document.getElementById('novo-dp-usr-login').value='';
+  document.getElementById('novo-dp-usr-senha').value='';
+  await renderCfgUsuariosDP();
+  toast('Usuário adicionado! Ele define a própria senha no primeiro acesso.');
+}
 
-  const novo = {id: uid(), nome, login, senha, perfil};
-  try{
-    const {error} = await supa.from('dp_usuarios').insert([novo]);
-    if(error) throw error;
-    usuariosDP.push(novo);
-    document.getElementById('novo-dp-usr-nome').value='';
-    document.getElementById('novo-dp-usr-login').value='';
-    document.getElementById('novo-dp-usr-senha').value='';
-    renderCfgUsuariosDP();
-    toast('Usuário adicionado!');
-  }catch(e){ toast('Erro ao adicionar: '+(e.message||e), true); }
+async function redefinirSenhaUsuarioDP(id){
+  if(!ehAdminDP()){ toast('Só Administradores podem redefinir senhas.', true); return; }
+  const nova = prompt('Nova senha provisória (mínimo 8 caracteres). O usuário vai trocá-la no próximo acesso:');
+  if(!nova) return;
+  const r = await supa.rpc('dp_usuario_redefinir', { p_token: DP_TOKEN, p_id: id, p_nova: nova });
+  if(r.error || !r.data || !r.data.ok){ toast(r.error ? 'Erro: '+r.error.message : msgErroUsuarioDP(r.data && r.data.erro), true); return; }
+  await renderCfgUsuariosDP();
+  toast('Senha provisória definida.');
 }
 
 async function delUsuarioDP(id){
   if(!ehAdminDP()){ toast('Só Administradores podem remover usuários.', true); return; }
-  if(usuariosDP.length <= 1){ toast('Não é possível remover o único usuário cadastrado.', true); return; }
   if(!confirm('Remover este usuário?')) return;
-  try{
-    const {error} = await supa.from('dp_usuarios').delete().eq('id', id);
-    if(error) throw error;
-    usuariosDP = usuariosDP.filter(function(u){ return u.id !== id; });
-    renderCfgUsuariosDP();
-    toast('Usuário removido.');
-  }catch(e){ toast('Erro ao remover: '+(e.message||e), true); }
+  const r = await supa.rpc('dp_usuario_excluir', { p_token: DP_TOKEN, p_id: id });
+  if(r.error || !r.data || !r.data.ok){ toast(r.error ? 'Erro ao remover: '+r.error.message : msgErroUsuarioDP(r.data && r.data.erro), true); return; }
+  await renderCfgUsuariosDP();
+  toast('Usuário removido.');
 }
 
 function renderCfgSetores(){
@@ -4367,31 +4422,21 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.qu
 // ============================================================
 // LOGIN E USUÁRIOS DO DP
 // ============================================================
-const DP_UID_KEY = 'portalDP_uid';
+const DP_TOKEN_KEY = 'portalDP_token';
 let usuariosDP = [];
 let usuarioLogadoDP = null;
+let _senhaDigitadaDP = '';
+let _keepAliveDP = null;
 
-async function carregarUsuariosDP(){
-  try{
-    const {data, error} = await supa.from('dp_usuarios').select('*').order('nome');
-    if(error) throw error;
-    if(!data || data.length === 0){
-      const padrao = {id: uid(), nome:'Administrador', login:'ADM', senha:'ADM', perfil:'admin'};
-      await supa.from('dp_usuarios').insert([padrao]);
-      usuariosDP = [padrao];
-    } else {
-      usuariosDP = data;
-    }
-  }catch(e){
-    console.warn('Erro ao carregar usuários do DP, usando login de emergência:', e.message||e);
-    usuariosDP = [{id:'fallback-admin', nome:'Administrador', login:'ADM', senha:'ADM', perfil:'admin'}];
-  }
-}
-
-function popularLoginSelectDP(){
+async function popularLoginSelectDP(){
   const sel = document.getElementById('dpLoginUsuario');
+  let lista = [];
+  try{
+    const r = await supa.rpc('dp_login_lista');
+    if(!r.error && Array.isArray(r.data)) lista = r.data;
+  }catch(e){ console.warn('lista de login:', e.message||e); }
   sel.innerHTML = '<option value="">Selecione seu usuário...</option>' +
-    usuariosDP.map(function(u){ return '<option value="'+u.id+'">'+u.nome+'</option>'; }).join('');
+    lista.map(function(u){ return '<option value="'+esc(u.id)+'">'+esc(u.nome)+'</option>'; }).join('');
 }
 
 function mostrarAppDP(){
@@ -4400,6 +4445,8 @@ function mostrarAppDP(){
   document.getElementById('main').style.display = 'flex';
   const chip = document.getElementById('dp-user-chip');
   if(chip) chip.textContent = usuarioLogadoDP ? usuarioLogadoDP.nome + ' (' + (usuarioLogadoDP.perfil==='admin'?'Admin':'Operador') + ')' : '';
+  if(_keepAliveDP) clearInterval(_keepAliveDP);
+  _keepAliveDP = setInterval(manterSessaoDP, 20*60*1000);
   testarConexao().then(function(ok){
     if(ok){
       carregarDoSupabase().then(function(){ atualizarStatusFeriasAutomatico(); renderDash(); });
@@ -4410,38 +4457,100 @@ function mostrarAppDP(){
   });
 }
 
-function fazerLoginDP(){
+async function manterSessaoDP(){
+  if(!DP_TOKEN) return;
+  try{
+    const r = await supa.rpc('dp_sessao', { p_token: DP_TOKEN });
+    if(!r.error && (!r.data || !r.data.ok)){ toast('Sua sessão expirou. Entre novamente.', true); setTimeout(sairDP, 1500); }
+  }catch(e){ /* sem rede: tenta de novo no próximo ciclo */ }
+}
+
+function aplicarSessaoDP(d, senhaAtual){
+  DP_TOKEN = d.token;
+  localStorage.setItem(DP_TOKEN_KEY, d.token);
+  usuarioLogadoDP = d.usuario;
+  if(d.trocar_senha){ abrirTrocaSenhaDP(true, senhaAtual); return; }
+  mostrarAppDP();
+}
+
+async function fazerLoginDP(){
   const id = document.getElementById('dpLoginUsuario').value;
   const senha = document.getElementById('dpLoginSenha').value;
   const erroEl = document.getElementById('dpLoginErro');
-
   if(!id){ erroEl.style.display='block'; erroEl.textContent='Selecione um usuário.'; return; }
-  const u = usuariosDP.find(function(x){ return x.id === id; });
-  if(!u || String(u.senha||'') !== String(senha)){
+  let r;
+  try{ r = await supa.rpc('dp_login', { p_id: id, p_senha: senha }); }
+  catch(e){ r = { error: e }; }
+  if(r.error || !r.data || !r.data.ok){
     erroEl.style.display='block';
-    erroEl.textContent='Usuário ou senha incorretos.';
+    erroEl.textContent = (r.data && r.data.erro === 'bloqueado')
+      ? 'Muitas tentativas. Aguarde 10 minutos e tente de novo.'
+      : (r.error ? 'Não foi possível conectar. Verifique a internet.' : 'Usuário ou senha incorretos.');
     document.getElementById('dpLoginSenha').value='';
     return;
   }
-
-  usuarioLogadoDP = u;
-  localStorage.setItem(DP_UID_KEY, u.id);
   erroEl.style.display='none';
-  mostrarAppDP();
+  document.getElementById('dpLoginSenha').value='';
+  aplicarSessaoDP(r.data, senha);
 }
 
 document.getElementById('dpLoginSenha').addEventListener('keydown', function(e){
   if(e.key === 'Enter') fazerLoginDP();
 });
 
-function sairDP(){
-  localStorage.removeItem(DP_UID_KEY);
+/* Troca de senha: obrigatória no primeiro acesso (senha provisória) ou a pedido */
+function abrirTrocaSenhaDP(obrigatoria, senhaAtual){
+  _senhaDigitadaDP = senhaAtual || '';
+  let m = document.getElementById('dpTrocaSenha');
+  if(m) m.remove();
+  m = document.createElement('div');
+  m.id = 'dpTrocaSenha';
+  m.style.cssText = 'position:fixed;inset:0;z-index:1000000;display:flex;align-items:center;justify-content:center;background:rgba(10,42,34,.88);padding:20px;';
+  m.innerHTML =
+    '<div style="width:100%;max-width:360px;background:#fff;border-radius:14px;padding:22px;">'+
+      '<h2 style="margin:0 0 6px;font-size:17px;color:var(--verde)">'+(obrigatoria?'Defina uma nova senha':'Alterar senha')+'</h2>'+
+      '<p style="margin:0 0 14px;font-size:13px;color:var(--text2)">'+(obrigatoria?'Por segurança, troque a senha provisória agora. ':'')+'Use pelo menos 8 caracteres.</p>'+
+      (_senhaDigitadaDP ? '' : '<input id="dpTsAtual" type="password" placeholder="Senha atual" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:10px;box-sizing:border-box">')+
+      '<input id="dpTsNova" type="password" placeholder="Nova senha" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:10px;box-sizing:border-box">'+
+      '<input id="dpTsRep" type="password" placeholder="Repita a nova senha" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:10px;box-sizing:border-box">'+
+      '<div id="dpTsErro" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>'+
+      '<div style="display:flex;gap:10px">'+
+        '<button onclick="salvarTrocaSenhaDP('+(obrigatoria?'true':'false')+')" style="flex:1;padding:11px;background:var(--verde);color:var(--verde-l);border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Salvar</button>'+
+        (obrigatoria ? '' : '<button onclick="document.getElementById(\'dpTrocaSenha\').remove()" style="padding:11px 16px;background:#fff;border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer">Cancelar</button>')+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(m);
+}
+
+async function salvarTrocaSenhaDP(obrigatoria){
+  const erro = document.getElementById('dpTsErro');
+  const atualEl = document.getElementById('dpTsAtual');
+  const atual = atualEl ? atualEl.value : _senhaDigitadaDP;
+  const nova = document.getElementById('dpTsNova').value;
+  const rep = document.getElementById('dpTsRep').value;
+  const falha = function(t){ erro.style.display='block'; erro.textContent=t; };
+  if(nova.length < 8) return falha('A nova senha precisa ter pelo menos 8 caracteres.');
+  if(nova !== rep) return falha('As senhas não conferem.');
+  if(nova === atual) return falha('A nova senha precisa ser diferente da atual.');
+  const r = await supa.rpc('dp_trocar_senha', { p_token: DP_TOKEN, p_atual: atual, p_nova: nova });
+  if(r.error || !r.data || !r.data.ok){
+    const c = r.data && r.data.erro;
+    return falha(c==='atual' ? 'Senha atual incorreta.' : (c==='fraca'||c==='curta') ? 'Senha fraca: use 8+ caracteres e não use o próprio login.' : c==='sessao' ? 'Sua sessão expirou. Entre novamente.' : 'Não foi possível salvar. Tente de novo.');
+  }
+  _senhaDigitadaDP = '';
+  document.getElementById('dpTrocaSenha').remove();
+  if(obrigatoria){ mostrarAppDP(); } else { toast('Senha alterada!'); }
+}
+
+async function sairDP(){
+  const tk = DP_TOKEN;
+  try{ if(tk) await supa.rpc('dp_logout', { p_token: tk }); }catch(e){}
+  DP_TOKEN = '';
+  localStorage.removeItem(DP_TOKEN_KEY);
+  localStorage.removeItem('portalDP_uid');
+  if(_keepAliveDP){ clearInterval(_keepAliveDP); _keepAliveDP = null; }
   usuarioLogadoDP = null;
-  document.getElementById('sidebar').style.display = 'none';
-  document.getElementById('main').style.display = 'none';
-  document.getElementById('telaLoginDP').style.display = 'flex';
-  document.getElementById('dpLoginUsuario').value = '';
-  document.getElementById('dpLoginSenha').value = '';
+  location.reload();
 }
 
 function ehAdminDP(){
@@ -4449,16 +4558,17 @@ function ehAdminDP(){
 }
 
 async function iniciarLoginDP(){
-  await carregarUsuariosDP();
-  popularLoginSelectDP();
-  const savedId = localStorage.getItem(DP_UID_KEY);
-  const savedUser = savedId ? usuariosDP.find(function(u){ return u.id === savedId; }) : null;
-  if(savedUser){
-    usuarioLogadoDP = savedUser;
-    mostrarAppDP();
-  } else {
-    document.getElementById('telaLoginDP').style.display = 'flex';
+  localStorage.removeItem('portalDP_uid'); // legado: entrada sem senha por aparelho
+  const tk = localStorage.getItem(DP_TOKEN_KEY);
+  if(tk){
+    try{
+      const r = await supa.rpc('dp_sessao', { p_token: tk });
+      if(!r.error && r.data && r.data.ok){ DP_TOKEN = tk; aplicarSessaoDP(r.data, ''); return; }
+    }catch(e){}
+    localStorage.removeItem(DP_TOKEN_KEY);
   }
+  await popularLoginSelectDP();
+  document.getElementById('telaLoginDP').style.display = 'flex';
 }
 iniciarLoginDP();
 </script>
