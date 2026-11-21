@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERPPA · Recepção</title>
+<style>
+:root{--verde-escuro:#0A2A22;--verde-claro:#C7F1C5;--sage:#A1E19C;--verde-mid:#123B30;--bg:#F5F7F4;--card:#fff;--texto:#152119;--suave:#5B6B62;--borda:#E1E8E2;--erro:#B3432B;--erro-bg:#FBEAE4;--ok-bg:#EAF7E7;--alerta-bg:#FDF3E3;--alerta:#8A5A15;--r:10px;--top:58px;--side:244px}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--texto);font-size:14px}
+button{font-family:inherit;cursor:pointer}
+.topbar{height:var(--top);background:var(--verde-escuro);display:flex;align-items:center;padding:0 18px;gap:14px;position:sticky;top:0;z-index:20}
+.brand{color:var(--verde-claro);font-weight:700;font-size:15px;line-height:1.15}.brand small{display:block;font-weight:400;font-size:11px;color:var(--sage)}
+.topbar .sp{flex:1}
+.tb-btn{background:transparent;border:1px solid rgba(199,241,197,.35);color:var(--verde-claro);border-radius:7px;padding:6px 12px;font-size:12.5px;position:relative}
+.tb-btn:hover{background:rgba(199,241,197,.12)}
+.tb-link{color:var(--sage);font-size:12.5px;text-decoration:none}
+.chip{color:var(--verde-claro);font-size:12.5px;text-align:right;line-height:1.2}.chip small{display:block;color:var(--sage);font-size:11px}
+.dot{position:absolute;top:-6px;right:-6px;background:#E5533D;color:#fff;border-radius:10px;font-size:10.5px;padding:1px 6px;font-weight:700}
+.layout{display:flex;min-height:calc(100vh - var(--top))}
+.side{width:var(--side);background:var(--verde-mid);padding:14px 10px;flex-shrink:0;position:sticky;top:var(--top);height:calc(100vh - var(--top));overflow-y:auto}
+.side h4{margin:16px 8px 6px;font-size:10.5px;letter-spacing:.09em;color:var(--sage);text-transform:uppercase;display:flex;justify-content:space-between}
+.side h4:first-child{margin-top:2px}
+.side button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:6px;text-align:left;background:transparent;border:none;color:#D6EBD6;padding:9px 10px;border-radius:7px;font-size:13.5px}
+.side button:hover{background:rgba(199,241,197,.10)}
+.side button.on{background:var(--verde-claro);color:var(--verde-escuro);font-weight:600}
+.side .bd{background:#E5533D;color:#fff;border-radius:9px;font-size:10.5px;padding:1px 6px;font-weight:700}
+main{flex:1;padding:22px 26px;min-width:0;max-width:1280px}
+.vh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.vh h2{margin:0 0 3px;font-size:20px;color:var(--verde-escuro)}.vh .d{color:var(--suave);font-size:13px;max-width:720px}
+.card{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);padding:16px 18px;margin-bottom:16px}
+.card h3{margin:0 0 12px;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--verde-escuro)}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:900px){.g3,.g4{grid-template-columns:repeat(2,1fr)}.side{position:fixed;left:-260px;z-index:30;transition:left .2s;height:100vh;top:0;padding-top:70px}.side.open{left:0}main{padding:16px}.hamb{display:inline-block!important}}
+@media(max-width:560px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.hamb{display:none;background:none;border:none;color:var(--verde-claro);font-size:22px;padding:0}
+.btn{padding:9px 15px;border-radius:7px;border:1px solid var(--borda);background:#fff;color:var(--verde-escuro);font-size:13px;font-weight:600}
+.btn:hover{background:#F2F5F2}
+.btn.p{background:var(--verde-escuro);color:var(--verde-claro);border-color:var(--verde-escuro)}.btn.p:hover{background:var(--verde-mid)}
+.btn.sm{padding:5px 10px;font-size:12px}.btn.d{color:var(--erro);border-color:#E7C3B8}
+.lnk{background:none;border:none;color:var(--verde-mid);font-size:12.5px;text-decoration:underline;padding:2px 4px}.lnk.d{color:var(--erro)}
+label{display:block;font-size:12px;color:var(--suave);margin:0 0 4px}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--borda);border-radius:7px;font-size:13.5px;font-family:inherit;background:#fcfdfc;color:var(--texto)}
+textarea{min-height:76px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--verde-mid);box-shadow:0 0 0 3px rgba(18,59,48,.10)}
+input[type=checkbox]{width:auto}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.tools input,.tools select{width:auto;min-width:150px}.tools .grow{flex:1;min-width:180px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--suave);padding:8px 9px;border-bottom:1px solid var(--borda);white-space:nowrap}
+td{padding:9px;border-bottom:1px solid var(--borda);vertical-align:top}tr:last-child td{border-bottom:none}
+.tw{overflow-x:auto}
+.b{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:600;margin:1px 3px 1px 0;white-space:nowrap}
+.b.ok{background:var(--ok-bg);color:var(--verde-mid)}.b.pend{background:var(--alerta-bg);color:var(--alerta)}.b.erro{background:var(--erro-bg);color:var(--erro)}.b.info{background:#EFF4EF;color:var(--suave)}.b.dk{background:var(--verde-escuro);color:var(--verde-claro)}
+.sub{color:var(--suave);font-size:12px}
+.empty{text-align:center;color:var(--suave);padding:26px 12px;font-size:13.5px}
+.kpi{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);padding:14px 16px;text-align:left;width:100%}
+button.kpi:hover{border-color:var(--verde-mid);box-shadow:0 2px 8px rgba(10,42,34,.08)}
+.kpi .n{font-size:26px;font-weight:700;color:var(--verde-escuro);line-height:1.1}.kpi .l{font-size:11.5px;color:var(--suave);text-transform:uppercase;letter-spacing:.03em;margin-top:4px}
+.kpi.warn .n{color:var(--erro)}.kpi .m{font-size:11.5px;color:var(--suave);margin-top:3px}
+.pill{display:flex;gap:4px;background:#EFF4EF;padding:4px;border-radius:9px;width:fit-content;margin-bottom:14px;flex-wrap:wrap}
+.pill button{border:none;background:transparent;padding:7px 13px;border-radius:6px;font-size:13px;font-weight:600;color:var(--suave)}.pill button.on{background:#fff;color:var(--verde-escuro);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.item{border:1px solid var(--borda);border-radius:var(--r);padding:13px 15px;margin-bottom:10px;background:#fff}
+.item.fix{border-color:var(--verde-mid);background:#F6FBF5}.item.alert{border-color:#E8C07A;background:#FFFBF2}
+.item h4{margin:0 0 4px;font-size:14.5px;color:var(--verde-escuro)}.item .tx{white-space:pre-wrap;margin:6px 0 8px;font-size:13.5px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row.sb{justify-content:space-between}
+.modal-bg{position:fixed;inset:0;background:rgba(10,42,34,.45);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:30px 12px;overflow-y:auto}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:720px;padding:20px 22px;box-shadow:0 12px 40px rgba(0,0,0,.25)}.modal.lg{max-width:940px}
+.modal h3{margin:0 0 14px;font-size:16px;color:var(--verde-escuro)}
+.ff{display:grid;grid-template-columns:1fr 1fr;gap:12px}.ff .full{grid-column:1/-1}@media(max-width:560px){.ff{grid-template-columns:1fr}}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--verde-escuro);color:var(--verde-claro);padding:11px 18px;border-radius:9px;font-size:13.5px;z-index:90;max-width:90%;box-shadow:0 6px 24px rgba(0,0,0,.25)}.toast.erro{background:var(--erro);color:#fff}
+.note{font-size:12px;color:var(--suave);background:#F2F5F2;border-radius:7px;padding:9px 12px;line-height:1.5;margin-bottom:14px}
+.cm{border-left:3px solid var(--sage);padding:4px 10px;margin:8px 0;font-size:13px}.cm .sub{display:block}
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--verde-escuro);padding:20px}
+.lbox{background:#fff;border-radius:14px;padding:28px 26px;width:100%;max-width:360px}.lbox h1{margin:0 0 2px;font-size:20px;color:var(--verde-escuro)}.lbox p{margin:0 0 18px;color:var(--suave);font-size:13px}.lbox label{margin-top:12px}
+.err{background:var(--erro-bg);color:var(--erro);padding:9px 11px;border-radius:7px;font-size:13px;margin-top:12px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}.cal .h{font-size:10.5px;text-transform:uppercase;color:var(--suave);text-align:center;padding:4px 0}
+.cal .c{border:1px solid var(--borda);border-radius:7px;min-height:62px;padding:4px 6px;background:#fff;text-align:left;font-size:12px;position:relative}.cal .c.o{background:#F4F6F4;color:#9AA7A0}.cal .c.t{border-color:var(--verde-mid)}.cal .c.s{background:var(--verde-claro)}
+.cal .c .ev{display:block;background:var(--verde-escuro);color:var(--verde-claro);border-radius:4px;font-size:10.5px;padding:1px 4px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chk{display:grid;grid-template-columns:1fr auto;gap:8px;padding:9px 0;border-bottom:1px solid var(--borda);align-items:center}.chk .opt{display:flex;gap:4px}.chk .opt button{padding:5px 9px;font-size:12px;border:1px solid var(--borda);background:#fff;border-radius:6px}.chk .opt button.on.c{background:var(--ok-bg);border-color:var(--sage);font-weight:700}.chk .opt button.on.n{background:var(--erro-bg);border-color:#E7C3B8;font-weight:700}.chk .opt button.on.a{background:#EFF4EF;font-weight:700}
+.bar{height:8px;background:#EFF4EF;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--verde-mid)}
+@media(max-width:560px){.brand small,.chip,.tb-link{display:none}.topbar{gap:8px;padding:0 12px}}
+@media print{.topbar,.side,.tools,.noprint{display:none!important}main{padding:0;max-width:none}.card{border:none;padding:0}body{background:#fff}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ============================================================
+// CONFIG / CONEXÃO  (login por token — mesmo padrão do DP)
+// ============================================================
+const SB_URL='https://xdnnngifpbrbhxyluans.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhkbm5uZ2lmcGJyYmh4eWx1YW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODgwODQsImV4cCI6MjA5NjI2NDA4NH0.1HmvUOo56BhCdLTjJH3UfTMkq8uO7-EK_zg3W0hX46A';
+const TK='rec_token_v1';
+let TOKEN=localStorage.getItem(TK)||'';
+const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
+  global:{fetch:(u,o={})=>{const h=new Headers(o.headers||{});if(TOKEN)h.set('x-rec-token',TOKEN);return fetch(u,{...o,headers:h});}}});
+
+// ============================================================
+// UTILIDADES
+// ============================================================
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const hojeISO=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+const fdata=d=>{if(!d)return '—';const s=String(d);return s.length>10?new Date(s).toLocaleDateString('pt-BR'):s.split('-').reverse().join('/')};
+const fdh=d=>d?new Date(d).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'—';
+const fhora=d=>new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const nl2=s=>esc(s).replace(/\n/g,'<br>');
+const isoLocal=(d,h)=>new Date(`${d}T${h}`).toISOString();
+const dLocal=iso=>{const d=new Date(iso);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+const hLocal=iso=>{const d=new Date(iso);return `${pad(d.getHours())}:${pad(d.getMinutes())}`};
+function toast(m,t){const e=document.createElement('div');e.className='toast '+(t||'');e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),t==='erro'?6000:2600)}
+function msgErro(e){let m=(e&&e.message)||(e&&e.details)||(typeof e==='string'?e:JSON.stringify(e));if(typeof m!=='string')m=JSON.stringify(m);if(/row-level security|permission denied/i.test(m))return 'Sem permissão para esta ação (verifique seu perfil ou faça login novamente).';return m}
+async function q(p){const {data,error}=await p;if(error)throw error;return data}
+async function safe(fn){try{return await fn()}catch(e){console.error(e);toast(msgErro(e),'erro')}}
+function badge(st){const s=String(st||'');
+  let c='info';
+  if(/^(Conclu|Resolvid|Entregue|Devolvido|Respondida|Recuperado|Executada|Publicada|Aprovada|Encerrad|confirmado|Ativo)/i.test(s))c='ok';
+  else if(/^(Pendente|Aberta|aberto|Nova|Solicitada|Planejada|Encontrado|Em |Aguardando|Armazenado|Hóspede|Ação|fechado|Parcial|Rascunho)/i.test(s))c='pend';
+  else if(/^(Recusada|Não recuperado|Alta|Crítica|Urgente)/i.test(s))c='erro';
+  return `<span class="b ${c}">${esc(s)}</span>`}
+function prioB(p){return /Urgente|Alta|Crítica/.test(p)?`<span class="b erro">${esc(p)}</span>`:`<span class="b info">${esc(p||'—')}</span>`}
+const ACT={};          // ações chamadas por onclick
+let S={user:null,equipe:[],view:'',prefs:{}};
+const nivelNome=n=>({1:'Equipe',2:'Guest',3:'Supervisor'}[n]);
+
+// ---------- Modal ----------
+function modal(html,lg){closeModal();const bg=document.createElement('div');bg.className='modal-bg';bg.id='modalBg';bg.innerHTML=`<div class="modal ${lg?'lg':''}">${html}</div>`;bg.addEventListener('mousedown',e=>{if(e.target===bg)closeModal()});document.body.appendChild(bg);return bg}
+function closeModal(){const m=$('#modalBg');if(m)m.remove()}
+ACT.fechar=closeModal;
+
+// ---------- Formulário genérico ----------
+function campoHTML(c,v){
+  const id='f_'+c.k, val=v??'';
+  const full=(c.t==='textarea'||c.full)?' full':'';
+  let inp='';
+  if(c.t==='textarea')inp=`<textarea id="${id}" placeholder="${esc(c.ph||'')}">${esc(val)}</textarea>`;
+  else if(c.t==='select'||c.t==='resp'){
+    let opts=c.t==='resp'?['',...S.equipe.map(e=>e.nome)]:(typeof c.opts==='function'?c.opts():c.opts);
+    if(c.t==='resp'&&val&&!opts.includes(val))opts.push(val);
+    inp=`<select id="${id}">${opts.map(o=>{const ov=typeof o==='object'?o.v:o,ol=typeof o==='object'?o.l:(o||'—');return `<option value="${esc(ov)}" ${String(ov)===String(val)?'selected':''}>${esc(ol)}</option>`}).join('')}</select>`;
+  }
+  else if(c.t==='check')return `<div class="${full}"><label style="display:flex;gap:8px;align-items:center;margin-top:20px;color:var(--texto);font-size:13.5px"><input type="checkbox" id="${id}" ${val?'checked':''}> ${esc(c.l)}</label></div>`;
+  else inp=`<input id="${id}" type="${c.t==='datetime'?'datetime-local':(c.t||'text')}" value="${esc(c.t==='datetime'&&val?dLocal(val)+'T'+hLocal(val):val)}" placeholder="${esc(c.ph||'')}" ${c.step?`step="${c.step}"`:''}>`;
+  return `<div class="${full.trim()}"><label for="${id}">${esc(c.l)}${c.req?' *':''}</label>${inp}</div>`;
+}
+function lerForm(campos){
+  const o={};
+  for(const c of campos){const e=$('#f_'+c.k);if(!e)continue;
+    if(c.t==='check')o[c.k]=e.checked;
+    else if(c.t==='number')o[c.k]=e.value===''?null:Number(e.value);
+    else if(c.t==='datetime')o[c.k]=e.value===''?null:new Date(e.value).toISOString();
+    else if(c.t==='date'||c.t==='resp')o[c.k]=e.value===''?null:e.value;
+    else o[c.k]=e.value.trim();
+  }
+  return o;
+}
+function abrirForm({titulo,campos,valores={},salvar,extra='',lg}){
+  const h=`<h3>${esc(titulo)}</h3>${extra}<div class="ff">${campos.map(c=>campoHTML(c,valores[c.k])).join('')}</div>
+  <div class="row" style="justify-content:flex-end;margin-top:18px"><button class="btn" onclick="ACT.fechar()">Cancelar</button><button class="btn p" id="btnSalvarForm">Salvar</button></div>`;
+  modal(h,lg);
+  $('#btnSalvarForm').onclick=()=>safe(async()=>{
+    const o=lerForm(campos);
+    for(const c of campos)if(c.req&&(o[c.k]===''||o[c.k]==null)){toast('Preencha: '+c.l,'erro');return}
+    $('#btnSalvarForm').disabled=true;
+    try{await salvar(o);closeModal()}catch(e){$('#btnSalvarForm').disabled=false;throw e}
+  });
+}
+
+// ============================================================
+// COMENTÁRIOS + HISTÓRICO (estruturas compartilhadas)
+// ============================================================
+async function blocoComentarios(modulo,ref){
+  const cs=await q(sb.from('rec_comentarios').select('*').eq('modulo',modulo).eq('ref_id',String(ref)).order('criado_em'));
+  const hs=await q(sb.from('rec_historico').select('*').eq('modulo',modulo).eq('ref_id',String(ref)).order('id',{ascending:false}).limit(60));
+  const ign=['id','criado_em','autor','atualizado_em'];
+  const hh=hs.map(h=>{let d='';if(h.detalhe&&h.acao==='alterado'){d=Object.entries(h.detalhe).filter(([k])=>!ign.includes(k)).map(([k,v])=>`${k}: ${esc(typeof v==='object'?JSON.stringify(v):String(v).slice(0,80))}`).join(' · ')}else if(h.detalhe&&h.detalhe.status){d='status: '+esc(h.detalhe.status)}
+    return `<div class="sub" style="padding:3px 0">${fdh(h.criado_em)} · <b>${esc(h.autor||'—')}</b> ${esc(h.acao)}${d?' — '+d:''}</div>`}).join('')||'<div class="sub">Sem histórico.</div>';
+  return `<h3 style="margin-top:18px">Comentários</h3><div id="cmList">${cs.map(c=>`<div class="cm"><span class="sub">${esc(c.autor||'—')} · ${fdh(c.criado_em)}</span>${nl2(c.texto)}</div>`).join('')||'<div class="sub">Nenhum comentário.</div>'}</div>
+   <div class="row" style="margin-top:8px"><input id="cmTxt" class="grow" style="flex:1" placeholder="Escreva um comentário..."><button class="btn sm p" onclick="ACT.coment('${modulo}','${ref}')">Comentar</button></div>
+   <h3 style="margin-top:18px">Histórico</h3>${hh}`;
+}
+ACT.coment=(mod,ref)=>safe(async()=>{const t=$('#cmTxt').value.trim();if(!t)return;await q(sb.from('rec_comentarios').insert({modulo:mod,ref_id:String(ref),texto:t}));$('#cmWrap').innerHTML=await blocoComentarios(mod,ref);toast('Comentário registrado.')});
+async function abrirDetalhe(modulo,ref,titulo,corpoHTML,lg){
+  const bloco=await blocoComentarios(modulo,ref);
+  modal(`<h3>${esc(titulo)}</h3>${corpoHTML}<div id="cmWrap">${bloco}</div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" onclick="ACT.fechar()">Fechar</button></div>`,lg);
+}
+
+// ============================================================
+// MÓDULO GENÉRICO (lista + filtros + formulário + status + detalhe)
+// ============================================================
+const MODS={};
+function regMod(M){MODS[M.tabela]=M;return M}
+function valorCampo(M,r,c){const v=r[c.k];if(c.t==='check')return v?'Sim':'Não';if(c.t==='date')return fdata(v);if(c.t==='datetime')return fdh(v);if(v==null||v==='')return '—';return nl2(v)}
+async function renderMod(M){
+  const main=$('#main');
+  M._f=M._f||{q:'',st:'',ex:{}};
+  if(S.filtro&&S.filtro.st!==undefined){M._f.st=S.filtro.st;S.filtro=null}
+  main.innerHTML=`<div class="vh"><div><h2>${esc(M.titulo)}</h2><div class="d">${esc(M.desc||'')}</div></div><div class="row noprint">${M.extraBtns?M.extraBtns():''}${S.user.nivel>=(M.escrita||1)&&!M.semNovo?`<button class="btn p" onclick="ACT.novo('${M.tabela}')">+ ${esc(M.novoLabel||'Novo')}</button>`:''}</div></div>
+   ${M.abas?M.abas():''}<div id="modTopo"></div>
+   <div class="tools"><input class="grow" id="mq" placeholder="Buscar..." value="${esc(M._f.q)}">
+   ${M.statusOpts?`<select id="mst"><option value="">Todos os status</option>${M.statusOpts.map(s=>`<option ${M._f.st===s?'selected':''}>${esc(s)}</option>`).join('')}${M.statusAbertos?`<option value="__abertos" ${M._f.st==='__abertos'?'selected':''}>Somente em aberto</option>`:''}</select>`:''}
+   ${M.campoData?`<input type="date" id="dtDe" title="De" value="${M._f.de||''}"><input type="date" id="dtAte" title="Até" value="${M._f.ate||''}">`:''}
+   ${(M.filtros||[]).map(f=>`<select data-fx="${f.k}"><option value="">${esc(f.l)}: todos</option>${f.opts.map(o=>`<option ${M._f.ex[f.k]===o?'selected':''}>${esc(o)}</option>`).join('')}</select>`).join('')}</div>
+   <div class="card" style="padding:6px 10px"><div class="tw" id="modBody"><div class="empty">Carregando...</div></div></div>`;
+  await carregarMod(M);
+  $('#mq').oninput=e=>{M._f.q=e.target.value;desenharMod(M)};
+  if(M.campoData){$('#dtDe').onchange=e=>{M._f.de=e.target.value;desenharMod(M)};$('#dtAte').onchange=e=>{M._f.ate=e.target.value;desenharMod(M)}}
+  const st=$('#mst');if(st)st.onchange=e=>{M._f.st=e.target.value;desenharMod(M)};
+  main.querySelectorAll('[data-fx]').forEach(s=>s.onchange=e=>{M._f.ex[s.dataset.fx]=e.target.value;desenharMod(M)});
+}
+async function carregarMod(M){
+  try{M._rows=await q(sb.from(M.tabela).select('*').order(M.ordem[0],{ascending:M.ordem[1]}).limit(1500));}catch(e){$('#modBody').innerHTML=`<div class="empty">Erro: ${esc(msgErro(e))}</div>`;return}
+  if(M.preparar)await M.preparar(M._rows);
+  desenharMod(M);
+}
+function filtrar(M){
+  const t=norm(M._f.q);
+  return M._rows.filter(r=>{
+    if(M._f.st==='__abertos'){if(M.statusAbertos&&!M.statusAbertos.includes(r[M.statusField]))return false}
+    else if(M._f.st&&r[M.statusField]!==M._f.st)return false;
+    if(M.campoData){const dv=String(r[M.campoData]||'').slice(0,10);if(M._f.de&&dv<M._f.de)return false;if(M._f.ate&&dv>M._f.ate)return false}
+    for(const [k,v] of Object.entries(M._f.ex))if(v&&r[k]!==v)return false;
+    if(t&&!norm((M.busca||[]).map(k=>r[k]).join(' ')).includes(t))return false;
+    return true});
+}
+function desenharMod(M){
+  const rows=filtrar(M);
+  if($('#modTopo'))$('#modTopo').innerHTML=M.topo?M.topo(M._rows):'';
+  const podeEsc=S.user.nivel>=(M.escrita||1);
+  $('#modBody').innerHTML=rows.length?`<table><thead><tr>${M.colunas.map(c=>`<th>${esc(c.l)}</th>`).join('')}<th></th></tr></thead><tbody>${rows.map(r=>`<tr>${M.colunas.map(c=>`<td>${c.f(r)}</td>`).join('')}<td style="white-space:nowrap;text-align:right">
+    ${M.acoes?M.acoes(r):''}
+    ${M.statusOpts&&!M.statusLocked&&podeEsc?`<select style="width:auto;padding:4px 6px;font-size:12px" onchange="ACT.st('${M.tabela}','${r.id}',this.value)">${M.statusOpts.map(s=>`<option ${s===r[M.statusField]?'selected':''}>${esc(s)}</option>`).join('')}</select>`:''}
+    <button class="lnk" onclick="ACT.det('${M.tabela}','${r.id}')">Abrir</button>${podeEsc?`<button class="lnk" onclick="ACT.edit('${M.tabela}','${r.id}')">Editar</button>`:''}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nenhum registro.</div>';
+}
+function camposDe(M,r){return typeof M.campos==='function'?M.campos(r):M.campos}
+ACT.novo=tab=>safe(async()=>{const M=MODS[tab];if(M.preNovo)await M.preNovo();
+  abrirForm({titulo:'Novo — '+M.titulo,campos:camposDe(M),valores:{...(M.novoValores?M.novoValores():{}),...(S.prefill||{})},lg:M.lg,extra:M.formExtra?M.formExtra():'',salvar:async o=>{S.prefill=null;await salvarMod(M,o,null)}})});
+ACT.edit=(tab,id)=>safe(async()=>{const M=MODS[tab];const r=M._rows.find(x=>x.id===id);
+  abrirForm({titulo:'Editar — '+M.titulo,campos:camposDe(M,r),valores:r,lg:M.lg,salvar:async o=>{await salvarMod(M,o,r)}})});
+async function salvarMod(M,o,r){
+  if(M.antesSalvar)o=await M.antesSalvar(o,r)||o;
+  let saved;
+  if(r){saved=await q(sb.from(M.tabela).update(o).eq('id',r.id).select().single())}
+  else{saved=await q(sb.from(M.tabela).insert(o).select().single())}
+  toast('Salvo.');
+  if(M.depois)await M.depois(saved,r);
+  await carregarMod(M);refreshBadges();
+}
+ACT.st=(tab,id,val)=>safe(async()=>{const M=MODS[tab];const r=M._rows.find(x=>x.id===id);let up={[M.statusField]:val};if(M.aoStatus)up={...up,...(await M.aoStatus(r,val))};
+  await q(sb.from(tab).update(up).eq('id',id));toast('Status atualizado.');if(M.depois)await M.depois({...r,...up},r);await carregarMod(M);refreshBadges()});
+ACT.det=(tab,id)=>safe(async()=>{const M=MODS[tab];const r=M._rows.find(x=>x.id===id);
+  const cs=camposDe(M,r);
+  const corpo=`<div class="ff" style="margin-bottom:6px">${cs.filter(c=>c.t!=='check'||true).map(c=>`<div class="${(c.t==='textarea'||c.full)?'full':''}"><label>${esc(c.l)}</label><div>${valorCampo(M,r,c)}</div></div>`).join('')}
+   <div><label>Status</label><div>${r[M.statusField]?badge(r[M.statusField]):'—'}</div></div><div><label>Registrado por</label><div>${esc(r.autor||'—')} · ${fdh(r.criado_em)}</div></div></div>${M.detExtra?await M.detExtra(r):''}`;
+  await abrirDetalhe(tab,id,(r[M.tituloCampo||'titulo']||r.hospede||r.item||M.titulo),corpo,true)});
+ACT.del=(tab,id)=>safe(async()=>{if(!confirm('Excluir este registro? Não pode ser desfeito.'))return;await q(sb.from(tab).delete().eq('id',id));toast('Excluído.');await carregarMod(MODS[tab])});
+
+// ============================================================
+// NOTIFICAÇÕES
+// ============================================================
+const MOD_VIEW={rec_mural:'mural',rec_solicitacoes:'solicitacoes',rec_cortesias:'cortesias',rec_reclamacoes:'reclamacoes',rec_ocorrencias:'ocorrencias'};
+async function carregarNotifs(){
+  try{
+    const ns=await q(sb.from('rec_notificacoes').select('*').order('criado_em',{ascending:false}).limit(40));
+    const ls=await q(sb.from('rec_notif_lidas').select('notif_id'));
+    const lidas=new Set(ls.map(l=>l.notif_id));
+    S.notifs=ns.map(n=>({...n,lida:lidas.has(n.id)||n.autor===S.user.nome}));
+    const c=S.notifs.filter(n=>!n.lida).length;const b=$('#bellDot');if(b){b.textContent=c;b.style.display=c?'':'none'}
+  }catch(e){console.warn(e)}
+}
+ACT.notifs=()=>{const ns=S.notifs||[];
+  modal(`<h3>Notificações</h3>${ns.length?ns.map(n=>`<div class="item ${n.lida?'':'alert'}" style="cursor:pointer" onclick="ACT.notifIr('${n.id}')"><div class="row sb"><b>${esc(n.titulo)}</b><span class="sub">${fdh(n.criado_em)}</span></div><div class="sub">${esc(n.texto||'')}${n.autor?' · por '+esc(n.autor):''}</div></div>`).join(''):'<div class="empty">Sem notificações.</div>'}
+  <div class="row" style="justify-content:flex-end"><button class="btn" onclick="ACT.notifTodas()">Marcar todas como lidas</button><button class="btn" onclick="ACT.fechar()">Fechar</button></div>`)};
+ACT.notifIr=id=>safe(async()=>{const n=S.notifs.find(x=>x.id===id);if(n&&!n.lida)await sb.from('rec_notif_lidas').insert({notif_id:id});closeModal();await carregarNotifs();const v=MOD_VIEW[n.modulo];if(v&&VIEWS[v]&&S.user.nivel>=VIEWS[v].nivel)irPara(v)});
+ACT.notifTodas=()=>safe(async()=>{const nl=(S.notifs||[]).filter(n=>!n.lida).map(n=>({notif_id:n.id}));if(nl.length)await q(sb.from('rec_notif_lidas').insert(nl));closeModal();await carregarNotifs()});
+
+// ============================================================
+// BADGES DO MENU
+// ============================================================
+async function cnt(tab,f){try{let r=sb.from(tab).select('id',{count:'exact',head:true});r=f(r);const {count,error}=await r;return error?0:(count||0)}catch(e){return 0}}
+async function refreshBadges(){
+  const n=S.user.nivel,b={};
+  const hoje=hojeISO();
+  const [mur,mlid]=await Promise.all([sb.from('rec_mural').select('id,leitura_obrigatoria,expira_em').eq('ativo',true).eq('leitura_obrigatoria',true),sb.from('rec_mural_leituras').select('mural_id').eq('usuario_id',S.user.id)]);
+  const lidos=new Set((mlid.data||[]).map(x=>x.mural_id));
+  b.mural=(mur.data||[]).filter(m=>(!m.expira_em||m.expira_em>=hoje)&&!lidos.has(m.id)).length;
+  try{const kd=await sb.from('rec_conhecimento').select('id,versao').eq('ativo',true).eq('leitura_obrigatoria',true);const kl=await sb.from('rec_conhecimento_leituras').select('doc_id,versao').eq('usuario_id',S.user.id);const ks=new Set((kl.data||[]).map(x=>x.doc_id+'|'+x.versao));b.conhecimento=(kd.data||[]).filter(d=>!ks.has(d.id+'|'+d.versao)).length}catch(e){}
+  b.pendencias=await cnt('rec_pendencias',r=>r.in('status',['Pendente','Em andamento','Aguardando terceiros']));
+  b.solicitacoes=await cnt('rec_solicitacoes',r=>r.in('status',['Aberta','Em andamento']));
+  if(n>=2){b.cortesias=await cnt('rec_cortesias',r=>r.eq('status','Solicitada'));b.avaliacoes=await cnt('rec_avaliacoes',r=>r.eq('status','Nova'));b.reclamacoes=await cnt('rec_reclamacoes',r=>r.in('status',['Aberta','Em tratamento']))}
+  if(n>=3){b.ocorrencias=await cnt('rec_ocorrencias',r=>r.in('status',['Aberta','Em análise']))}
+  S.badges=b;
+  document.querySelectorAll('[data-bd]').forEach(e=>{const v=b[e.dataset.bd];e.textContent=v||'';e.style.display=v?'':'none'});
+}
+
+// ============================================================
+// RESPONSÁVEIS (lista da equipe)
+// ============================================================
+async function carregarEquipe(){try{S.equipe=await q(sb.rpc('rec_equipe_lista'))}catch(e){S.equipe=[]}}
+
+// ============================================================
+// EQUIPE · Pendências e Lembretes
+// ============================================================
+const ABERTO_PEND=['Pendente','Em andamento','Aguardando terceiros'];
+const vencido=(r,campo='prazo')=>r[campo]&&r[campo]<hojeISO();
+regMod({tabela:'rec_pendencias',titulo:'Pendências e Lembretes',desc:'O que ficou aberto não some ao fechar o turno: itens atribuídos à equipe aparecem para o próximo turno.',escrita:1,ordem:['criado_em',false],
+ statusField:'status',statusOpts:['Pendente','Em andamento','Aguardando terceiros','Concluída','Cancelada'],statusAbertos:ABERTO_PEND,busca:['titulo','descricao','responsavel','autor'],
+ filtros:[{k:'prioridade',l:'Prioridade',opts:['Baixa','Normal','Alta','Urgente']}],
+ campos:[{k:'titulo',l:'Título',req:1,full:1},{k:'descricao',l:'Descrição',t:'textarea'},{k:'prioridade',l:'Prioridade',t:'select',opts:['Baixa','Normal','Alta','Urgente']},{k:'responsavel',l:'Responsável',t:'resp'},{k:'prazo',l:'Prazo',t:'date'},{k:'lembrete_em',l:'Lembrete em',t:'datetime'},{k:'atribuida_equipe',l:'Atribuída à equipe (aparece para o próximo turno)',t:'check',full:1}],
+ novoValores:()=>({prioridade:'Normal',atribuida_equipe:true}),
+ colunas:[{l:'Pendência',f:r=>`<b>${esc(r.titulo)}</b>${r.descricao?`<div class="sub">${esc(r.descricao.slice(0,110))}</div>`:''}<div class="sub">${esc(r.autor||'')} · ${fdata(r.criado_em)}</div>`},{l:'Prioridade',f:r=>prioB(r.prioridade)},{l:'Responsável',f:r=>esc(r.responsavel||(r.atribuida_equipe?'Equipe':'—'))},
+  {l:'Prazo',f:r=>r.prazo?`<span style="${vencido(r)&&ABERTO_PEND.includes(r.status)?'color:var(--erro);font-weight:700':''}">${fdata(r.prazo)}${vencido(r)&&ABERTO_PEND.includes(r.status)?' (vencida)':''}</span>`:'—'},{l:'Status',f:r=>badge(r.status)}],
+ aoStatus:(r,v)=>({concluida_em:v==='Concluída'?new Date().toISOString():null})});
+
+// ============================================================
+// EQUIPE · Central de Solicitações Internas
+// ============================================================
+regMod({tabela:'rec_solicitacoes',titulo:'Central de Solicitações Internas',desc:'Pedidos da Recepção para outros setores. Chamados técnicos seguem no sistema de Manutenção — aqui fica só o vínculo.',escrita:1,ordem:['criado_em',false],
+ statusField:'status',statusOpts:['Aberta','Em andamento','Concluída','Cancelada'],statusAbertos:['Aberta','Em andamento'],busca:['titulo','descricao','uh','destino','responsavel','manutencao_ref'],
+ filtros:[{k:'destino',l:'Setor',opts:['Governança','A&B','Administrativo','Guest Relations','Manutenção','Outros']}],
+ extraBtns:()=>`<a class="btn" href="../manutencao/" target="_blank" rel="noopener" style="text-decoration:none">Abrir sistema de Manutenção</a>`,
+ campos:[{k:'destino',l:'Setor de destino',t:'select',opts:['Governança','A&B','Administrativo','Guest Relations','Manutenção','Outros']},{k:'uh',l:'UH / local'},{k:'titulo',l:'Solicitação',req:1,full:1},{k:'descricao',l:'Detalhes',t:'textarea'},{k:'prioridade',l:'Prioridade',t:'select',opts:['Baixa','Normal','Alta','Urgente']},{k:'prazo',l:'Prazo',t:'date'},{k:'responsavel',l:'Responsável no setor',t:'text'},{k:'manutencao_ref',l:'Nº / referência no sistema de Manutenção',ph:'Se destino = Manutenção, registre o chamado lá e informe aqui'}],
+ novoValores:()=>({destino:'Governança',prioridade:'Normal'}),
+ colunas:[{l:'Setor',f:r=>`<span class="b dk">${esc(r.destino)}</span>`},{l:'Solicitação',f:r=>`<b>${esc(r.titulo)}</b>${r.descricao?`<div class="sub">${esc(r.descricao.slice(0,110))}</div>`:''}${r.manutencao_ref?`<div class="sub">Manutenção: ${esc(r.manutencao_ref)}</div>`:''}<div class="sub">${esc(r.autor||'')} · ${fdh(r.criado_em)}</div>`},{l:'UH',f:r=>esc(r.uh||'—')},{l:'Prioridade',f:r=>prioB(r.prioridade)},{l:'Prazo',f:r=>r.prazo?fdata(r.prazo):'—'},{l:'Status',f:r=>badge(r.status)}],
+ aoStatus:(r,v)=>({concluida_em:v==='Concluída'?new Date().toISOString():null}),
+ detExtra:r=>r.destino==='Manutenção'?`<div class="note">Chamado técnico: registre/acompanhe no <a href="../manutencao/" target="_blank" rel="noopener">sistema de Manutenção</a> e anote o número em "Referência".</div>`:''});
+
+// ============================================================
+// EQUIPE · Cortesias e Atendimentos Especiais
+// ============================================================
+regMod({tabela:'rec_cortesias',titulo:'Cortesias e Atendimentos Especiais',desc:'Equipe solicita; Guest ou Supervisor aprova; a Recepção executa e marca como entregue.',escrita:1,ordem:['criado_em',false],
+ statusField:'status',statusOpts:['Solicitada','Aprovada','Recusada','Entregue'],statusAbertos:['Solicitada','Aprovada'],statusLocked:true,busca:['hospede','uh','tipo','descricao','motivo'],
+ campos:[{k:'hospede',l:'Hóspede',req:1},{k:'uh',l:'UH'},{k:'tipo',l:'Tipo',t:'select',opts:['Espumante','Cesta / mimo','Late check-out','Early check-in','Upgrade','Jantar / refeição','Decoração especial','Transfer','Outra']},{k:'data_entrega',l:'Data prevista de entrega',t:'date'},{k:'descricao',l:'Descrição',t:'textarea'},{k:'motivo',l:'Motivo (aniversário, recuperação, VIP...)',t:'textarea'}],
+ novoValores:()=>({tipo:'Espumante'}),
+ topo:rows=>{const a=rows.filter(r=>r.status==='Solicitada').length,e=rows.filter(r=>r.status==='Aprovada').length;return `<div class="grid g3" style="margin-bottom:14px"><div class="kpi ${a?'warn':''}"><div class="n">${a}</div><div class="l">Aguardando aprovação</div></div><div class="kpi"><div class="n">${e}</div><div class="l">Aprovadas a executar</div></div><div class="kpi"><div class="n">${rows.filter(r=>r.status==='Entregue').length}</div><div class="l">Entregues</div></div></div>`},
+ colunas:[{l:'Hóspede',f:r=>`<b>${esc(r.hospede)}</b><div class="sub">UH ${esc(r.uh||'—')}</div>`},{l:'Cortesia',f:r=>`${esc(r.tipo)}${r.descricao?`<div class="sub">${esc(r.descricao.slice(0,100))}</div>`:''}${r.motivo?`<div class="sub">Motivo: ${esc(r.motivo.slice(0,80))}</div>`:''}`},{l:'Entrega prevista',f:r=>fdata(r.data_entrega)},{l:'Solicitada por',f:r=>esc(r.autor||'—')},{l:'Aprovação',f:r=>r.aprovado_por?`${esc(r.aprovado_por)}<div class="sub">${fdh(r.aprovado_em)}</div>`:'—'},{l:'Status',f:r=>badge(r.status)+(r.entregue_em?`<div class="sub">${fdh(r.entregue_em)}</div>`:'')}],
+ acoes:r=>(r.status==='Solicitada'&&S.user.nivel>=2?`<button class="btn sm p" onclick="ACT.cort('${r.id}','Aprovada')">Aprovar</button> <button class="btn sm d" onclick="ACT.cort('${r.id}','Recusada')">Recusar</button> `:'')+(r.status==='Aprovada'?`<button class="btn sm p" onclick="ACT.cort('${r.id}','Entregue')">Marcar entregue</button> `:'')});
+ACT.cort=(id,st)=>safe(async()=>{await q(sb.from('rec_cortesias').update({status:st}).eq('id',id));toast('Cortesia: '+st.toLowerCase()+'.');await carregarMod(MODS.rec_cortesias);refreshBadges()});
+
+// ============================================================
+// EQUIPE · Passagem de Plantão
+// ============================================================
+const turnoAtual=()=>{const h=new Date().getHours();return h<14?'Manhã':h<22?'Tarde':'Noite'};
+regMod({tabela:'rec_plantoes',titulo:'Passagem de Plantão',desc:'Registro de quem entrega e quem recebe. Itens em aberto nunca desaparecem ao fechar o turno.',escrita:1,ordem:['data',false],lg:true,campoData:'data',
+ statusField:'status',statusOpts:['aberto','fechado','confirmado'],statusLocked:true,busca:['entrega_por','recebe_por','resumo','ocorrencias','pendencias','atencao_proximo','hospedes_acompanhar'],tituloCampo:'resumo',
+ campos:[{k:'data',l:'Data',t:'date',req:1},{k:'turno',l:'Turno',t:'select',opts:['Manhã','Tarde','Noite']},{k:'entrega_por',l:'Quem entrega',t:'resp',req:1},{k:'recebe_por',l:'Quem recebe',t:'resp'},{k:'atencao_proximo',l:'ATENÇÃO PARA O PRÓXIMO TURNO',t:'textarea'},{k:'resumo',l:'Resumo do turno',t:'textarea'},{k:'ocorrencias',l:'Ocorrências',t:'textarea'},{k:'pendencias',l:'Pendências em aberto',t:'textarea'},{k:'hospedes_acompanhar',l:'Hóspedes que precisam de acompanhamento',t:'textarea'},{k:'cortesias_entregar',l:'Cortesias a entregar',t:'textarea'},{k:'aguardando_setores',l:'Assuntos aguardando outros setores',t:'textarea'}],
+ novoValores:()=>({data:hojeISO(),turno:turnoAtual(),entrega_por:S.user.nome}),
+ formExtra:()=>`<div class="note">Dica: <button class="lnk" type="button" onclick="ACT.impAberto()">importar itens em aberto</button> preenche pendências, cortesias e solicitações pendentes automaticamente.</div>`,
+ async preparar(){const M=MODS.rec_plantoes;
+   const [p,s,c,a]=await Promise.all([q(sb.from('rec_pendencias').select('titulo,prazo,responsavel,status').in('status',ABERTO_PEND).eq('atribuida_equipe',true)),q(sb.from('rec_solicitacoes').select('titulo,destino,uh,status').in('status',['Aberta','Em andamento'])),q(sb.from('rec_cortesias').select('hospede,uh,tipo,status').in('status',['Solicitada','Aprovada'])),q(sb.from('rec_achados').select('item,status').not('status','in','("Devolvido","Encerrado")'))]);
+   M._aberto={p,s,c,a}},
+ topo:rows=>{const M=MODS.rec_plantoes,o=M._aberto||{p:[],s:[],c:[],a:[]};const ult=rows.find(r=>r.atencao_proximo);
+   const pend=rows.filter(r=>r.status==='fechado');
+   return `${pend.length?`<div class="item alert"><b>${pend.length} plantão(ões) fechado(s) aguardando confirmação de recebimento.</b></div>`:''}${ult?`<div class="item fix"><h4>Atenção para o próximo turno</h4><div class="tx">${nl2(ult.atencao_proximo)}</div><div class="sub">${fdata(ult.data)} · ${esc(ult.turno)} · ${esc(ult.entrega_por||'')}</div></div>`:''}
+   <div class="card"><h3>Em aberto agora — passa para o próximo turno</h3><div class="grid g4"><div class="kpi"><div class="n">${o.p.length}</div><div class="l">Pendências da equipe</div></div><div class="kpi"><div class="n">${o.s.length}</div><div class="l">Solicitações abertas</div></div><div class="kpi"><div class="n">${o.c.length}</div><div class="l">Cortesias em andamento</div></div><div class="kpi"><div class="n">${o.a.length}</div><div class="l">Achados sem desfecho</div></div></div></div>`},
+ colunas:[{l:'Data / turno',f:r=>`<b>${fdata(r.data)}</b><div class="sub">${esc(r.turno)}</div>`},{l:'Entrega → Recebe',f:r=>`${esc(r.entrega_por||'—')} → ${esc(r.recebe_por||'—')}`},{l:'Resumo',f:r=>`${esc((r.resumo||'').slice(0,140))}${r.atencao_proximo?`<div class="sub" style="color:var(--alerta)"><b>Atenção:</b> ${esc(r.atencao_proximo.slice(0,110))}</div>`:''}`},{l:'Status',f:r=>badge(r.status)+(r.confirmado_por?`<div class="sub">por ${esc(r.confirmado_por)}<br>${fdh(r.confirmado_em)}</div>`:'')}],
+ acoes:r=>(r.status==='aberto'?`<button class="btn sm p" onclick="ACT.plant('${r.id}','fechado')">Fechar plantão</button> `:'')+(r.status==='fechado'?`<button class="btn sm p" onclick="ACT.plant('${r.id}','confirmado')">Confirmar recebimento</button> `:'')+(r.status!=='aberto'&&S.user.nivel>=3?`<button class="lnk" onclick="ACT.plant('${r.id}','aberto')">Reabrir</button>`:'')});
+ACT.plant=(id,st)=>safe(async()=>{await q(sb.from('rec_plantoes').update({status:st}).eq('id',id));toast(st==='confirmado'?'Recebimento confirmado.':st==='fechado'?'Plantão fechado — aguardando confirmação do próximo turno.':'Plantão reaberto.');await carregarMod(MODS.rec_plantoes)});
+ACT.impAberto=()=>{const o=MODS.rec_plantoes._aberto;if(!o)return;
+  const set=(k,v)=>{const e=$('#f_'+k);if(e&&v)e.value=v};
+  set('pendencias',o.p.map(x=>`- ${x.titulo}${x.responsavel?' ('+x.responsavel+')':''}${x.prazo?' · prazo '+fdata(x.prazo):''} [${x.status}]`).join('\n'));
+  set('cortesias_entregar',o.c.map(x=>`- ${x.hospede}${x.uh?' UH '+x.uh:''}: ${x.tipo} [${x.status}]`).join('\n'));
+  set('aguardando_setores',o.s.map(x=>`- ${x.destino}: ${x.titulo}${x.uh?' (UH '+x.uh+')':''} [${x.status}]`).join('\n'));toast('Itens em aberto importados.')};
+
+// ============================================================
+// EQUIPE · Achados e Perdidos (ligado à Governança)
+// ============================================================
+const ST_ACH=['Encontrado','Armazenado','Hóspede identificado','Aguardando retirada','Em processo de devolução','Devolvido','Encerrado'];
+regMod({tabela:'rec_achados',titulo:'Achados e Perdidos',desc:'A Governança registra; a Recepção assume, identifica o hóspede e conduz a devolução. Cada objeto guarda seu histórico.',escrita:1,ordem:['criado_em',false],
+ statusField:'status',statusOpts:ST_ACH,statusAbertos:ST_ACH.slice(0,5),busca:['item','local_encontrado','hospede','uh','local_guarda','obs'],tituloCampo:'item',novoLabel:'Registrar item',
+ campos:[{k:'item',l:'Objeto',req:1,full:1},{k:'local_encontrado',l:'Onde foi encontrado'},{k:'data_achado',l:'Data',t:'date'},{k:'encontrado_por',l:'Encontrado por'},{k:'local_guarda',l:'Onde está guardado'},{k:'hospede',l:'Hóspede identificado'},{k:'uh',l:'UH'},{k:'contato',l:'Contato do hóspede'},{k:'retirada_prevista',l:'Retirada / envio previsto',t:'date'},{k:'devolvido_para',l:'Devolvido para'},{k:'obs',l:'Observações',t:'textarea'}],
+ novoValores:()=>({data_achado:hojeISO(),origem:'Recepção'}),
+ async preparar(rows){const M=MODS.rec_achados;M._gov=[];M._govErro=null;
+   try{const g=await q(sb.from('gov_achados_perdidos').select('*').eq('status','guardado').order('data_achado',{ascending:false}).limit(200));const jaTem=new Set(rows.map(r=>r.gov_id).filter(Boolean));M._gov=g.filter(x=>!jaTem.has(String(x.id)))}catch(e){M._govErro=msgErro(e)}},
+ topo:rows=>{const M=MODS.rec_achados;
+   return `<div class="card"><h3>Registrados pela Governança — aguardando a Recepção ${M._gov.length?`(${M._gov.length})`:''}</h3>${M._govErro?`<div class="note">Não foi possível ler os achados da Governança: ${esc(M._govErro)}</div>`:M._gov.length?M._gov.map(g=>`<div class="row sb" style="padding:7px 0;border-bottom:1px solid var(--borda)"><div><b>${esc(g.item)}</b><div class="sub">${fdata(g.data_achado)} · ${esc(g.local_encontrado||'local não informado')} · por ${esc(g.encontrado_por||'—')}${g.hospede?' · hóspede: '+esc(g.hospede):''}</div></div><button class="btn sm p" onclick="ACT.assumir('${g.id}')">Assumir na Recepção</button></div>`).join(''):'<div class="sub">Nenhum item novo da Governança.</div>'}</div>`},
+ colunas:[{l:'Objeto',f:r=>`<b>${esc(r.item)}</b><div class="sub">${esc(r.origem)} · ${fdata(r.data_achado)} · ${esc(r.local_encontrado||'—')}</div>`},{l:'Hóspede',f:r=>r.hospede?`${esc(r.hospede)}${r.uh?' · UH '+esc(r.uh):''}<div class="sub">${esc(r.contato||'')}</div>`:'—'},{l:'Guardado em',f:r=>esc(r.local_guarda||'—')},{l:'Retirada prevista',f:r=>fdata(r.retirada_prevista)},{l:'Status',f:r=>badge(r.status)}],
+ aoStatus:(r,v)=>({devolvido_em:v==='Devolvido'?hojeISO():null}),
+ async depois(saved){if(saved.gov_id&&saved.status==='Devolvido'){try{await sb.from('gov_achados_perdidos').update({status:'devolvido',devolvido_em:hojeISO()}).eq('id',saved.gov_id)}catch(e){console.warn(e)}}}});
+ACT.assumir=id=>safe(async()=>{const M=MODS.rec_achados;const g=M._gov.find(x=>String(x.id)===String(id));if(!g)return;
+  await q(sb.from('rec_achados').insert({gov_id:String(g.id),origem:'Governança',item:g.item,local_encontrado:g.local_encontrado,data_achado:g.data_achado,encontrado_por:g.encontrado_por,hospede:g.hospede||null,obs:g.obs||null,status:'Encontrado'}));
+  toast('Item assumido pela Recepção.');await carregarMod(M)});
+
+// ============================================================
+// EQUIPE · Mural da Recepção
+// ============================================================
+const CAT_MURAL=['Aviso','Escala','Procedimento','Hóspede VIP','Evento','Operacional','Outros'];
+async function viewMural(){
+  const main=$('#main'),hoje=hojeISO(),n=S.user.nivel;
+  const f=S.muralF=S.muralF||{cat:'',arq:false};
+  const [rows,lid]=await Promise.all([q(sb.from('rec_mural').select('*').order('criado_em',{ascending:false}).limit(300)),q(sb.from('rec_mural_leituras').select('mural_id,usuario_id,nome,lido_em'))]);
+  S.mural={rows,lid};
+  const meus=new Set(lid.filter(l=>l.usuario_id===S.user.id).map(l=>l.mural_id));
+  const vis=rows.filter(m=>(f.arq?true:m.ativo&&(!m.expira_em||m.expira_em>=hoje))&&(!f.cat||m.categoria===f.cat)).sort((a,b)=>(b.fixado-a.fixado)||(a.criado_em<b.criado_em?1:-1));
+  const totEq=S.equipe.length;
+  main.innerHTML=`<div class="vh"><div><h2>Mural da Recepção</h2><div class="d">Avisos da equipe com fixação, validade, confirmação de leitura e comentários.</div></div>${n>=2?`<button class="btn p" onclick="ACT.muralForm()">+ Novo aviso</button>`:''}</div>
+  <div class="tools"><select id="mcat"><option value="">Todas as categorias</option>${CAT_MURAL.map(c=>`<option ${f.cat===c?'selected':''}>${c}</option>`).join('')}</select>${n>=2?`<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="marq" ${f.arq?'checked':''}> Mostrar expirados/arquivados</label>`:''}</div>
+  ${vis.length?vis.map(m=>{const lido=meus.has(m.id),ls=lid.filter(l=>l.mural_id===m.id),exp=m.expira_em&&m.expira_em<hoje;
+   return `<div class="item ${m.fixado?'fix':''} ${m.leitura_obrigatoria&&!lido&&m.ativo&&!exp?'alert':''}"><div class="row sb"><h4>${m.fixado?'[Fixado] ':''}${esc(m.titulo)}</h4><div>${badge(m.categoria).replace(/class="b [a-z]+"/,'class="b dk"')}${m.leitura_obrigatoria?'<span class="b pend">Leitura obrigatória</span>':''}${!m.ativo?'<span class="b info">Arquivado</span>':''}${exp?'<span class="b info">Expirado</span>':''}</div></div>
+   <div class="tx">${nl2(m.texto)}</div><div class="row sb"><div class="sub">${esc(m.autor||'—')} · ${fdh(m.criado_em)}${m.expira_em?' · válido até '+fdata(m.expira_em):''}${n>=2?` · lido por ${new Set(ls.map(l=>l.usuario_id)).size} de ${totEq}`:''}</div>
+   <div class="row">${lido?`<span class="b ok">Leitura confirmada</span>`:`<button class="btn sm p" onclick="ACT.muralLer('${m.id}')">Confirmar leitura</button>`}<button class="btn sm" onclick="ACT.muralCom('${m.id}')">Comentários</button>${n>=2?`<button class="btn sm" onclick="ACT.muralQuem('${m.id}')">Quem leu</button><button class="btn sm" onclick="ACT.muralFix('${m.id}')">${m.fixado?'Desafixar':'Fixar'}</button><button class="btn sm" onclick="ACT.muralForm('${m.id}')">Editar</button><button class="btn sm" onclick="ACT.muralArq('${m.id}')">${m.ativo?'Arquivar':'Reativar'}</button>`:''}${n>=3?`<button class="btn sm d" onclick="ACT.muralDel('${m.id}')">Excluir</button>`:''}</div></div></div>`}).join(''):'<div class="card empty">Nenhum aviso no mural.</div>'}`;
+  $('#mcat').onchange=e=>{f.cat=e.target.value;viewMural()};const ma=$('#marq');if(ma)ma.onchange=e=>{f.arq=e.target.checked;viewMural()};
+}
+ACT.muralLer=id=>safe(async()=>{await q(sb.from('rec_mural_leituras').insert({mural_id:id,usuario_id:S.user.id,nome:S.user.nome}));toast('Leitura confirmada.');await viewMural();refreshBadges()});
+ACT.muralCom=id=>safe(async()=>{const m=S.mural.rows.find(x=>x.id===id);await abrirDetalhe('rec_mural',id,m.titulo,`<div class="tx" style="white-space:pre-wrap">${nl2(m.texto)}</div>`)});
+ACT.muralFix=id=>safe(async()=>{const m=S.mural.rows.find(x=>x.id===id);await q(sb.from('rec_mural').update({fixado:!m.fixado}).eq('id',id));viewMural()});
+ACT.muralArq=id=>safe(async()=>{const m=S.mural.rows.find(x=>x.id===id);await q(sb.from('rec_mural').update({ativo:!m.ativo}).eq('id',id));viewMural()});
+ACT.muralDel=id=>safe(async()=>{if(!confirm('Excluir este aviso e as confirmações de leitura?'))return;await q(sb.from('rec_mural').delete().eq('id',id));viewMural()});
+ACT.muralQuem=id=>{const m=S.mural.rows.find(x=>x.id===id);const ls=S.mural.lid.filter(l=>l.mural_id===id);const lidos=new Set(ls.map(l=>l.usuario_id));
+  modal(`<h3>Leitura — ${esc(m.titulo)}</h3><div class="grid g2"><div><b>Leram (${lidos.size})</b>${ls.map(l=>`<div class="sub" style="padding:3px 0">${esc(l.nome)} · ${fdh(l.lido_em)}</div>`).join('')||'<div class="sub">Ninguém ainda.</div>'}</div>
+  <div><b>Ainda não leram (${S.equipe.filter(e=>!lidos.has(e.id)).length})</b>${S.equipe.filter(e=>!lidos.has(e.id)).map(e=>`<div class="sub" style="padding:3px 0">${esc(e.nome)} <span class="b info">${nivelNome(e.nivel)}</span></div>`).join('')||'<div class="sub">Todos leram.</div>'}</div></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" onclick="ACT.fechar()">Fechar</button></div>`)};
+ACT.muralForm=id=>{const m=id?S.mural.rows.find(x=>x.id===id):{categoria:'Aviso'};
+  abrirForm({titulo:id?'Editar aviso':'Novo aviso',valores:m,campos:[{k:'titulo',l:'Título',req:1,full:1},{k:'categoria',l:'Categoria',t:'select',opts:CAT_MURAL},{k:'expira_em',l:'Válido até (opcional)',t:'date'},{k:'texto',l:'Mensagem',t:'textarea',req:1},{k:'fixado',l:'Fixar no topo',t:'check'},{k:'leitura_obrigatoria',l:'Leitura obrigatória',t:'check'}],
+   salvar:async o=>{if(id)await q(sb.from('rec_mural').update(o).eq('id',id));else await q(sb.from('rec_mural').insert(o));toast('Aviso salvo.');await viewMural();refreshBadges()}})};
+
+// ============================================================
+// EQUIPE · Base de Conhecimento (+ Assistente de Consulta)
+// ============================================================
+const CAT_KB=['Procedimentos','Políticas do hotel','Sistema de reservas','Atendimento ao hóspede','Segurança','Contatos úteis','Passeios e região','Outros'];
+const STOP=new Set('para como qual quais onde quando que com uma uns umas dos das nos nas por pelo pela sobre isso esse essa este esta ser tem ter fazer faco devo posso preciso the'.split(' '));
+async function viewConhecimento(){
+  const main=$('#main'),n=S.user.nivel,f=S.kbF=S.kbF||{q:'',cat:'',fav:false};
+  const [docs,leit,fav]=await Promise.all([q(sb.from('rec_conhecimento').select('*').eq('ativo',true).order('titulo')),q(sb.from('rec_conhecimento_leituras').select('doc_id,versao').eq('usuario_id',S.user.id)),q(sb.from('rec_favoritos').select('doc_id'))]);
+  S.kb={docs,leit:new Set(leit.map(l=>l.doc_id+'|'+l.versao)),fav:new Set(fav.map(x=>x.doc_id))};
+  main.innerHTML=`<div class="vh"><div><h2>Base de Conhecimento</h2><div class="d">Procedimentos e informações do hotel, com versões, leitura obrigatória e busca por palavra-chave.</div></div>${n>=2?`<button class="btn p" onclick="ACT.kbForm()">+ Novo documento</button>`:''}</div>
+  <div class="card"><h3>Assistente de Consulta</h3><div class="note">Responde somente com trechos dos documentos cadastrados abaixo (busca por relevância — não usa IA generativa, então nunca inventa informação).</div>
+  <div class="row"><input id="kbPerg" style="flex:1" placeholder="Ex.: qual o horário do café da manhã? como fazer late check-out?"><button class="btn p" onclick="ACT.kbConsulta()">Consultar</button></div><div id="kbResp"></div></div>
+  <div class="tools"><input class="grow" id="kbq" placeholder="Buscar por palavra-chave..." value="${esc(f.q)}"><select id="kbcat"><option value="">Todas as categorias</option>${CAT_KB.map(c=>`<option ${f.cat===c?'selected':''}>${c}</option>`).join('')}</select><label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="kbfav" ${f.fav?'checked':''}> Só favoritos</label></div><div id="kbLista"></div>`;
+  $('#kbPerg').onkeydown=e=>{if(e.key==='Enter')ACT.kbConsulta()};
+  $('#kbq').oninput=e=>{f.q=e.target.value;kbDesenhar()};$('#kbcat').onchange=e=>{f.cat=e.target.value;kbDesenhar()};$('#kbfav').onchange=e=>{f.fav=e.target.checked;kbDesenhar()};
+  kbDesenhar();
+}
+function kbDesenhar(){const f=S.kbF,t=norm(f.q);
+  const ds=S.kb.docs.filter(d=>(!f.cat||d.categoria===f.cat)&&(!f.fav||S.kb.fav.has(d.id))&&(!t||norm(d.titulo+' '+d.palavras_chave+' '+d.conteudo).includes(t)));
+  $('#kbLista').innerHTML=ds.length?ds.map(d=>{const lido=S.kb.leit.has(d.id+'|'+d.versao);return `<div class="item ${d.leitura_obrigatoria&&!lido?'alert':''}"><div class="row sb"><h4>${S.kb.fav.has(d.id)?'[Favorito] ':''}${esc(d.titulo)}</h4><div><span class="b dk">${esc(d.categoria)}</span><span class="b info">v${d.versao}</span>${d.leitura_obrigatoria?(lido?'<span class="b ok">Leitura obrigatória: ok</span>':'<span class="b pend">Leitura obrigatória pendente</span>'):''}</div></div>
+   <div class="sub" style="margin:4px 0 8px">${esc(d.conteudo.replace(/\s+/g,' ').slice(0,150))}...</div><div class="row"><button class="btn sm p" onclick="ACT.kbAbrir('${d.id}')">Abrir</button><button class="btn sm" onclick="ACT.kbFav('${d.id}')">${S.kb.fav.has(d.id)?'Remover favorito':'Favoritar'}</button>${S.user.nivel>=2?`<button class="btn sm" onclick="ACT.kbForm('${d.id}')">Editar</button><button class="btn sm" onclick="ACT.kbArq('${d.id}')">Arquivar</button>`:''}</div></div>`}).join(''):'<div class="card empty">Nenhum documento encontrado.</div>'}
+ACT.kbFav=id=>safe(async()=>{if(S.kb.fav.has(id))await q(sb.from('rec_favoritos').delete().eq('doc_id',id).eq('usuario_id',S.user.id));else await q(sb.from('rec_favoritos').insert({doc_id:id,usuario_id:S.user.id}));await viewConhecimento()});
+ACT.kbArq=id=>safe(async()=>{if(!confirm('Arquivar este documento?'))return;await q(sb.from('rec_conhecimento').update({ativo:false}).eq('id',id));await viewConhecimento()});
+ACT.kbAbrir=id=>safe(async()=>{const d=S.kb.docs.find(x=>x.id===id);const lido=S.kb.leit.has(d.id+'|'+d.versao);
+  const vs=await q(sb.from('rec_conhecimento_versoes').select('*').eq('doc_id',id).order('versao',{ascending:false}));
+  modal(`<h3>${esc(d.titulo)} <span class="b info">v${d.versao}</span></h3><div class="sub">${esc(d.categoria)} · atualizado ${fdh(d.atualizado_em)} · ${esc(d.autor||'')}</div><div class="tx" style="white-space:pre-wrap;margin:14px 0;font-size:14px;line-height:1.55">${nl2(d.conteudo)}</div>
+  ${vs.length>1?`<details><summary class="sub" style="cursor:pointer">Histórico de versões (${vs.length})</summary>${vs.map(v=>`<details style="margin:6px 0 6px 12px"><summary class="sub">v${v.versao} · ${fdh(v.criado_em)} · ${esc(v.autor||'')}</summary><div class="tx" style="white-space:pre-wrap;font-size:13px">${nl2(v.conteudo)}</div></details>`).join('')}</details>`:''}
+  <div class="row" style="justify-content:flex-end;margin-top:16px">${lido?'<span class="b ok">Leitura da v'+d.versao+' confirmada</span>':`<button class="btn p" onclick="ACT.kbLer('${d.id}',${d.versao})">Marcar como lido (v${d.versao})</button>`}<button class="btn" onclick="ACT.fechar()">Fechar</button></div>`,true)});
+ACT.kbLer=(id,v)=>safe(async()=>{await q(sb.from('rec_conhecimento_leituras').insert({doc_id:id,versao:v,usuario_id:S.user.id,nome:S.user.nome}));closeModal();toast('Leitura registrada.');await viewConhecimento();refreshBadges()});
+ACT.kbForm=id=>{const d=id?S.kb.docs.find(x=>x.id===id):{categoria:'Procedimentos'};
+  abrirForm({titulo:id?'Editar documento (gera nova versão se o texto mudar)':'Novo documento',valores:d,lg:true,campos:[{k:'titulo',l:'Título',req:1,full:1},{k:'categoria',l:'Categoria',t:'select',opts:CAT_KB},{k:'palavras_chave',l:'Palavras-chave (separadas por vírgula)'},{k:'conteudo',l:'Conteúdo',t:'textarea',req:1},{k:'leitura_obrigatoria',l:'Leitura obrigatória (reaparece a cada nova versão)',t:'check'}],
+   salvar:async o=>{if(id)await q(sb.from('rec_conhecimento').update(o).eq('id',id));else await q(sb.from('rec_conhecimento').insert(o));toast('Documento salvo.');await viewConhecimento();refreshBadges()}})};
+ACT.kbConsulta=()=>{const p=$('#kbPerg').value.trim();if(!p)return;
+  const tk=norm(p).split(/[^a-z0-9]+/).filter(w=>w.length>2&&!STOP.has(w));const out=$('#kbResp');
+  if(!tk.length){out.innerHTML='<div class="note" style="margin-top:12px">Escreva uma pergunta com palavras-chave.</div>';return}
+  const stem=w=>w.length>5?w.slice(0,w.length-1):w;
+  const res=S.kb.docs.map(d=>{let sc=0;const nt=norm(d.titulo),nk=norm(d.palavras_chave);
+    const pars=d.conteudo.split(/\n+/).map(x=>x.trim()).filter(x=>x.length>3).map(x=>{const nx=norm(x);const s=tk.filter(w=>nx.includes(stem(w))).length;return {x,s}});
+    tk.forEach(w=>{if(nt.includes(stem(w)))sc+=3;if(nk.includes(stem(w)))sc+=2});
+    const best=pars.filter(p=>p.s>0).sort((a,b)=>b.s-a.s).slice(0,2);sc+=best.reduce((a,b)=>a+b.s,0);return {d,sc,best}}).filter(r=>r.sc>0).sort((a,b)=>b.sc-a.sc).slice(0,3);
+  out.innerHTML=res.length?res.map(r=>`<div class="item" style="margin-top:10px"><div class="row sb"><b>${esc(r.d.titulo)}</b><span class="b dk">${esc(r.d.categoria)} · v${r.d.versao}</span></div>${r.best.map(b=>`<div class="tx" style="margin:6px 0">"${esc(b.x.slice(0,320))}"</div>`).join('')||'<div class="sub">Documento relacionado ao tema.</div>'}<button class="btn sm" onclick="ACT.kbAbrir('${r.d.id}')">Abrir documento completo</button></div>`).join(''):'<div class="note" style="margin-top:12px">Não encontrei isso nos documentos cadastrados. Peça ao Supervisor/Guest para cadastrar o procedimento.</div>'};
+
+// ============================================================
+// EQUIPE · Agenda da Sala de Reuniões (Supervisor agenda; Equipe consulta)
+// ============================================================
+async function viewAgenda(){
+  const main=$('#main'),n=S.user.nivel;
+  S.ag=S.ag||{mes:new Date(),sel:hojeISO()};const m=S.ag.mes,ano=m.getFullYear(),mes=m.getMonth();
+  const ini=new Date(ano,mes,1),dow=ini.getDay(),gi=new Date(ano,mes,1-dow),gf=new Date(ano,mes+1,1+(6-new Date(ano,mes+1,0).getDay()));
+  const ev=await q(sb.from('rec_agenda').select('*').eq('cancelado',false).gte('inicio',gi.toISOString()).lt('inicio',gf.toISOString()).order('inicio'));
+  const prox=await q(sb.from('rec_agenda').select('*').eq('cancelado',false).gte('fim',new Date().toISOString()).order('inicio').limit(8));
+  S.ag.ev=ev;S.ag.prox=prox;
+  const porDia={};ev.forEach(e=>{(porDia[dLocal(e.inicio)]=porDia[dLocal(e.inicio)]||[]).push(e)});
+  const dias=[];for(let d=new Date(gi);d<gf;d.setDate(d.getDate()+1))dias.push(new Date(d));
+  const hoje=hojeISO();
+  const linha=e=>`<div class="item" style="padding:10px 13px"><div class="row sb"><div><b>${fhora(e.inicio)} – ${fhora(e.fim)}</b> · ${esc(e.titulo)}<div class="sub">${esc(e.responsavel?'Responsável: '+e.responsavel:'')}${e.participantes?' · Participantes: '+esc(e.participantes):''}</div>${e.observacao?`<div class="sub">${esc(e.observacao)}</div>`:''}</div>${n>=3?`<div class="row"><button class="btn sm" onclick="ACT.agForm('${e.id}')">Editar</button><button class="btn sm d" onclick="ACT.agCancel('${e.id}')">Cancelar</button></div>`:''}</div></div>`;
+  main.innerHTML=`<div class="vh"><div><h2>Agenda · Sala de Reuniões</h2><div class="d">${n>=3?'Você (Supervisor) faz os agendamentos. A equipe consulta.':'Consulta da agenda da sala de reuniões. Agendamentos são feitos pelo Supervisor de Recepção.'}</div></div>${n>=3?`<button class="btn p" onclick="ACT.agForm()">+ Agendar reunião</button>`:''}</div>
+  <div class="grid" style="grid-template-columns:2fr 1fr;align-items:start"><div class="card"><div class="row sb" style="margin-bottom:10px"><button class="btn sm" onclick="ACT.agMes(-1)">&larr;</button><b>${(s=>s.charAt(0).toUpperCase()+s.slice(1))(m.toLocaleDateString('pt-BR',{month:'long'}))} de ${m.getFullYear()}</b><div class="row"><button class="btn sm" onclick="ACT.agMes(0)">Hoje</button><button class="btn sm" onclick="ACT.agMes(1)">&rarr;</button></div></div>
+  <div class="cal">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(x=>`<div class="h">${x}</div>`).join('')}${dias.map(d=>{const k=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,es=porDia[k]||[];return `<button class="c ${d.getMonth()!==mes?'o':''} ${k===hoje?'t':''} ${k===S.ag.sel?'s':''}" onclick="ACT.agSel('${k}')"><b>${d.getDate()}</b>${es.slice(0,2).map(e=>`<span class="ev">${fhora(e.inicio)} ${esc(e.titulo)}</span>`).join('')}${es.length>2?`<span class="sub">+${es.length-2}</span>`:''}</button>`}).join('')}</div></div>
+  <div><div class="card"><h3>${fdata(S.ag.sel)}</h3>${(porDia[S.ag.sel]||[]).map(linha).join('')||'<div class="sub">Sala livre neste dia.</div>'}${n>=3?`<button class="btn sm" style="margin-top:8px" onclick="ACT.agForm(null,'${S.ag.sel}')">Agendar neste dia</button>`:''}</div>
+  <div class="card"><h3>Próximas reuniões</h3>${prox.map(e=>`<div style="padding:6px 0;border-bottom:1px solid var(--borda)"><b>${fdata(dLocal(e.inicio))}</b> ${fhora(e.inicio)}–${fhora(e.fim)}<div>${esc(e.titulo)}</div></div>`).join('')||'<div class="sub">Nenhuma reunião futura.</div>'}</div></div></div>`;
+}
+ACT.agMes=d=>{S.ag.mes=d===0?new Date():new Date(S.ag.mes.getFullYear(),S.ag.mes.getMonth()+d,1);if(d===0)S.ag.sel=hojeISO();viewAgenda()};
+ACT.agSel=k=>{S.ag.sel=k;viewAgenda()};
+ACT.agForm=(id,dia)=>{if(S.user.nivel<3)return;const e=id?[...S.ag.ev,...S.ag.prox].find(x=>x.id===id):null;
+  const v=e?{titulo:e.titulo,responsavel:e.responsavel,participantes:e.participantes,observacao:e.observacao,data:dLocal(e.inicio),hi:hLocal(e.inicio),hf:hLocal(e.fim)}:{data:dia||S.ag.sel,hi:'09:00',hf:'10:00'};
+  abrirForm({titulo:e?'Editar reunião':'Agendar reunião',valores:v,campos:[{k:'titulo',l:'Assunto da reunião',req:1,full:1},{k:'data',l:'Data',t:'date',req:1},{k:'hi',l:'Início',t:'time',req:1},{k:'hf',l:'Término',t:'time',req:1},{k:'responsavel',l:'Responsável / solicitante'},{k:'participantes',l:'Participantes'},{k:'observacao',l:'Observações (café, projetor, layout da sala...)',t:'textarea'}],
+   salvar:async o=>{const row={titulo:o.titulo,responsavel:o.responsavel,participantes:o.participantes,observacao:o.observacao,inicio:isoLocal(o.data,o.hi),fim:isoLocal(o.data,o.hf)};
+    if(row.fim<=row.inicio)throw new Error('O término deve ser depois do início.');
+    if(e)await q(sb.from('rec_agenda').update(row).eq('id',e.id));else await q(sb.from('rec_agenda').insert(row));S.ag.sel=o.data;toast('Agenda salva.');await viewAgenda()}})};
+ACT.agCancel=id=>safe(async()=>{if(!confirm('Cancelar esta reunião?'))return;await q(sb.from('rec_agenda').update({cancelado:true}).eq('id',id));toast('Reunião cancelada.');viewAgenda()});
+
+// ============================================================
+// GUEST · Central de Avaliações + Motor de Respostas
+// ============================================================
+const ORIGENS=['Booking','Google','TripAdvisor','Amplifique.me','Outra'];
+const cfgResp=()=>({hotel:'Hotel Laghetto Pedras Altas',assin:'Equipe de Guest Relations',...JSON.parse(localStorage.getItem('rec_resp_cfg')||'{}')});
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+regMod({tabela:'rec_avaliacoes',titulo:'Central de Avaliações',desc:'Avaliações de Booking, Google, TripAdvisor e Amplifique.me num só lugar, com resposta assistida e aprovação antes de publicar.',escrita:2,ordem:['data_avaliacao',false],
+ statusField:'status',statusOpts:['Nova','Em resposta','Respondida','Ignorada'],statusAbertos:['Nova','Em resposta'],busca:['hospede','titulo','texto','origem'],tituloCampo:'titulo',novoLabel:'Registrar avaliação',
+ filtros:[{k:'origem',l:'Origem',opts:ORIGENS}],
+ extraBtns:()=>`<button class="btn" onclick="ACT.respCfg()">Configurar respostas</button>`,
+ campos:[{k:'origem',l:'Plataforma',t:'select',opts:ORIGENS},{k:'data_avaliacao',l:'Data da avaliação',t:'date'},{k:'hospede',l:'Nome do hóspede'},{k:'nota',l:'Nota',t:'number',step:'0.1'},{k:'nota_max',l:'Escala (nota máxima)',t:'number',step:'0.1'},{k:'url',l:'Link da avaliação'},{k:'titulo',l:'Título',full:1},{k:'texto',l:'Texto da avaliação',t:'textarea',req:1}],
+ novoValores:()=>({origem:'Google',data_avaliacao:hojeISO(),nota_max:5}),
+ topo:rows=>{const por={};rows.forEach(r=>{if(r.nota!=null){const k=r.origem;(por[k]=por[k]||[]).push(r.nota/r.nota_max*5)}});
+  const med=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(2):'—';const novas=rows.filter(r=>r.status==='Nova').length;
+  return `<div class="note">Entrada manual: a leitura automática por API (Booking, Google, TripAdvisor, Amplifique.me) depende de credenciais de cada plataforma. Os campos "Plataforma" e "Link" já deixam o cadastro pronto para essa integração. Notas normalizadas para escala 0–5.</div><div class="grid g4" style="margin-bottom:14px"><div class="kpi ${novas?'warn':''}"><div class="n">${novas}</div><div class="l">Aguardando resposta</div></div>${ORIGENS.slice(0,3).map(o=>`<div class="kpi"><div class="n">${med(por[o]||[])}</div><div class="l">Média ${o} (${(por[o]||[]).length})</div></div>`).join('')}</div>`},
+ colunas:[{l:'Origem',f:r=>`<span class="b dk">${esc(r.origem)}</span><div class="sub">${fdata(r.data_avaliacao)}</div>`},{l:'Nota',f:r=>r.nota!=null?`<b>${r.nota}</b>/${r.nota_max}`:'—'},{l:'Avaliação',f:r=>`${r.titulo?`<b>${esc(r.titulo)}</b><br>`:''}${esc((r.texto||'').slice(0,170))}${(r.texto||'').length>170?'...':''}<div class="sub">${esc(r.hospede||'Hóspede não identificado')}</div>`},{l:'Status',f:r=>badge(r.status)}],
+ aoStatus:(r,v)=>({respondida_em:v==='Respondida'?new Date().toISOString():r.respondida_em}),
+ acoes:r=>`<button class="btn sm p" onclick="ACT.resp('${r.id}')">Responder</button> `});
+function temasAv(t){const n=norm(t);const m=[[/cafe|desjejum/,'o café da manhã'],[/limpez|limpo|higien/,'a limpeza'],[/localiza|centro|perto/,'a localização'],[/atendiment|funcionari|equipe|recepcion|educad/,'o atendimento da nossa equipe'],[/quarto|apartament|cama|colchao/,'a acomodação'],[/vista|paisagem/,'a vista'],[/barulho|ruido/,'o ruído'],[/wifi|wi-fi|internet/,'a internet'],[/estacionament/,'o estacionamento'],[/piscina|spa|sauna/,'a área de lazer'],[/demora|esper|fila/,'o tempo de espera'],[/jantar|restaurante|comida|refeic/,'a gastronomia']];
+  return m.filter(([re])=>re.test(n)).map(x=>x[1]).slice(0,3)}
+function lista(a){return a.length<2?a.join(''):a.slice(0,-1).join(', ')+' e '+a[a.length-1]}
+function gerarRespostas(av,tom){const c=cfgResp();const nome=(av.hospede||'').trim().split(/\s+/)[0];const ola=nome?`Olá, ${nome}!`:'Olá!';
+  const r=av.nota!=null?av.nota/av.nota_max:0.8;const cat=r>=0.8?'pos':r>=0.6?'neu':'neg';const t=temasAv(av.texto);const tm=t.length?lista(t):'';
+  const ab={Cordial:{pos:`${ola} Que alegria ler a sua avaliação!`,neu:`${ola} Agradecemos por compartilhar a sua experiência conosco.`,neg:`${ola} Agradecemos o seu retorno e lamentamos que a sua estadia não tenha sido como esperávamos.`},
+    Formal:{pos:`Prezado(a) ${nome||'hóspede'}, agradecemos sinceramente pela avaliação.`,neu:`Prezado(a) ${nome||'hóspede'}, agradecemos a avaliação e o tempo dedicado a registrá-la.`,neg:`Prezado(a) ${nome||'hóspede'}, agradecemos o seu contato e lamentamos que a experiência tenha ficado aquém do esperado.`},
+    Acolhedor:{pos:`${ola} Seu carinho aquece o nosso coração aqui na serra!`,neu:`${ola} Muito obrigado por nos contar como foi a sua estadia, cada palavra nos ajuda a crescer.`,neg:`${ola} Sentimos muito pelo desconforto. Sua opinião é importante para nós e queremos ouvir você.`},
+    Objetivo:{pos:`${ola} Obrigado pela avaliação positiva.`,neu:`${ola} Obrigado pelo feedback.`,neg:`${ola} Obrigado pelo feedback e pedimos desculpas pelos problemas.`}}[tom][cat];
+  const corpo={pos:tm?`Ficamos felizes em saber que ${tm} ${t.length>1?'fizeram':'fez'} diferença na sua estadia.`:'Ficamos felizes em saber que a sua estadia foi especial.',neu:tm?`Registramos os seus comentários sobre ${tm} e vamos compartilhá-los com as equipes responsáveis.`:'Registramos os seus comentários e vamos compartilhá-los com as equipes responsáveis.',neg:tm?`Levamos a sério o que você relatou sobre ${tm} e já encaminhamos o assunto às equipes responsáveis para as devidas melhorias.`:'Levamos a sério o que você relatou e já encaminhamos o assunto às equipes responsáveis para as devidas melhorias.'}[cat];
+  const conv={pos:'Será um prazer receber você novamente.',neu:'Esperamos ter a oportunidade de superar suas expectativas em uma próxima visita.',neg:'Gostaríamos de entender melhor o ocorrido; fique à vontade para falar diretamente com a nossa equipe.'}[cat];
+  const fe={Cordial:'Um abraço!',Formal:'Atenciosamente,',Acolhedor:'Com carinho,',Objetivo:'Atenciosamente,'}[tom];const as=`${fe}\n${c.assin} · ${c.hotel}`;
+  return [`${ab}\n\n${as}`,`${ab} ${corpo}\n\n${conv}\n\n${as}`,`${ab}\n\n${corpo} ${cat==='neg'?'Nosso compromisso é transformar essa experiência em aprendizado.':'Nosso time trabalha todos os dias para oferecer o melhor da hospitalidade da Serra Gaúcha.'}\n\n${conv}\n\n${as}`]}
+ACT.respCfg=()=>{const c=cfgResp();abrirForm({titulo:'Configurar respostas',valores:c,campos:[{k:'hotel',l:'Nome do hotel',full:1},{k:'assin',l:'Assinatura',full:1}],salvar:async o=>{localStorage.setItem('rec_resp_cfg',JSON.stringify(o));toast('Configuração salva.')}})};
+ACT.resp=id=>safe(async()=>{const M=MODS.rec_avaliacoes;const av=M._rows.find(x=>x.id===id);S.respAv=av;
+  const rs=await q(sb.from('rec_respostas').select('*').eq('avaliacao_id',id).order('criado_em',{ascending:false}));S.respRs=rs;
+  modal(`<h3>Responder avaliação — ${esc(av.origem)}</h3><div class="item"><div class="sub">${esc(av.hospede||'—')} · ${fdata(av.data_avaliacao)} · nota ${av.nota??'—'}/${av.nota_max}</div><div class="tx">${nl2(av.texto)}</div></div>
+  <div class="note">As respostas são geradas por modelos de texto com o tom escolhido (sem IA generativa), editadas por você e só ficam como "Publicada" depois de aprovadas.</div>
+  <div class="row"><select id="rtom" style="width:auto">${['Cordial','Formal','Acolhedor','Objetivo'].map(t=>`<option>${t}</option>`).join('')}</select><button class="btn p" onclick="ACT.respGerar()">Gerar 3 versões</button></div><div id="respGer"></div>
+  <h3 style="margin-top:18px">Respostas salvas</h3><div id="respSalvas">${respSalvasHTML(rs)}</div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" onclick="ACT.fechar()">Fechar</button></div>`,true)});
+function respSalvasHTML(rs){return rs.length?rs.map(r=>`<div class="item"><div class="row sb"><div>${badge(r.status)} <span class="sub">${esc(r.tom||'')} · v${r.versao} · ${esc(r.autor||'')} · ${fdh(r.criado_em)}${r.aprovado_por?' · aprovada por '+esc(r.aprovado_por):''}</span></div><div class="row">${r.status==='Rascunho'?`<button class="btn sm p" onclick="ACT.respSt('${r.id}','Aprovada')">Aprovar</button>`:''}${r.status==='Aprovada'?`<button class="btn sm p" onclick="ACT.respSt('${r.id}','Publicada')">Marcar como publicada</button>`:''}<button class="btn sm" onclick="ACT.respCopiar('${r.id}')">Copiar texto</button></div></div><div class="tx">${nl2(r.texto)}</div></div>`).join(''):'<div class="sub">Nenhuma resposta salva.</div>'}
+ACT.respGerar=()=>{const v=gerarRespostas(S.respAv,$('#rtom').value);S.respGer=v;$('#respGer').innerHTML=v.map((t,i)=>`<div class="item" style="margin-top:10px"><div class="row sb"><b>Versão ${i+1} — ${['curta','média','completa'][i]}</b><button class="btn sm p" onclick="ACT.respSalvar(${i})">Salvar como rascunho</button></div><textarea id="rv${i}" style="margin-top:8px;min-height:130px">${esc(t)}</textarea></div>`).join('')};
+ACT.respSalvar=i=>safe(async()=>{const tx=$('#rv'+i).value.trim();if(!tx)return;await q(sb.from('rec_respostas').insert({avaliacao_id:S.respAv.id,tom:$('#rtom').value,versao:i+1,texto:tx}));
+  if(S.respAv.status==='Nova')await q(sb.from('rec_avaliacoes').update({status:'Em resposta'}).eq('id',S.respAv.id));
+  S.respRs=await q(sb.from('rec_respostas').select('*').eq('avaliacao_id',S.respAv.id).order('criado_em',{ascending:false}));$('#respSalvas').innerHTML=respSalvasHTML(S.respRs);toast('Rascunho salvo.');carregarMod(MODS.rec_avaliacoes)});
+ACT.respSt=(id,st)=>safe(async()=>{const up={status:st};if(st==='Aprovada'){up.aprovado_por=S.user.nome;up.aprovado_em=new Date().toISOString()}
+  await q(sb.from('rec_respostas').update(up).eq('id',id));if(st==='Publicada')await q(sb.from('rec_avaliacoes').update({status:'Respondida',respondida_em:new Date().toISOString()}).eq('id',S.respAv.id));
+  S.respRs=await q(sb.from('rec_respostas').select('*').eq('avaliacao_id',S.respAv.id).order('criado_em',{ascending:false}));$('#respSalvas').innerHTML=respSalvasHTML(S.respRs);toast(st==='Publicada'?'Marcada como publicada. Cole o texto na plataforma.':'Resposta aprovada.');carregarMod(MODS.rec_avaliacoes);refreshBadges()});
+ACT.respCopiar=id=>{const r=S.respRs.find(x=>x.id===id);navigator.clipboard.writeText(r.texto).then(()=>toast('Texto copiado.'),()=>toast('Não foi possível copiar.','erro'))};
+
+// ============================================================
+// GUEST · Gestão de Reclamações
+// ============================================================
+regMod({tabela:'rec_reclamacoes',titulo:'Gestão de Reclamações',desc:'Registro, responsável, prazo e solução. Pode estar ligada a uma avaliação e gerar plano de recuperação.',escrita:2,ordem:['criado_em',false],
+ statusField:'status',statusOpts:['Aberta','Em tratamento','Resolvida','Encerrada'],statusAbertos:['Aberta','Em tratamento'],busca:['hospede','uh','categoria','descricao','solucao','responsavel'],tituloCampo:'hospede',
+ filtros:[{k:'gravidade',l:'Gravidade',opts:['Baixa','Média','Alta','Crítica']}],
+ async preparar(){MODS.rec_reclamacoes._avs=await q(sb.from('rec_avaliacoes').select('id,origem,hospede,data_avaliacao').order('data_avaliacao',{ascending:false}).limit(150))},
+ campos:()=>[{k:'hospede',l:'Hóspede',req:1},{k:'uh',l:'UH'},{k:'categoria',l:'Categoria',t:'select',opts:['Atendimento','Limpeza','Manutenção / quarto','Ruído','Alimentação','Check-in / check-out','Cobrança','Estrutura / lazer','Outros']},{k:'gravidade',l:'Gravidade',t:'select',opts:['Baixa','Média','Alta','Crítica']},{k:'descricao',l:'Descrição',t:'textarea',req:1},{k:'avaliacao_id',l:'Avaliação vinculada (opcional)',t:'select',opts:()=>[{v:'',l:'— nenhuma —'},...(MODS.rec_reclamacoes._avs||[]).map(a=>({v:a.id,l:`${a.origem} · ${a.hospede||'sem nome'} · ${fdata(a.data_avaliacao)}`}))]},{k:'responsavel',l:'Responsável',t:'resp'},{k:'prazo',l:'Prazo',t:'date'},{k:'solucao',l:'Solução / retorno ao hóspede',t:'textarea'}],
+ novoValores:()=>({gravidade:'Média',categoria:'Atendimento'}),
+ antesSalvar:o=>{if(!o.avaliacao_id)o.avaliacao_id=null;return o},
+ colunas:[{l:'Hóspede',f:r=>`<b>${esc(r.hospede)}</b><div class="sub">UH ${esc(r.uh||'—')} · ${fdata(r.criado_em)}</div>`},{l:'Reclamação',f:r=>`<span class="b dk">${esc(r.categoria)}</span>${esc((r.descricao||'').slice(0,130))}${r.avaliacao_id?'<div class="sub">Vinculada a uma avaliação</div>':''}`},{l:'Gravidade',f:r=>prioB(r.gravidade)},{l:'Responsável / prazo',f:r=>`${esc(r.responsavel||'—')}<div class="sub" style="${r.prazo&&r.prazo<hojeISO()&&['Aberta','Em tratamento'].includes(r.status)?'color:var(--erro)':''}">${r.prazo?fdata(r.prazo):''}</div>`},{l:'Status',f:r=>badge(r.status)}],
+ aoStatus:(r,v)=>({resolvida_em:v==='Resolvida'?new Date().toISOString():null}),
+ acoes:r=>`<button class="btn sm" onclick="ACT.recPlano('${r.id}')">Plano de recuperação</button> `});
+ACT.recPlano=id=>safe(async()=>{const r=MODS.rec_reclamacoes._rows.find(x=>x.id===id);S.prefill={reclamacao_id:r.id,hospede:r.hospede,acao:''};await irPara('recuperacao');ACT.novo('rec_recuperacoes')});
+
+// ============================================================
+// GUEST · Acompanhamento de Hóspedes
+// ============================================================
+regMod({tabela:'rec_acompanhamentos',titulo:'Acompanhamento de Hóspedes',desc:'Ficha de acompanhamento por hóspede. Registre cada contato como comentário na ficha (Abrir).',escrita:2,ordem:['criado_em',false],
+ statusField:'status',statusOpts:['Ativo','Concluído'],statusAbertos:['Ativo'],busca:['hospede','uh','motivo','observacoes'],tituloCampo:'hospede',
+ filtros:[{k:'motivo',l:'Motivo',opts:['Acompanhamento','Aniversário','Lua de mel','VIP','Recuperação de experiência','Necessidade especial','Grupo / evento','Outro']}],
+ campos:[{k:'hospede',l:'Hóspede',req:1},{k:'uh',l:'UH'},{k:'checkin',l:'Check-in',t:'date'},{k:'checkout',l:'Check-out',t:'date'},{k:'motivo',l:'Motivo',t:'select',opts:['Acompanhamento','Aniversário','Lua de mel','VIP','Recuperação de experiência','Necessidade especial','Grupo / evento','Outro']},{k:'observacoes',l:'Observações (preferências, restrições, cuidados)',t:'textarea'}],
+ novoValores:()=>({motivo:'Acompanhamento'}),
+ topo:rows=>{const h=hojeISO();const casa=rows.filter(r=>r.status==='Ativo'&&r.checkin&&r.checkin<=h&&(!r.checkout||r.checkout>=h)).length;return `<div class="grid g3" style="margin-bottom:14px"><div class="kpi"><div class="n">${rows.filter(r=>r.status==='Ativo').length}</div><div class="l">Acompanhamentos ativos</div></div><div class="kpi"><div class="n">${casa}</div><div class="l">Hóspedes em casa hoje</div></div><div class="kpi"><div class="n">${rows.filter(r=>r.status==='Ativo'&&r.checkout&&r.checkout<h).length}</div><div class="l">Checkout passado sem concluir</div></div></div>`},
+ colunas:[{l:'Hóspede',f:r=>`<b>${esc(r.hospede)}</b><div class="sub">UH ${esc(r.uh||'—')}</div>`},{l:'Estadia',f:r=>`${fdata(r.checkin)} → ${fdata(r.checkout)}`},{l:'Motivo',f:r=>`<span class="b dk">${esc(r.motivo)}</span>${r.observacoes?`<div class="sub">${esc(r.observacoes.slice(0,110))}</div>`:''}`},{l:'Status',f:r=>badge(r.status)}]});
+
+// ============================================================
+// GUEST · Plano de Recuperação do Hóspede
+// ============================================================
+regMod({tabela:'rec_recuperacoes',titulo:'Plano de Recuperação do Hóspede',desc:'Ações para recuperar a experiência após uma reclamação, com custo e resultado. Gera o indicador de recuperação.',escrita:2,ordem:['criado_em',false],
+ statusField:'status',statusOpts:['Planejada','Em execução','Executada','Cancelada'],statusAbertos:['Planejada','Em execução'],busca:['hospede','acao','responsavel'],tituloCampo:'hospede',
+ async preparar(){MODS.rec_recuperacoes._recl=await q(sb.from('rec_reclamacoes').select('id,hospede,categoria,criado_em').order('criado_em',{ascending:false}).limit(200))},
+ campos:()=>[{k:'hospede',l:'Hóspede',req:1},{k:'reclamacao_id',l:'Reclamação vinculada',t:'select',opts:()=>[{v:'',l:'— sem vínculo —'},...(MODS.rec_recuperacoes._recl||[]).map(r=>({v:r.id,l:`${r.hospede} · ${r.categoria} · ${fdata(r.criado_em)}`}))]},{k:'acao',l:'Ação de recuperação',t:'textarea',req:1},{k:'custo',l:'Custo (R$)',t:'number',step:'0.01'},{k:'responsavel',l:'Responsável',t:'resp'},{k:'prazo',l:'Prazo',t:'date'},{k:'resultado',l:'Resultado',t:'select',opts:['Pendente','Recuperado','Parcial','Não recuperado']}],
+ novoValores:()=>({resultado:'Pendente',custo:0}),antesSalvar:o=>{if(!o.reclamacao_id)o.reclamacao_id=null;return o},
+ topo:rows=>{const dec=rows.filter(r=>['Recuperado','Parcial','Não recuperado'].includes(r.resultado));const rec=dec.filter(r=>r.resultado==='Recuperado').length;const custo=rows.filter(r=>r.status!=='Cancelada').reduce((a,r)=>a+Number(r.custo||0),0);
+  return `<div class="grid g4" style="margin-bottom:14px"><div class="kpi"><div class="n">${dec.length?pct(rec,dec.length)+'%':'—'}</div><div class="l">Índice de recuperação</div><div class="m">${rec} recuperados de ${dec.length} com resultado</div></div><div class="kpi"><div class="n">${rows.filter(r=>['Planejada','Em execução'].includes(r.status)).length}</div><div class="l">Ações em aberto</div></div><div class="kpi"><div class="n">${dec.filter(r=>r.resultado==='Parcial').length}</div><div class="l">Recuperação parcial</div></div><div class="kpi"><div class="n">R$ ${custo.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="l">Custo acumulado</div></div></div>`},
+ colunas:[{l:'Hóspede',f:r=>`<b>${esc(r.hospede)}</b><div class="sub">${fdata(r.criado_em)} · ${esc(r.autor||'')}</div>`},{l:'Ação',f:r=>esc((r.acao||'').slice(0,150))},{l:'Custo',f:r=>'R$ '+Number(r.custo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})},{l:'Responsável / prazo',f:r=>`${esc(r.responsavel||'—')}<div class="sub">${r.prazo?fdata(r.prazo):''}</div>`},{l:'Resultado',f:r=>r.resultado==='Pendente'?'<span class="b info">Pendente</span>':badge(r.resultado)},{l:'Status',f:r=>badge(r.status)}]});
+
+// ============================================================
+// SUPERVISOR · Registro de Ocorrências (+ ações corretivas)
+// ============================================================
+S.abaOc=S.abaOc||'oc';
+const abasOc=()=>`<div class="pill"><button class="${S.abaOc==='oc'?'on':''}" onclick="ACT.abaOc('oc')">Ocorrências</button><button class="${S.abaOc==='ac'?'on':''}" onclick="ACT.abaOc('ac')">Ações corretivas</button></div>`;
+ACT.abaOc=a=>{S.abaOc=a;viewOcorrencias()};
+regMod({tabela:'rec_ocorrencias',titulo:'Registro de Ocorrências',desc:'Acesso exclusivo do Supervisor. Pode ser convertida em ação corretiva; ocorrências confidenciais ficam sinalizadas.',escrita:3,ordem:['criado_em',false],abas:abasOc,
+ statusField:'status',statusOpts:['Aberta','Em análise','Ação corretiva','Encerrada'],statusAbertos:['Aberta','Em análise','Ação corretiva'],busca:['titulo','descricao','envolvidos','local','tipo'],
+ filtros:[{k:'gravidade',l:'Gravidade',opts:['Baixa','Média','Alta','Crítica']},{k:'tipo',l:'Tipo',opts:['Operacional','Hóspede','Colaborador','Segurança','Financeira','Outra']}],
+ campos:[{k:'titulo',l:'Título',req:1,full:1},{k:'tipo',l:'Tipo',t:'select',opts:['Operacional','Hóspede','Colaborador','Segurança','Financeira','Outra']},{k:'gravidade',l:'Gravidade',t:'select',opts:['Baixa','Média','Alta','Crítica']},{k:'data_ocorrencia',l:'Data',t:'date'},{k:'local',l:'Local'},{k:'envolvidos',l:'Envolvidos',full:1},{k:'descricao',l:'Descrição detalhada',t:'textarea'},{k:'confidencial',l:'Confidencial (visível apenas ao Supervisor)',t:'check',full:1}],
+ novoValores:()=>({tipo:'Operacional',gravidade:'Média',data_ocorrencia:hojeISO(),confidencial:false}),
+ colunas:[{l:'Ocorrência',f:r=>`<b>${esc(r.titulo)}</b>${r.confidencial?' <span class="b dk">Confidencial</span>':''}<div class="sub">${esc((r.descricao||'').slice(0,120))}</div>`},{l:'Tipo / data',f:r=>`${esc(r.tipo||'—')}<div class="sub">${fdata(r.data_ocorrencia)} · ${esc(r.local||'')}</div>`},{l:'Gravidade',f:r=>prioB(r.gravidade)},{l:'Status',f:r=>badge(r.status)}],
+ acoes:r=>r.status!=='Encerrada'?`<button class="btn sm" onclick="ACT.ocAcao('${r.id}')">Converter em ação corretiva</button> `:''});
+regMod({tabela:'rec_acoes_corretivas',titulo:'Ações Corretivas',desc:'Ações geradas a partir de ocorrências ou criadas diretamente.',escrita:3,ordem:['criado_em',false],abas:abasOc,
+ statusField:'status',statusOpts:['Pendente','Em andamento','Concluída','Cancelada'],statusAbertos:['Pendente','Em andamento'],busca:['acao','responsavel'],tituloCampo:'acao',
+ async preparar(){const o=await q(sb.from('rec_ocorrencias').select('id,titulo'));MODS.rec_acoes_corretivas._oc=Object.fromEntries(o.map(x=>[x.id,x.titulo]))},
+ campos:()=>[{k:'acao',l:'Ação corretiva',t:'textarea',req:1},{k:'ocorrencia_id',l:'Ocorrência de origem',t:'select',opts:()=>[{v:'',l:'— nenhuma —'},...Object.entries(MODS.rec_acoes_corretivas._oc||{}).map(([v,l])=>({v,l}))]},{k:'responsavel',l:'Responsável',t:'resp'},{k:'prazo',l:'Prazo',t:'date'}],
+ antesSalvar:o=>{if(!o.ocorrencia_id)o.ocorrencia_id=null;return o},
+ colunas:[{l:'Ação',f:r=>`<b>${esc((r.acao||'').slice(0,150))}</b>${r.ocorrencia_id?`<div class="sub">Origem: ${esc((MODS.rec_acoes_corretivas._oc||{})[r.ocorrencia_id]||'ocorrência')}</div>`:''}`},{l:'Responsável',f:r=>esc(r.responsavel||'—')},{l:'Prazo',f:r=>r.prazo?`<span style="${r.prazo<hojeISO()&&['Pendente','Em andamento'].includes(r.status)?'color:var(--erro);font-weight:700':''}">${fdata(r.prazo)}</span>`:'—'},{l:'Status',f:r=>badge(r.status)}]});
+async function viewOcorrencias(){await renderMod(S.abaOc==='ac'?MODS.rec_acoes_corretivas:MODS.rec_ocorrencias)}
+ACT.ocAcao=id=>safe(async()=>{const o=MODS.rec_ocorrencias._rows.find(x=>x.id===id);
+  abrirForm({titulo:'Converter em ação corretiva',valores:{acao:'Corrigir: '+o.titulo},campos:[{k:'acao',l:'Ação corretiva',t:'textarea',req:1},{k:'responsavel',l:'Responsável',t:'resp'},{k:'prazo',l:'Prazo',t:'date'}],
+   salvar:async v=>{await q(sb.from('rec_acoes_corretivas').insert({...v,ocorrencia_id:id}));await q(sb.from('rec_ocorrencias').update({status:'Ação corretiva'}).eq('id',id));toast('Ação corretiva criada.');await carregarMod(MODS.rec_ocorrencias)}})});
+
+// ============================================================
+// SUPERVISOR · Auditoria e Procedimentos
+// ============================================================
+async function viewAuditoria(){
+  const main=$('#main');S.audTab=S.audTab||'nova';
+  const [cls,auds]=await Promise.all([q(sb.from('rec_checklists').select('*').order('nome')),q(sb.from('rec_auditorias').select('*').order('data',{ascending:false}).limit(200))]);S.cls=cls;S.auds=auds;
+  const tab=S.audTab;
+  main.innerHTML=`<div class="vh"><div><h2>Auditoria e Procedimentos</h2><div class="d">Checklists de conferência, notas por auditoria e histórico.</div></div></div>
+  <div class="pill">${[['nova','Nova auditoria'],['hist','Histórico'],['mod','Modelos de checklist']].map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="ACT.audTab('${k}')">${l}</button>`).join('')}</div><div id="audBody"></div>`;
+  const b=$('#audBody');
+  if(tab==='nova'){audNova();  }else if(tab==='hist'){
+    b.innerHTML=`<div class="card"><div class="tw">${auds.length?`<table><thead><tr><th>Data</th><th>Checklist</th><th>Auditor</th><th>Nota</th><th></th></tr></thead><tbody>${auds.map(a=>`<tr><td>${fdata(a.data)}</td><td>${esc(a.checklist_nome||'—')}</td><td>${esc(a.auditor||'—')}</td><td><div class="row"><b>${a.nota??'—'}%</b><div class="bar" style="width:90px"><i style="width:${a.nota||0}%"></i></div></div></td><td><button class="lnk" onclick="ACT.audVer('${a.id}')">Abrir</button><button class="lnk d" onclick="ACT.del('rec_auditorias','${a.id}');setTimeout(viewAuditoria,500)">Excluir</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nenhuma auditoria realizada.</div>'}</div></div>`;
+  }else{
+    b.innerHTML=`<div class="row" style="margin-bottom:12px"><button class="btn p" onclick="ACT.clForm()">+ Novo modelo</button></div>${cls.map(c=>`<div class="item"><div class="row sb"><div><b>${esc(c.nome)}</b> ${c.ativo?'':'<span class="b info">Inativo</span>'}<div class="sub">${c.itens.length} itens</div></div><button class="btn sm" onclick="ACT.clForm('${c.id}')">Editar</button></div></div>`).join('')||'<div class="card empty">Nenhum modelo.</div>'}`;
+  }
+}
+
+function audNova(){const b=$('#audBody'),cls=S.cls;const ativos=cls.filter(c=>c.ativo);
+  if(!ativos.length){b.innerHTML='<div class="card empty">Cadastre um modelo de checklist na aba "Modelos".</div>';return}
+  const cl=S.audCl&&ativos.find(c=>c.id===S.audCl.id)?S.audCl:(S.audCl=ativos[0]);if(!S.audResp||S.audResp.cl!==cl.id)S.audResp={cl:cl.id,r:cl.itens.map(()=>({r:'',o:''})),obs:''};
+  b.innerHTML=`<div class="card"><div class="tools"><select id="audCl">${ativos.map(c=>`<option value="${c.id}" ${c.id===cl.id?'selected':''}>${esc(c.nome)}</option>`).join('')}</select></div>
+  ${cl.itens.map((it,i)=>`<div class="chk"><div><b>${i+1}.</b> ${esc(it)}<input style="margin-top:6px" placeholder="Observação (opcional)" value="${esc(S.audResp.r[i].o)}" oninput="S.audResp.r[${i}].o=this.value"></div><div class="opt"><button class="c ${S.audResp.r[i].r==='C'?'on':''}" onclick="ACT.audMarca(${i},'C')">Conforme</button><button class="n ${S.audResp.r[i].r==='N'?'on':''}" onclick="ACT.audMarca(${i},'N')">Não conforme</button><button class="a ${S.audResp.r[i].r==='A'?'on':''}" onclick="ACT.audMarca(${i},'A')">N/A</button></div></div>`).join('')}
+  <label style="margin-top:14px">Observações gerais</label><textarea id="audObs" oninput="S.audResp.obs=this.value">${esc(S.audResp.obs||'')}</textarea><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn p" onclick="ACT.audSalvar()">Concluir auditoria</button></div></div>`;
+  $('#audCl').onchange=e=>{S.audCl=cls.find(c=>c.id===e.target.value);S.audResp=null;audNova()};
+}
+
+MODS.rec_auditorias={tabela:'rec_auditorias',titulo:'Auditoria',_rows:[],aoCarregar:0};
+ACT.audTab=k=>{S.audTab=k;viewAuditoria()};
+ACT.audMarca=(i,v)=>{S.audResp.r[i].r=S.audResp.r[i].r===v?'':v;const y=window.scrollY;audNova();window.scrollTo(0,y)};
+ACT.audSalvar=()=>safe(async()=>{const cl=S.audCl,r=S.audResp.r;if(r.some(x=>!x.r)){toast('Marque todos os itens (Conforme, Não conforme ou N/A).','erro');return}
+  const c=r.filter(x=>x.r==='C').length,n=r.filter(x=>x.r==='N').length;const nota=c+n?Math.round(c/(c+n)*1000)/10:null;
+  await q(sb.from('rec_auditorias').insert({checklist_id:cl.id,checklist_nome:cl.nome,auditor:S.user.nome,respostas:cl.itens.map((it,i)=>({item:it,resultado:r[i].r,obs:r[i].o})),nota,obs:(S.audResp.obs||'').trim()}));
+  S.audResp=null;toast('Auditoria registrada'+(nota!=null?` — nota ${nota}%`:'')+'.');S.audTab='hist';viewAuditoria()});
+ACT.audVer=id=>safe(async()=>{const a=S.auds.find(x=>x.id===id);const lbl={C:'Conforme',N:'Não conforme',A:'N/A'};
+  await abrirDetalhe('rec_auditorias',id,`${a.checklist_nome} — ${fdata(a.data)}`,`<div class="sub">Auditor: ${esc(a.auditor||'—')} · Nota: <b>${a.nota??'—'}%</b></div>${(a.respostas||[]).map(x=>`<div class="chk"><div>${esc(x.item)}${x.obs?`<div class="sub">${esc(x.obs)}</div>`:''}</div><div>${badge(x.resultado==='N'?'Recusada':x.resultado==='C'?'Concluída':'Cancelada').replace(/>[^<]*</,'>'+lbl[x.resultado]+'<')}</div></div>`).join('')}${a.obs?`<div class="note" style="margin-top:10px">${esc(a.obs)}</div>`:''}`,true)});
+ACT.clForm=id=>{const c=id?S.cls.find(x=>x.id===id):{ativo:true,itens:[]};
+  abrirForm({titulo:id?'Editar checklist':'Novo checklist',valores:{nome:c.nome,ativo:c.ativo,itens:c.itens.join('\n')},campos:[{k:'nome',l:'Nome do checklist',req:1,full:1},{k:'itens',l:'Itens (um por linha)',t:'textarea',req:1},{k:'ativo',l:'Ativo',t:'check'}],
+   salvar:async o=>{const row={nome:o.nome,ativo:o.ativo,itens:o.itens.split('\n').map(x=>x.trim()).filter(Boolean)};if(id)await q(sb.from('rec_checklists').update(row).eq('id',id));else await q(sb.from('rec_checklists').insert(row));toast('Checklist salvo.');S.audResp=null;viewAuditoria()}})};
+
+// ============================================================
+// SUPERVISOR · Dashboard Operacional (com drill-down)
+// ============================================================
+async function viewDashboard(){
+  const main=$('#main'),hoje=hojeISO();main.innerHTML='<div class="empty">Carregando painel...</div>';
+  const sel=(t,c)=>q(sb.from(t).select(c).limit(2000));
+  const [pend,sol,cort,ach,ava,rec,ocor,plan,rcv,mur,mlid]=await Promise.all([sel('rec_pendencias','id,titulo,status,prazo,responsavel,prioridade'),sel('rec_solicitacoes','id,titulo,status,destino,prazo'),sel('rec_cortesias','id,hospede,status,tipo'),sel('rec_achados','id,item,status'),sel('rec_avaliacoes','id,status,nota,nota_max,origem'),sel('rec_reclamacoes','id,hospede,status,gravidade,prazo'),sel('rec_ocorrencias','id,titulo,status,gravidade'),sel('rec_plantoes','id,data,turno,status,entrega_por'),sel('rec_recuperacoes','id,resultado,status'),sel('rec_mural','id,titulo,leitura_obrigatoria,ativo,expira_em'),sel('rec_mural_leituras','mural_id,usuario_id')]);
+  const pa=pend.filter(p=>ABERTO_PEND.includes(p.status)),pv=pa.filter(p=>p.prazo&&p.prazo<hoje);
+  const sa=sol.filter(s=>['Aberta','Em andamento'].includes(s.status)),ca=cort.filter(c=>c.status==='Solicitada'),ce=cort.filter(c=>c.status==='Aprovada');
+  const aa=ach.filter(a=>!['Devolvido','Encerrado'].includes(a.status)),av=ava.filter(a=>a.status==='Nova'),ra=rec.filter(r=>['Aberta','Em tratamento'].includes(r.status)),rv=ra.filter(r=>r.prazo&&r.prazo<hoje),oa=ocor.filter(o=>['Aberta','Em análise','Ação corretiva'].includes(o.status)),pf=plan.filter(p=>p.status==='fechado');
+  const mo=mur.filter(m=>m.ativo&&m.leitura_obrigatoria&&(!m.expira_em||m.expira_em>=hoje));const lidosPor={};mlid.forEach(l=>{lidosPor[l.mural_id]=(lidosPor[l.mural_id]||0)+1});const muraisInc=mo.filter(m=>(lidosPor[m.id]||0)<S.equipe.length);
+  const K=(n,l,view,st,warn,m)=>`<button class="kpi ${warn?'warn':''}" onclick="irPara('${view}',{st:${JSON.stringify(st)}})"><div class="n">${n}</div><div class="l">${l}</div>${m?`<div class="m">${m}</div>`:''}</button>`;
+  const notas=ava.filter(a=>a.nota!=null).map(a=>a.nota/a.nota_max*5);const media=notas.length?(notas.reduce((x,y)=>x+y,0)/notas.length).toFixed(2):'—';
+  const dec=rcv.filter(r=>['Recuperado','Parcial','Não recuperado'].includes(r.resultado));
+  main.innerHTML=`<div class="vh"><div><h2>Dashboard Operacional</h2><div class="d">Visão em tempo real. Clique em um indicador para abrir a lista correspondente.</div></div><button class="btn" onclick="viewDashboard()">Atualizar</button></div>
+  <div class="grid g4" style="margin-bottom:16px">${K(pa.length,'Pendências em aberto','pendencias','__abertos',pv.length>0,pv.length?pv.length+' vencida(s)':'')}${K(sa.length,'Solicitações internas abertas','solicitacoes','__abertos',false)}${K(ca.length,'Cortesias aguardando aprovação','cortesias','Solicitada',ca.length>0)}${K(ce.length,'Cortesias a executar','cortesias','Aprovada',false)}
+  ${K(aa.length,'Achados e perdidos sem desfecho','achados','__abertos',false)}${K(av.length,'Avaliações sem resposta','avaliacoes','Nova',av.length>0,'Média geral '+media)}${K(ra.length,'Reclamações em aberto','reclamacoes','__abertos',rv.length>0,rv.length?rv.length+' fora do prazo':'')}${K(dec.length?pct(dec.filter(r=>r.resultado==='Recuperado').length,dec.length)+'%':'—','Recuperação de hóspedes','recuperacao','',false)}
+  ${K(oa.length,'Ocorrências em aberto','ocorrencias','__abertos',oa.some(o=>/Alta|Crítica/.test(o.gravidade)))}${K(pf.length,'Plantões aguardando confirmação','plantao','fechado',pf.length>0)}${K(muraisInc.length,'Avisos obrigatórios com leitura incompleta','mural','',muraisInc.length>0)}${K(S.equipe.length,'Usuários ativos na Recepção','usuarios','',false)}</div>
+  <div class="grid g2"><div class="card"><h3>Pendências vencidas</h3>${pv.length?pv.slice(0,8).map(p=>`<div class="row sb" style="padding:6px 0;border-bottom:1px solid var(--borda)"><span>${esc(p.titulo)}<div class="sub">${esc(p.responsavel||'Equipe')}</div></span><span class="b erro">${fdata(p.prazo)}</span></div>`).join(''):'<div class="sub">Nenhuma pendência vencida.</div>'}</div>
+  <div class="card"><h3>Plantões e avisos</h3>${pf.length?pf.map(p=>`<div class="sub" style="padding:4px 0">Plantão ${fdata(p.data)} · ${esc(p.turno)} (${esc(p.entrega_por||'—')}) sem confirmação</div>`).join(''):'<div class="sub">Todos os plantões fechados foram confirmados.</div>'}${muraisInc.map(m=>`<div class="sub" style="padding:4px 0">Aviso obrigatório "${esc(m.titulo)}": ${lidosPor[m.id]||0}/${S.equipe.length} leram</div>`).join('')}</div></div>`;
+}
+
+// ============================================================
+// SUPERVISOR · Indicadores de Desempenho
+// ============================================================
+async function viewIndicadores(){
+  const main=$('#main');S.indDias=S.indDias||30;const di=new Date();di.setDate(di.getDate()-S.indDias);const ini=di.toISOString(),iniD=dLocal(ini);
+  main.innerHTML='<div class="empty">Calculando...</div>';
+  const g=(t,c,col)=>q(sb.from(t).select(c).gte(col,ini).limit(3000));
+  const [pend,pl,ava,rec,rcv,cort,sol,aud]=await Promise.all([g('rec_pendencias','status,prazo,concluida_em,criado_em','criado_em'),g('rec_plantoes','status','criado_em'),g('rec_avaliacoes','nota,nota_max,status,criado_em,respondida_em','criado_em'),g('rec_reclamacoes','status,criado_em,resolvida_em','criado_em'),g('rec_recuperacoes','resultado,custo,status','criado_em'),g('rec_cortesias','status','criado_em'),g('rec_solicitacoes','status,criado_em,concluida_em','criado_em'),g('rec_auditorias','nota','criado_em')]);
+  const dias=(a,b)=>(new Date(b)-new Date(a))/86400000;const med=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length):null;const f1=v=>v==null?'—':v.toFixed(1);
+  const pc=pend.filter(p=>p.status==='Concluída'),noPrazo=pc.filter(p=>!p.prazo||dLocal(p.concluida_em)<=p.prazo);
+  const plF=pl.filter(p=>p.status!=='aberto'),notas=ava.filter(a=>a.nota!=null).map(a=>a.nota/a.nota_max*5),resp=ava.filter(a=>a.respondida_em).map(a=>dias(a.criado_em,a.respondida_em));
+  const rs=rec.filter(r=>['Resolvida','Encerrada'].includes(r.status)),tr=rec.filter(r=>r.resolvida_em).map(r=>dias(r.criado_em,r.resolvida_em));
+  const dec=rcv.filter(r=>['Recuperado','Parcial','Não recuperado'].includes(r.resultado));const sc=sol.filter(s=>s.status==='Concluída');
+  const I=(l,v,m,warn)=>`<div class="kpi ${warn?'warn':''}"><div class="n">${v}</div><div class="l">${l}</div><div class="m">${m||''}</div></div>`;
+  main.innerHTML=`<div class="vh"><div><h2>Indicadores de Desempenho</h2><div class="d">Calculados automaticamente a partir dos registros do período.</div></div><select id="indD" style="width:auto">${[[7,'Últimos 7 dias'],[30,'Últimos 30 dias'],[90,'Últimos 90 dias'],[365,'Últimos 12 meses']].map(([v,l])=>`<option value="${v}" ${S.indDias===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="grid g3">${I('Pendências concluídas no prazo',pc.length?pct(noPrazo.length,pc.length)+'%':'—',`${noPrazo.length} de ${pc.length} concluídas`,pc.length&&pct(noPrazo.length,pc.length)<80)}${I('Plantões com recebimento confirmado',plF.length?pct(plF.filter(p=>p.status==='confirmado').length,plF.length)+'%':'—',`${plF.filter(p=>p.status==='confirmado').length} de ${plF.length} fechados`,plF.length&&pct(plF.filter(p=>p.status==='confirmado').length,plF.length)<90)}${I('Solicitações internas concluídas',sol.length?pct(sc.length,sol.length)+'%':'—',`${sc.length} de ${sol.length}`)}
+  ${I('Nota média das avaliações',notas.length?f1(med(notas))+' / 5':'—',notas.length+' avaliações com nota',notas.length&&med(notas)<4)}${I('Tempo médio de resposta a avaliações',resp.length?f1(med(resp))+' dias':'—',resp.length+' respondidas',resp.length&&med(resp)>2)}${I('Avaliações respondidas',ava.length?pct(ava.filter(a=>a.status==='Respondida').length,ava.length)+'%':'—',`${ava.filter(a=>a.status==='Respondida').length} de ${ava.length}`)}
+  ${I('Reclamações resolvidas',rec.length?pct(rs.length,rec.length)+'%':'—',`${rs.length} de ${rec.length}`)}${I('Tempo médio de resolução',tr.length?f1(med(tr))+' dias':'—',tr.length+' resolvidas')}${I('Índice de recuperação',dec.length?pct(dec.filter(r=>r.resultado==='Recuperado').length,dec.length)+'%':'—',`${dec.length} planos com resultado`)}
+  ${I('Cortesias entregues',cort.length?pct(cort.filter(c=>c.status==='Entregue').length,cort.length)+'%':'—',`${cort.filter(c=>c.status==='Entregue').length} de ${cort.length} solicitadas`)}${I('Custo de recuperação','R$ '+rcv.filter(r=>r.status!=='Cancelada').reduce((a,r)=>a+Number(r.custo||0),0).toLocaleString('pt-BR',{minimumFractionDigits:2}),'planos do período')}${I('Nota média das auditorias',aud.length?f1(med(aud.filter(a=>a.nota!=null).map(a=>Number(a.nota))))+'%':'—',aud.length+' auditorias')}</div>`;
+  $('#indD').onchange=e=>{S.indDias=Number(e.target.value);viewIndicadores()};
+}
+
+// ============================================================
+// SUPERVISOR · Relatório de Turno e Gestão (análise automática por regras)
+// ============================================================
+async function viewRelatorio(){
+  const main=$('#main');const hoje=hojeISO();const d7=new Date();d7.setDate(d7.getDate()-6);
+  S.rel=S.rel||{de:dLocal(d7.toISOString()),ate:hoje};
+  main.innerHTML=`<div class="vh noprint"><div><h2>Relatório de Turno e Gestão</h2><div class="d">Consolidado do período com análise automática por regras (alertas e pontos de atenção).</div></div></div>
+  <div class="tools noprint"><label style="margin:0">De</label><input type="date" id="rde" value="${S.rel.de}"><label style="margin:0">Até</label><input type="date" id="rate" value="${S.rel.ate}"><button class="btn p" onclick="ACT.relGerar()">Gerar relatório</button></div><div id="relOut"></div>`;
+  ACT.relGerar();
+}
+ACT.relGerar=()=>safe(async()=>{
+  S.rel.de=$('#rde').value;S.rel.ate=$('#rate').value;const de=new Date(S.rel.de+'T00:00:00').toISOString(),ate=new Date(S.rel.ate+'T23:59:59').toISOString();
+  const g=(t,c)=>q(sb.from(t).select(c).gte('criado_em',de).lte('criado_em',ate).limit(3000));
+  const [pl,pe,so,co,ac,av,re,rc,oc,au]=await Promise.all([g('rec_plantoes','*'),g('rec_pendencias','status,prazo,titulo'),g('rec_solicitacoes','status,destino,titulo'),g('rec_cortesias','status,tipo,hospede'),g('rec_achados','status'),g('rec_avaliacoes','nota,nota_max,status,origem'),g('rec_reclamacoes','status,gravidade,categoria'),g('rec_recuperacoes','resultado,custo,status'),g('rec_ocorrencias','titulo,gravidade,status,confidencial'),g('rec_auditorias','nota,checklist_nome')]);
+  const abertasPend=await q(sb.from('rec_pendencias').select('titulo,prazo,responsavel').in('status',ABERTO_PEND));const venc=abertasPend.filter(p=>p.prazo&&p.prazo<hojeISO());
+  const L=[];const H=t=>L.push({t:'h',x:t}),P=t=>L.push({t:'p',x:t}),B=t=>L.push({t:'li',x:t});
+  H('Plantões');P(`${pl.length} plantão(ões) registrado(s); ${pl.filter(p=>p.status==='confirmado').length} com recebimento confirmado.`);pl.filter(p=>p.atencao_proximo).slice(0,5).forEach(p=>B(`${fdata(p.data)} ${p.turno}: ${p.atencao_proximo.replace(/\s+/g,' ').slice(0,200)}`));
+  H('Pendências e solicitações');P(`${pe.length} pendência(s) criada(s) no período, ${pe.filter(p=>p.status==='Concluída').length} concluída(s). Em aberto hoje: ${abertasPend.length} (${venc.length} vencida(s)). Solicitações internas: ${so.length} (${so.filter(s=>s.status==='Concluída').length} concluídas).`);
+  H('Cortesias e achados');P(`${co.length} cortesia(s) solicitada(s): ${co.filter(c=>c.status==='Entregue').length} entregue(s), ${co.filter(c=>c.status==='Aprovada').length} aprovada(s) a executar, ${co.filter(c=>c.status==='Recusada').length} recusada(s). Achados e perdidos registrados: ${ac.length} (${ac.filter(a=>a.status==='Devolvido').length} devolvido(s)).`);
+  const nt=av.filter(a=>a.nota!=null).map(a=>a.nota/a.nota_max*5);const mn=nt.length?nt.reduce((x,y)=>x+y,0)/nt.length:null;
+  H('Guest Relations');P(`${av.length} avaliação(ões) registrada(s)${mn!=null?`, nota média ${mn.toFixed(2)}/5`:''}; ${av.filter(a=>a.status==='Nova').length} sem resposta. Reclamações: ${re.length} (${re.filter(r=>['Resolvida','Encerrada'].includes(r.status)).length} resolvidas). Planos de recuperação: ${rc.length}, custo R$ ${rc.filter(r=>r.status!=='Cancelada').reduce((a,r)=>a+Number(r.custo||0),0).toLocaleString('pt-BR',{minimumFractionDigits:2})}.`);
+  H('Ocorrências e auditorias');P(`${oc.length} ocorrência(s) no período (${oc.filter(o=>/Alta|Crítica/.test(o.gravidade)).length} de gravidade alta/crítica).${au.length?` Auditorias: ${au.length}, nota média ${(au.filter(a=>a.nota!=null).reduce((x,y)=>x+Number(y.nota),0)/Math.max(1,au.filter(a=>a.nota!=null).length)).toFixed(1)}%.`:''}`);oc.filter(o=>!o.confidencial).slice(0,6).forEach(o=>B(`${o.titulo} — ${o.gravidade} (${o.status})`));
+  H('Análise automática');const al=[];
+  if(venc.length)al.push(`${venc.length} pendência(s) vencida(s): priorizar com os responsáveis (${venc.slice(0,3).map(v=>v.titulo).join('; ')}).`);
+  if(pl.some(p=>p.status==='fechado'))al.push('Há plantão(ões) fechado(s) sem confirmação de recebimento.');
+  if(mn!=null&&mn<4.2)al.push(`Nota média das avaliações (${mn.toFixed(2)}) abaixo da meta de 4,2 — revisar os temas recorrentes.`);
+  if(av.filter(a=>a.status==='Nova').length)al.push(`${av.filter(a=>a.status==='Nova').length} avaliação(ões) aguardando resposta.`);
+  if(re.filter(r=>['Aberta','Em tratamento'].includes(r.status)).length)al.push(`${re.filter(r=>['Aberta','Em tratamento'].includes(r.status)).length} reclamação(ões) ainda em aberto.`);
+  const cats={};re.forEach(r=>cats[r.categoria]=(cats[r.categoria]||0)+1);const top=Object.entries(cats).sort((a,b)=>b[1]-a[1])[0];if(top&&top[1]>=2)al.push(`Categoria de reclamação mais frequente: ${top[0]} (${top[1]} casos).`);
+  if(oc.some(o=>/Alta|Crítica/.test(o.gravidade)&&o.status!=='Encerrada'))al.push('Existem ocorrências de gravidade alta/crítica ainda não encerradas.');
+  if(co.filter(c=>c.status==='Aprovada').length)al.push(`${co.filter(c=>c.status==='Aprovada').length} cortesia(s) aprovada(s) ainda não entregue(s).`);
+  if(!al.length)al.push('Nenhum ponto crítico identificado pelas regras no período.');al.forEach(B);
+  S.relL=L;const txt=`RELATÓRIO DA RECEPÇÃO — ${fdata(S.rel.de)} a ${fdata(S.rel.ate)}\n\n`+L.map(l=>l.t==='h'?`\n${l.x.toUpperCase()}`:l.t==='li'?`- ${l.x}`:l.x).join('\n');S.relTxt=txt;
+  $('#relOut').innerHTML=`<div class="card"><div class="row sb noprint" style="margin-bottom:10px"><b>Relatório pronto</b><div class="row"><button class="btn" onclick="window.print()">Imprimir / salvar PDF</button><button class="btn" onclick="navigator.clipboard.writeText(S.relTxt).then(()=>toast('Texto copiado.'))">Copiar texto</button></div></div>
+  <h2 style="margin:0 0 4px;color:var(--verde-escuro)">Relatório da Recepção</h2><div class="sub" style="margin-bottom:12px">Hotel Laghetto Pedras Altas · ${fdata(S.rel.de)} a ${fdata(S.rel.ate)} · gerado por ${esc(S.user.nome)}</div>
+  ${L.map(l=>l.t==='h'?`<h3 style="margin-top:16px">${esc(l.x)}</h3>`:l.t==='li'?`<div style="padding:2px 0 2px 14px">&bull; ${esc(l.x)}</div>`:`<div style="margin:4px 0">${esc(l.x)}</div>`).join('')}</div>`;
+});
+
+// ============================================================
+// SUPERVISOR · Usuários da Recepção
+// ============================================================
+async function viewUsuarios(){
+  const main=$('#main');const us=await q(sb.rpc('rec_usuarios_listar'));S.usuarios=us;
+  main.innerHTML=`<div class="vh"><div><h2>Usuários da Recepção</h2><div class="d">Perfis: Equipe (nível 1) · Guest (nível 2, inclui Equipe) · Supervisor (nível 3, acesso total). Todo usuário troca a senha provisória no primeiro acesso.</div></div><button class="btn p" onclick="ACT.usuNovo()">+ Novo usuário</button></div>
+  <div class="card"><div class="tw"><table><thead><tr><th>Nome</th><th>Perfil</th><th>Situação</th><th></th></tr></thead><tbody>${us.map(u=>`<tr><td><b>${esc(u.nome)}</b>${u.trocar_senha?'<div class="sub">Senha provisória pendente de troca</div>':''}</td><td><span class="b dk">${nivelNome(u.nivel)}</span></td><td>${u.ativo?'<span class="b ok">Ativo</span>':'<span class="b info">Inativo</span>'}</td><td style="text-align:right"><button class="lnk" onclick="ACT.usuEdit('${u.id}')">Perfil / situação</button><button class="lnk" onclick="ACT.usuSenha('${u.id}')">Redefinir senha</button>${u.id!==S.user.id?`<button class="lnk d" onclick="ACT.usuDel('${u.id}')">Excluir</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`;
+}
+const rpcOk=async(p,msg)=>{const r=await q(p);if(r&&r.ok===false){toast(r.erro||'Não foi possível concluir.','erro');return false}toast(msg);return true};
+ACT.usuNovo=()=>abrirForm({titulo:'Novo usuário',valores:{nivel:'1'},campos:[{k:'nome',l:'Nome completo',req:1,full:1},{k:'nivel',l:'Perfil',t:'select',opts:[{v:'1',l:'Equipe'},{v:'2',l:'Guest'},{v:'3',l:'Supervisor'}]},{k:'senha',l:'Senha provisória (mín. 6)',req:1}],
+  salvar:async o=>{if(!(await rpcOk(sb.rpc('rec_usuario_criar',{p_nome:o.nome,p_nivel:Number(o.nivel),p_senha:o.senha}),'Usuário criado.')))throw new Error('Corrija os dados.');await carregarEquipe();viewUsuarios()}});
+ACT.usuEdit=id=>{const u=S.usuarios.find(x=>x.id===id);abrirForm({titulo:'Perfil — '+u.nome,valores:{nivel:String(u.nivel),ativo:u.ativo},campos:[{k:'nivel',l:'Perfil',t:'select',opts:[{v:'1',l:'Equipe'},{v:'2',l:'Guest'},{v:'3',l:'Supervisor'}]},{k:'ativo',l:'Usuário ativo',t:'check'}],
+  salvar:async o=>{if(!(await rpcOk(sb.rpc('rec_usuario_alterar',{p_id:id,p_nivel:Number(o.nivel),p_ativo:o.ativo}),'Usuário atualizado.')))throw new Error('Não foi possível alterar.');await carregarEquipe();viewUsuarios()}})};
+ACT.usuSenha=id=>{const u=S.usuarios.find(x=>x.id===id);abrirForm({titulo:'Redefinir senha — '+u.nome,campos:[{k:'senha',l:'Nova senha provisória (mín. 6)',req:1}],salvar:async o=>{if(!(await rpcOk(sb.rpc('rec_usuario_redefinir',{p_id:id,p_senha:o.senha}),'Senha redefinida. O usuário trocará no próximo acesso.')))throw new Error('Não foi possível redefinir.');viewUsuarios()}})};
+ACT.usuDel=id=>safe(async()=>{const u=S.usuarios.find(x=>x.id===id);if(!confirm(`Excluir o usuário ${u.nome}? Os registros feitos por ele permanecem.`))return;if(await rpcOk(sb.rpc('rec_usuario_excluir',{p_id:id}),'Usuário excluído.')){await carregarEquipe();viewUsuarios()}});
+
+// ============================================================
+// INÍCIO
+// ============================================================
+async function viewHome(){
+  const main=$('#main'),hoje=hojeISO();const ini=new Date();ini.setHours(0,0,0,0);const fim=new Date(ini);fim.setDate(fim.getDate()+1);
+  const [pend,ag,pl,cort]=await Promise.all([q(sb.from('rec_pendencias').select('*').in('status',ABERTO_PEND).order('prazo',{ascending:true,nullsFirst:false}).limit(8)),q(sb.from('rec_agenda').select('*').eq('cancelado',false).gte('inicio',ini.toISOString()).lt('inicio',fim.toISOString()).order('inicio')),q(sb.from('rec_plantoes').select('*').order('criado_em',{ascending:false}).limit(3)),q(sb.from('rec_cortesias').select('id,status'))]);
+  const b=S.badges||{};const ultAt=pl.find(p=>p.atencao_proximo);
+  main.innerHTML=`<div class="vh"><div><h2>Olá, ${esc(S.user.nome.split(' ')[0])}</h2><div class="d">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · perfil ${nivelNome(S.user.nivel)}</div></div></div>
+  ${b.mural||b.conhecimento?`<div class="item alert"><b>Leitura obrigatória pendente:</b> ${b.mural?`<button class="lnk" onclick="irPara('mural')">${b.mural} aviso(s) no Mural</button>`:''} ${b.conhecimento?`<button class="lnk" onclick="irPara('conhecimento')">${b.conhecimento} documento(s) na Base de Conhecimento</button>`:''}</div>`:''}
+  ${ultAt?`<div class="item fix"><h4>Atenção para o turno — passagem de ${fdata(ultAt.data)} (${esc(ultAt.turno)})</h4><div class="tx">${nl2(ultAt.atencao_proximo)}</div><div class="sub">${esc(ultAt.entrega_por||'')}${ultAt.status==='fechado'?' · aguardando confirmação de recebimento':''}</div>${ultAt.status==='fechado'?`<button class="btn sm p" onclick="irPara('plantao')">Ir para Passagem de Plantão</button>`:''}</div>`:''}
+  <div class="grid g4" style="margin-bottom:16px"><button class="kpi" onclick="irPara('pendencias',{st:'__abertos'})"><div class="n">${b.pendencias??pend.length}</div><div class="l">Pendências em aberto</div></button><button class="kpi" onclick="irPara('solicitacoes',{st:'__abertos'})"><div class="n">${b.solicitacoes??0}</div><div class="l">Solicitações abertas</div></button><button class="kpi" onclick="irPara('cortesias',{st:'Aprovada'})"><div class="n">${cort.filter(c=>c.status==='Aprovada').length}</div><div class="l">Cortesias a executar</div></button><button class="kpi" onclick="irPara('agenda')"><div class="n">${ag.length}</div><div class="l">Reuniões hoje (sala)</div></button></div>
+  <div class="grid g2"><div class="card"><h3>Próximas pendências</h3>${pend.length?pend.map(p=>`<div class="row sb" style="padding:6px 0;border-bottom:1px solid var(--borda)"><span><b>${esc(p.titulo)}</b><div class="sub">${esc(p.responsavel||'Equipe')} · ${esc(p.status)}</div></span>${p.prazo?`<span class="b ${p.prazo<hoje?'erro':'info'}">${fdata(p.prazo)}</span>`:''}</div>`).join(''):'<div class="sub">Sem pendências em aberto.</div>'}</div>
+  <div class="card"><h3>Sala de reuniões hoje</h3>${ag.length?ag.map(e=>`<div style="padding:6px 0;border-bottom:1px solid var(--borda)"><b>${fhora(e.inicio)} – ${fhora(e.fim)}</b> ${esc(e.titulo)}<div class="sub">${esc(e.responsavel||'')}</div></div>`).join(''):'<div class="sub">Sala livre hoje.</div>'}<button class="btn sm" style="margin-top:10px" onclick="irPara('agenda')">Ver agenda</button></div></div>`;
+}
+
+// ============================================================
+// NAVEGAÇÃO / LOGIN / BOOT
+// ============================================================
+const VIEWS={
+ home:{nome:'Início',nivel:1,render:viewHome},
+ mural:{nome:'Mural da Recepção',nivel:1,g:'E',bd:'mural',render:viewMural},
+ plantao:{nome:'Passagem de Plantão',nivel:1,g:'E',render:()=>renderMod(MODS.rec_plantoes)},
+ pendencias:{nome:'Pendências e Lembretes',nivel:1,g:'E',bd:'pendencias',render:()=>renderMod(MODS.rec_pendencias)},
+ achados:{nome:'Achados e Perdidos',nivel:1,g:'E',render:()=>renderMod(MODS.rec_achados)},
+ solicitacoes:{nome:'Solicitações Internas',nivel:1,g:'E',bd:'solicitacoes',render:()=>renderMod(MODS.rec_solicitacoes)},
+ cortesias:{nome:'Cortesias',nivel:1,g:'E',bd:'cortesias',render:()=>renderMod(MODS.rec_cortesias)},
+ conhecimento:{nome:'Base de Conhecimento',nivel:1,g:'E',bd:'conhecimento',render:viewConhecimento},
+ agenda:{nome:'Agenda · Sala de Reuniões',nivel:1,g:'E',render:viewAgenda},
+ avaliacoes:{nome:'Central de Avaliações',nivel:2,g:'G',bd:'avaliacoes',render:()=>renderMod(MODS.rec_avaliacoes)},
+ reclamacoes:{nome:'Reclamações',nivel:2,g:'G',bd:'reclamacoes',render:()=>renderMod(MODS.rec_reclamacoes)},
+ acompanhamento:{nome:'Acompanhamento de Hóspedes',nivel:2,g:'G',render:()=>renderMod(MODS.rec_acompanhamentos)},
+ recuperacao:{nome:'Plano de Recuperação',nivel:2,g:'G',render:()=>renderMod(MODS.rec_recuperacoes)},
+ dashboard:{nome:'Dashboard Operacional',nivel:3,g:'S',render:viewDashboard},
+ ocorrencias:{nome:'Ocorrências',nivel:3,g:'S',bd:'ocorrencias',render:viewOcorrencias},
+ auditoria:{nome:'Auditoria e Procedimentos',nivel:3,g:'S',render:viewAuditoria},
+ indicadores:{nome:'Indicadores de Desempenho',nivel:3,g:'S',render:viewIndicadores},
+ relatorio:{nome:'Relatório de Turno e Gestão',nivel:3,g:'S',render:viewRelatorio},
+ usuarios:{nome:'Usuários',nivel:3,g:'S',render:viewUsuarios}};
+const GRUPOS={E:['EQUIPE','Equipe, Guest e Supervisor'],G:['GUEST','Guest e Supervisor'],S:['SUPERVISOR','Somente Supervisor']};
+function menuHTML(){let h=`<button data-v="home" onclick="irPara('home')">Início</button>`;
+  for(const g of ['E','G','S']){const vs=Object.entries(VIEWS).filter(([k,v])=>v.g===g&&S.user.nivel>=v.nivel);if(!vs.length)continue;
+    h+=`<h4>${GRUPOS[g][0]}</h4>`+vs.map(([k,v])=>`<button data-v="${k}" onclick="irPara('${k}')"><span>${v.nome}</span>${v.bd?`<span class="bd" data-bd="${v.bd}" style="display:none"></span>`:''}</button>`).join('')}
+  return h}
+async function irPara(id,opts){
+  const v=VIEWS[id];if(!v||S.user.nivel<v.nivel){toast('Você não tem acesso a esta área.','erro');return}
+  S.filtro=opts||null;S.view=id;history.replaceState(null,'','#'+id);
+  document.querySelectorAll('.side button').forEach(b=>b.classList.toggle('on',b.dataset.v===id));$('.side')?.classList.remove('open');
+  $('#main').innerHTML='<div class="empty">Carregando...</div>';
+  try{await v.render()}catch(e){console.error(e);$('#main').innerHTML=`<div class="card empty">Erro ao carregar: ${esc(msgErro(e))}</div>`;if(/JWT|expir/i.test(String(e.message)))sair()}
+  window.scrollTo(0,0);
+}
+function montarShell(){
+  $('#app').innerHTML=`<div class="topbar"><button class="hamb" onclick="document.querySelector('.side').classList.toggle('open')">&#9776;</button><div class="brand">Recepção<small>ERPPA · Hotel Laghetto Pedras Altas</small></div><div class="sp"></div><a class="tb-link" href="../">&larr; Portal</a><button class="tb-btn" onclick="ACT.notifs()">Notificações<span class="dot" id="bellDot" style="display:none"></span></button><button class="tb-btn" onclick="ACT.minhaSenha()">Senha</button><div class="chip">${esc(S.user.nome)}<small>${nivelNome(S.user.nivel)}</small></div><button class="tb-btn" onclick="sair()">Sair</button></div>
+  <div class="layout"><div class="side">${menuHTML()}</div><main id="main"></main></div>`;
+}
+async function iniciarApp(){
+  montarShell();await carregarEquipe();await Promise.all([carregarNotifs(),refreshBadges()]);
+  const h=(location.hash||'').replace('#','');irPara(VIEWS[h]&&S.user.nivel>=VIEWS[h].nivel?h:'home');
+  clearInterval(S.timer);S.timer=setInterval(async()=>{try{const r=await q(sb.rpc('rec_sessao'));if(!r||!r.ok){sair('Sessão expirada. Entre novamente.');return}carregarNotifs();refreshBadges()}catch(e){}},60000);
+}
+async function sair(msg){clearInterval(S.timer);try{await sb.rpc('rec_logout')}catch(e){}TOKEN='';localStorage.removeItem(TK);S.user=null;telaLogin(typeof msg==='string'?msg:'')}
+function telaLogin(msg){
+  $('#app').innerHTML=`<div class="login"><div class="lbox"><h1>Recepção</h1><p>ERPPA · Hotel Laghetto Pedras Altas</p><label for="lgN">Usuário (nome completo)</label><input id="lgN" autocomplete="username" autofocus><label for="lgS">Senha</label><input id="lgS" type="password" autocomplete="current-password">${msg?`<div class="err">${esc(msg)}</div>`:''}<div id="lgE"></div><button class="btn p" style="width:100%;margin-top:16px;padding:11px" id="lgB">Entrar</button><div class="sub" style="margin-top:14px;text-align:center"><a href="../" style="color:var(--suave)">Voltar ao portal</a></div></div></div>`;
+  const go=async()=>{const n=$('#lgN').value.trim(),s=$('#lgS').value;if(!n||!s)return;$('#lgB').disabled=true;
+    try{const r=await q(sb.rpc('rec_login',{p_nome:n,p_senha:s}));if(!r.ok){$('#lgE').innerHTML=`<div class="err">${esc(r.erro)}</div>`;$('#lgB').disabled=false;return}
+      TOKEN=r.token;localStorage.setItem(TK,TOKEN);S.user={id:r.id,nome:r.nome,nivel:r.nivel};if(r.trocar_senha)telaTrocar(true);else iniciarApp()}
+    catch(e){$('#lgE').innerHTML=`<div class="err">${esc(msgErro(e))}</div>`;$('#lgB').disabled=false}};
+  $('#lgB').onclick=go;$('#lgS').onkeydown=e=>{if(e.key==='Enter')go()};$('#lgN').onkeydown=e=>{if(e.key==='Enter')$('#lgS').focus()};
+}
+function telaTrocar(forcado){
+  $('#app').innerHTML=`<div class="login"><div class="lbox"><h1>Trocar senha</h1><p>${forcado?'Primeiro acesso: defina a sua senha pessoal (mínimo 8 caracteres).':'Informe a senha atual e a nova senha.'}</p><label>Senha atual</label><input id="tsA" type="password" autocomplete="current-password"><label>Nova senha</label><input id="tsN" type="password" autocomplete="new-password"><label>Repita a nova senha</label><input id="tsR" type="password" autocomplete="new-password"><div id="tsE"></div><button class="btn p" style="width:100%;margin-top:16px;padding:11px" id="tsB">Salvar senha</button>${forcado?'':'<button class="btn" style="width:100%;margin-top:8px" onclick="iniciarApp()">Cancelar</button>'}</div></div>`;
+  $('#tsB').onclick=async()=>{const a=$('#tsA').value,n=$('#tsN').value,r=$('#tsR').value;const err=m=>$('#tsE').innerHTML=`<div class="err">${esc(m)}</div>`;
+    if(n.length<8)return err('A nova senha deve ter ao menos 8 caracteres.');if(n!==r)return err('As senhas não conferem.');
+    try{const x=await q(sb.rpc('rec_trocar_senha',{p_atual:a,p_nova:n}));if(!x.ok)return err(x.erro);toast('Senha alterada.');iniciarApp()}catch(e){err(msgErro(e))}};
+}
+ACT.minhaSenha=()=>telaTrocar(false);
+async function boot(){
+  if(TOKEN){try{const r=await q(sb.rpc('rec_sessao'));if(r&&r.ok){S.user={id:r.id,nome:r.nome,nivel:r.nivel};if(r.trocar_senha){telaTrocar(true);return}iniciarApp();return}}catch(e){console.warn(e)}TOKEN='';localStorage.removeItem(TK)}
+  telaLogin();
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+boot();
+</script>
+</body>
+</html>
