@@ -79,6 +79,26 @@ button.kpi:hover{border-color:var(--verde-mid);box-shadow:0 2px 8px rgba(10,42,3
 .chk{display:grid;grid-template-columns:1fr auto;gap:8px;padding:9px 0;border-bottom:1px solid var(--borda);align-items:center}.chk .opt{display:flex;gap:4px}.chk .opt button{padding:5px 9px;font-size:12px;border:1px solid var(--borda);background:#fff;border-radius:6px}.chk .opt button.on.c{background:var(--ok-bg);border-color:var(--sage);font-weight:700}.chk .opt button.on.n{background:var(--erro-bg);border-color:#E7C3B8;font-weight:700}.chk .opt button.on.a{background:#EFF4EF;font-weight:700}
 .bar{height:8px;background:#EFF4EF;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--verde-mid)}
 @media(max-width:560px){.brand small,.chip,.tb-link{display:none}.topbar{gap:8px;padding:0 12px}}
+/* niveis: identidade visual */
+:root{--cE:#2F9E7A;--cG:#D4A02A;--cS:#9B3F55}
+.ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.side button .lb{display:flex;align-items:center;gap:9px;min-width:0}.side button .lb span{overflow:hidden;text-overflow:ellipsis}
+.side button .ico{opacity:.8}.side button.on .ico{opacity:1}
+.side .gh{margin:18px 2px 6px;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.06);border-left:4px solid var(--gc);display:flex;align-items:center;gap:10px}
+.side .gh:first-of-type{margin-top:8px}
+.side .gh i{width:28px;height:28px;border-radius:50%;background:var(--gc);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+.side .gh i .ico{width:15px;height:15px}
+.side .gh b{display:block;font-size:12px;letter-spacing:.09em;color:#fff}.side .gh small{display:block;font-size:10.5px;color:var(--sage);margin-top:1px;line-height:1.25}
+.side .gE{--gc:var(--cE)}.side .gG{--gc:var(--cG)}.side .gS{--gc:var(--cS)}
+.side .sep{height:1px;background:rgba(199,241,197,.18);margin:8px 6px}
+.side .rst{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#F1C9D2;display:flex;align-items:center;gap:4px;margin-left:auto}.side .rst .ico{width:11px;height:11px}
+.nvl{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;border-radius:20px;padding:3px 10px 3px 7px;background:var(--gc);margin-bottom:8px}.nvl .ico{width:13px;height:13px}
+.chip{display:flex;align-items:center;gap:9px}.chip .nvl{margin:0;padding:2px 8px 2px 5px;font-size:10px;color:#fff}
+.nE{--gc:var(--cE)}.nG{--gc:var(--cG)}.nS{--gc:var(--cS)}
+main.mE .vh h2{border-left:4px solid var(--cE);padding-left:10px}main.mG .vh h2{border-left:4px solid var(--cG);padding-left:10px}main.mS .vh h2{border-left:4px solid var(--cS);padding-left:10px}
+.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.lvls .lv{background:#fff;border:1px solid var(--borda);border-top:4px solid var(--gc);border-radius:var(--r);padding:12px 14px}.lvls .lv.me{box-shadow:0 0 0 2px var(--gc)}.lvls .lv.off{opacity:.55}
+.lvls .lv h4{margin:6px 0 2px;font-size:13px;color:var(--verde-escuro)}.lvls .lv p{margin:0;font-size:12px;color:var(--suave);line-height:1.4}
+@media(max-width:700px){.lvls{grid-template-columns:1fr}}
 @media print{.topbar,.side,.tools,.noprint{display:none!important}main{padding:0;max-width:none}.card{border:none;padding:0}body{background:#fff}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -112,7 +132,7 @@ const isoLocal=(d,h)=>new Date(`${d}T${h}`).toISOString();
 const dLocal=iso=>{const d=new Date(iso);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
 const hLocal=iso=>{const d=new Date(iso);return `${pad(d.getHours())}:${pad(d.getMinutes())}`};
 function toast(m,t){const e=document.createElement('div');e.className='toast '+(t||'');e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),t==='erro'?6000:2600)}
-function msgErro(e){let m=(e&&e.message)||(e&&e.details)||(typeof e==='string'?e:JSON.stringify(e));if(typeof m!=='string')m=JSON.stringify(m);if(/row-level security|permission denied/i.test(m))return 'Sem permissão para esta ação (verifique seu perfil ou faça login novamente).';return m}
+function msgErro(e){let m=(e&&e.message)||(e&&e.details)||(typeof e==='string'?e:(e&&e.code?'Erro '+e.code:'Falha na operação'));if(typeof m!=='string')m=JSON.stringify(m);if(/row-level security|permission denied/i.test(m))return 'Sem permissão para esta ação (verifique seu perfil ou faça login novamente).';return m}
 async function q(p){const {data,error}=await p;if(error)throw error;return data}
 async function safe(fn){try{return await fn()}catch(e){console.error(e);toast(msgErro(e),'erro')}}
 function badge(st){const s=String(st||'');
@@ -140,6 +160,7 @@ function campoHTML(c,v){
   else if(c.t==='select'||c.t==='resp'){
     let opts=c.t==='resp'?['',...S.equipe.map(e=>e.nome)]:(typeof c.opts==='function'?c.opts():c.opts);
     if(c.t==='resp'&&val&&!opts.includes(val))opts.push(val);
+    if(c.t==='select'&&val&&!opts.some(o=>String(typeof o==='object'?o.v:o)===String(val)))opts=[...opts,val];
     inp=`<select id="${id}">${opts.map(o=>{const ov=typeof o==='object'?o.v:o,ol=typeof o==='object'?o.l:(o||'—');return `<option value="${esc(ov)}" ${String(ov)===String(val)?'selected':''}>${esc(ol)}</option>`}).join('')}</select>`;
   }
   else if(c.t==='check')return `<div class="${full}"><label style="display:flex;gap:8px;align-items:center;margin-top:20px;color:var(--texto);font-size:13.5px"><input type="checkbox" id="${id}" ${val?'checked':''}> ${esc(c.l)}</label></div>`;
@@ -300,6 +321,7 @@ async function refreshBadges(){
 // RESPONSÁVEIS (lista da equipe)
 // ============================================================
 async function carregarEquipe(){try{S.equipe=await q(sb.rpc('rec_equipe_lista'))}catch(e){S.equipe=[]}}
+const TIPOS_CORT=['Espumante','Cesta / mimo','Late check-out','Early check-in','Upgrade','Jantar / refeição','Decoração especial','Transfer','Outra'];
 
 // ============================================================
 // EQUIPE · Pendências e Lembretes
@@ -333,8 +355,8 @@ regMod({tabela:'rec_solicitacoes',titulo:'Central de Solicitações Internas',de
 // ============================================================
 regMod({tabela:'rec_cortesias',titulo:'Cortesias e Atendimentos Especiais',desc:'Equipe solicita; Guest ou Supervisor aprova; a Recepção executa e marca como entregue.',escrita:1,ordem:['criado_em',false],
  statusField:'status',statusOpts:['Solicitada','Aprovada','Recusada','Entregue'],statusAbertos:['Solicitada','Aprovada'],statusLocked:true,busca:['hospede','uh','tipo','descricao','motivo'],
- campos:[{k:'hospede',l:'Hóspede',req:1},{k:'uh',l:'UH'},{k:'tipo',l:'Tipo',t:'select',opts:['Espumante','Cesta / mimo','Late check-out','Early check-in','Upgrade','Jantar / refeição','Decoração especial','Transfer','Outra']},{k:'data_entrega',l:'Data prevista de entrega',t:'date'},{k:'descricao',l:'Descrição',t:'textarea'},{k:'motivo',l:'Motivo (aniversário, recuperação, VIP...)',t:'textarea'}],
- novoValores:()=>({tipo:'Espumante'}),
+ campos:[{k:'hospede',l:'Hóspede',req:1},{k:'uh',l:'UH'},{k:'tipo',l:'Tipo',t:'select',opts:TIPOS_CORT},{k:'data_entrega',l:'Data prevista de entrega',t:'date'},{k:'descricao',l:'Descrição',t:'textarea'},{k:'motivo',l:'Motivo (aniversário, recuperação, VIP...)',t:'textarea'}],
+ novoValores:()=>({tipo:TIPOS_CORT[0]}),
  topo:rows=>{const a=rows.filter(r=>r.status==='Solicitada').length,e=rows.filter(r=>r.status==='Aprovada').length;return `<div class="grid g3" style="margin-bottom:14px"><div class="kpi ${a?'warn':''}"><div class="n">${a}</div><div class="l">Aguardando aprovação</div></div><div class="kpi"><div class="n">${e}</div><div class="l">Aprovadas a executar</div></div><div class="kpi"><div class="n">${rows.filter(r=>r.status==='Entregue').length}</div><div class="l">Entregues</div></div></div>`},
  colunas:[{l:'Hóspede',f:r=>`<b>${esc(r.hospede)}</b><div class="sub">UH ${esc(r.uh||'—')}</div>`},{l:'Cortesia',f:r=>`${esc(r.tipo)}${r.descricao?`<div class="sub">${esc(r.descricao.slice(0,100))}</div>`:''}${r.motivo?`<div class="sub">Motivo: ${esc(r.motivo.slice(0,80))}</div>`:''}`},{l:'Entrega prevista',f:r=>fdata(r.data_entrega)},{l:'Solicitada por',f:r=>esc(r.autor||'—')},{l:'Aprovação',f:r=>r.aprovado_por?`${esc(r.aprovado_por)}<div class="sub">${fdh(r.aprovado_em)}</div>`:'—'},{l:'Status',f:r=>badge(r.status)+(r.entregue_em?`<div class="sub">${fdh(r.entregue_em)}</div>`:'')}],
  acoes:r=>(r.status==='Solicitada'&&S.user.nivel>=2?`<button class="btn sm p" onclick="ACT.cort('${r.id}','Aprovada')">Aprovar</button> <button class="btn sm d" onclick="ACT.cort('${r.id}','Recusada')">Recusar</button> `:'')+(r.status==='Aprovada'?`<button class="btn sm p" onclick="ACT.cort('${r.id}','Entregue')">Marcar entregue</button> `:'')});
@@ -472,7 +494,7 @@ async function viewAgenda(){
   const dias=[];for(let d=new Date(gi);d<gf;d.setDate(d.getDate()+1))dias.push(new Date(d));
   const hoje=hojeISO();
   const linha=e=>`<div class="item" style="padding:10px 13px"><div class="row sb"><div><b>${fhora(e.inicio)} – ${fhora(e.fim)}</b> · ${esc(e.titulo)}<div class="sub">${esc(e.responsavel?'Responsável: '+e.responsavel:'')}${e.participantes?' · Participantes: '+esc(e.participantes):''}</div>${e.observacao?`<div class="sub">${esc(e.observacao)}</div>`:''}</div>${n>=3?`<div class="row"><button class="btn sm" onclick="ACT.agForm('${e.id}')">Editar</button><button class="btn sm d" onclick="ACT.agCancel('${e.id}')">Cancelar</button></div>`:''}</div></div>`;
-  main.innerHTML=`<div class="vh"><div><h2>Agenda · Sala de Reuniões</h2><div class="d">${n>=3?'Você (Supervisor) faz os agendamentos. A equipe consulta.':'Consulta da agenda da sala de reuniões. Agendamentos são feitos pelo Supervisor de Recepção.'}</div></div>${n>=3?`<button class="btn p" onclick="ACT.agForm()">+ Agendar reunião</button>`:''}</div>
+  main.innerHTML=`<div class="vh"><div><h2>Agenda · ${esc(S.cfg.sala.nome)}</h2><div class="d">${n>=3?'Você (Supervisor) faz os agendamentos. A equipe consulta.':'Consulta da agenda da sala de reuniões. Agendamentos são feitos pelo Supervisor de Recepção.'}</div></div>${n>=3?`<button class="btn p" onclick="ACT.agForm()">+ Agendar reunião</button>`:''}</div>
   <div class="grid" style="grid-template-columns:2fr 1fr;align-items:start"><div class="card"><div class="row sb" style="margin-bottom:10px"><button class="btn sm" onclick="ACT.agMes(-1)">&larr;</button><b>${(s=>s.charAt(0).toUpperCase()+s.slice(1))(m.toLocaleDateString('pt-BR',{month:'long'}))} de ${m.getFullYear()}</b><div class="row"><button class="btn sm" onclick="ACT.agMes(0)">Hoje</button><button class="btn sm" onclick="ACT.agMes(1)">&rarr;</button></div></div>
   <div class="cal">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(x=>`<div class="h">${x}</div>`).join('')}${dias.map(d=>{const k=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,es=porDia[k]||[];return `<button class="c ${d.getMonth()!==mes?'o':''} ${k===hoje?'t':''} ${k===S.ag.sel?'s':''}" onclick="ACT.agSel('${k}')"><b>${d.getDate()}</b>${es.slice(0,2).map(e=>`<span class="ev">${fhora(e.inicio)} ${esc(e.titulo)}</span>`).join('')}${es.length>2?`<span class="sub">+${es.length-2}</span>`:''}</button>`}).join('')}</div></div>
   <div><div class="card"><h3>${fdata(S.ag.sel)}</h3>${(porDia[S.ag.sel]||[]).map(linha).join('')||'<div class="sub">Sala livre neste dia.</div>'}${n>=3?`<button class="btn sm" style="margin-top:8px" onclick="ACT.agForm(null,'${S.ag.sel}')">Agendar neste dia</button>`:''}</div>
@@ -481,10 +503,11 @@ async function viewAgenda(){
 ACT.agMes=d=>{S.ag.mes=d===0?new Date():new Date(S.ag.mes.getFullYear(),S.ag.mes.getMonth()+d,1);if(d===0)S.ag.sel=hojeISO();viewAgenda()};
 ACT.agSel=k=>{S.ag.sel=k;viewAgenda()};
 ACT.agForm=(id,dia)=>{if(S.user.nivel<3)return;const e=id?[...S.ag.ev,...S.ag.prox].find(x=>x.id===id):null;
-  const v=e?{titulo:e.titulo,responsavel:e.responsavel,participantes:e.participantes,observacao:e.observacao,data:dLocal(e.inicio),hi:hLocal(e.inicio),hf:hLocal(e.fim)}:{data:dia||S.ag.sel,hi:'09:00',hf:'10:00'};
+  const v=e?{titulo:e.titulo,responsavel:e.responsavel,participantes:e.participantes,observacao:e.observacao,data:dLocal(e.inicio),hi:hLocal(e.inicio),hf:hLocal(e.fim)}:{data:dia||S.ag.sel,hi:S.cfg.sala.abre>'09:00'?S.cfg.sala.abre:'09:00',hf:(()=>{const hi=S.cfg.sala.abre>'09:00'?S.cfg.sala.abre:'09:00';const m=Number(hi.slice(0,2))*60+Number(hi.slice(3))+Number(S.cfg.sala.duracao||60);return pad(Math.floor(m/60)%24)+':'+pad(m%60)})()};
   abrirForm({titulo:e?'Editar reunião':'Agendar reunião',valores:v,campos:[{k:'titulo',l:'Assunto da reunião',req:1,full:1},{k:'data',l:'Data',t:'date',req:1},{k:'hi',l:'Início',t:'time',req:1},{k:'hf',l:'Término',t:'time',req:1},{k:'responsavel',l:'Responsável / solicitante'},{k:'participantes',l:'Participantes'},{k:'observacao',l:'Observações (café, projetor, layout da sala...)',t:'textarea'}],
    salvar:async o=>{const row={titulo:o.titulo,responsavel:o.responsavel,participantes:o.participantes,observacao:o.observacao,inicio:isoLocal(o.data,o.hi),fim:isoLocal(o.data,o.hf)};
     if(row.fim<=row.inicio)throw new Error('O término deve ser depois do início.');
+    if(o.hi<S.cfg.sala.abre||o.hf>S.cfg.sala.fecha)throw new Error(`Fora do horário de uso da sala (${S.cfg.sala.abre} às ${S.cfg.sala.fecha}).`);
     if(e)await q(sb.from('rec_agenda').update(row).eq('id',e.id));else await q(sb.from('rec_agenda').insert(row));S.ag.sel=o.data;toast('Agenda salva.');await viewAgenda()}})};
 ACT.agCancel=id=>safe(async()=>{if(!confirm('Cancelar esta reunião?'))return;await q(sb.from('rec_agenda').update({cancelado:true}).eq('id',id));toast('Reunião cancelada.');viewAgenda()});
 
@@ -492,12 +515,14 @@ ACT.agCancel=id=>safe(async()=>{if(!confirm('Cancelar esta reunião?'))return;aw
 // GUEST · Central de Avaliações + Motor de Respostas
 // ============================================================
 const ORIGENS=['Booking','Google','TripAdvisor','Amplifique.me','Outra'];
-const cfgResp=()=>({hotel:'Hotel Laghetto Pedras Altas',assin:'Equipe de Guest Relations',...JSON.parse(localStorage.getItem('rec_resp_cfg')||'{}')});
+const cfgResp=()=>({hotel:S.cfg.hotel.nome,assin:S.cfg.hotel.assinatura});
+const CAT_RECL=['Atendimento','Limpeza','Manutenção / quarto','Ruído','Alimentação','Check-in / check-out','Cobrança','Estrutura / lazer','Outros'];
+const MOTIVOS_ACOMP=['Acompanhamento','Aniversário','Lua de mel','VIP','Recuperação de experiência','Necessidade especial','Grupo / evento','Outro'];
 const pct=(a,b)=>b?Math.round(a/b*100):0;
 regMod({tabela:'rec_avaliacoes',titulo:'Central de Avaliações',desc:'Avaliações de Booking, Google, TripAdvisor e Amplifique.me num só lugar, com resposta assistida e aprovação antes de publicar.',escrita:2,ordem:['data_avaliacao',false],
  statusField:'status',statusOpts:['Nova','Em resposta','Respondida','Ignorada'],statusAbertos:['Nova','Em resposta'],busca:['hospede','titulo','texto','origem'],tituloCampo:'titulo',novoLabel:'Registrar avaliação',
  filtros:[{k:'origem',l:'Origem',opts:ORIGENS}],
- extraBtns:()=>`<button class="btn" onclick="ACT.respCfg()">Configurar respostas</button>`,
+ extraBtns:()=>S.user.nivel>=3?`<button class="btn" onclick="irPara('config')">Configurar respostas</button>`:'',
  campos:[{k:'origem',l:'Plataforma',t:'select',opts:ORIGENS},{k:'data_avaliacao',l:'Data da avaliação',t:'date'},{k:'hospede',l:'Nome do hóspede'},{k:'nota',l:'Nota',t:'number',step:'0.1'},{k:'nota_max',l:'Escala (nota máxima)',t:'number',step:'0.1'},{k:'url',l:'Link da avaliação'},{k:'titulo',l:'Título',full:1},{k:'texto',l:'Texto da avaliação',t:'textarea',req:1}],
  novoValores:()=>({origem:'Google',data_avaliacao:hojeISO(),nota_max:5}),
  topo:rows=>{const por={};rows.forEach(r=>{if(r.nota!=null){const k=r.origem;(por[k]=por[k]||[]).push(r.nota/r.nota_max*5)}});
@@ -519,7 +544,6 @@ function gerarRespostas(av,tom){const c=cfgResp();const nome=(av.hospede||'').tr
   const conv={pos:'Será um prazer receber você novamente.',neu:'Esperamos ter a oportunidade de superar suas expectativas em uma próxima visita.',neg:'Gostaríamos de entender melhor o ocorrido; fique à vontade para falar diretamente com a nossa equipe.'}[cat];
   const fe={Cordial:'Um abraço!',Formal:'Atenciosamente,',Acolhedor:'Com carinho,',Objetivo:'Atenciosamente,'}[tom];const as=`${fe}\n${c.assin} · ${c.hotel}`;
   return [`${ab}\n\n${as}`,`${ab} ${corpo}\n\n${conv}\n\n${as}`,`${ab}\n\n${corpo} ${cat==='neg'?'Nosso compromisso é transformar essa experiência em aprendizado.':'Nosso time trabalha todos os dias para oferecer o melhor da hospitalidade da Serra Gaúcha.'}\n\n${conv}\n\n${as}`]}
-ACT.respCfg=()=>{const c=cfgResp();abrirForm({titulo:'Configurar respostas',valores:c,campos:[{k:'hotel',l:'Nome do hotel',full:1},{k:'assin',l:'Assinatura',full:1}],salvar:async o=>{localStorage.setItem('rec_resp_cfg',JSON.stringify(o));toast('Configuração salva.')}})};
 ACT.resp=id=>safe(async()=>{const M=MODS.rec_avaliacoes;const av=M._rows.find(x=>x.id===id);S.respAv=av;
   const rs=await q(sb.from('rec_respostas').select('*').eq('avaliacao_id',id).order('criado_em',{ascending:false}));S.respRs=rs;
   modal(`<h3>Responder avaliação — ${esc(av.origem)}</h3><div class="item"><div class="sub">${esc(av.hospede||'—')} · ${fdata(av.data_avaliacao)} · nota ${av.nota??'—'}/${av.nota_max}</div><div class="tx">${nl2(av.texto)}</div></div>
@@ -543,8 +567,8 @@ regMod({tabela:'rec_reclamacoes',titulo:'Gestão de Reclamações',desc:'Registr
  statusField:'status',statusOpts:['Aberta','Em tratamento','Resolvida','Encerrada'],statusAbertos:['Aberta','Em tratamento'],busca:['hospede','uh','categoria','descricao','solucao','responsavel'],tituloCampo:'hospede',
  filtros:[{k:'gravidade',l:'Gravidade',opts:['Baixa','Média','Alta','Crítica']}],
  async preparar(){MODS.rec_reclamacoes._avs=await q(sb.from('rec_avaliacoes').select('id,origem,hospede,data_avaliacao').order('data_avaliacao',{ascending:false}).limit(150))},
- campos:()=>[{k:'hospede',l:'Hóspede',req:1},{k:'uh',l:'UH'},{k:'categoria',l:'Categoria',t:'select',opts:['Atendimento','Limpeza','Manutenção / quarto','Ruído','Alimentação','Check-in / check-out','Cobrança','Estrutura / lazer','Outros']},{k:'gravidade',l:'Gravidade',t:'select',opts:['Baixa','Média','Alta','Crítica']},{k:'descricao',l:'Descrição',t:'textarea',req:1},{k:'avaliacao_id',l:'Avaliação vinculada (opcional)',t:'select',opts:()=>[{v:'',l:'— nenhuma —'},...(MODS.rec_reclamacoes._avs||[]).map(a=>({v:a.id,l:`${a.origem} · ${a.hospede||'sem nome'} · ${fdata(a.data_avaliacao)}`}))]},{k:'responsavel',l:'Responsável',t:'resp'},{k:'prazo',l:'Prazo',t:'date'},{k:'solucao',l:'Solução / retorno ao hóspede',t:'textarea'}],
- novoValores:()=>({gravidade:'Média',categoria:'Atendimento'}),
+ campos:()=>[{k:'hospede',l:'Hóspede',req:1},{k:'uh',l:'UH'},{k:'categoria',l:'Categoria',t:'select',opts:CAT_RECL},{k:'gravidade',l:'Gravidade',t:'select',opts:['Baixa','Média','Alta','Crítica']},{k:'descricao',l:'Descrição',t:'textarea',req:1},{k:'avaliacao_id',l:'Avaliação vinculada (opcional)',t:'select',opts:()=>[{v:'',l:'— nenhuma —'},...(MODS.rec_reclamacoes._avs||[]).map(a=>({v:a.id,l:`${a.origem} · ${a.hospede||'sem nome'} · ${fdata(a.data_avaliacao)}`}))]},{k:'responsavel',l:'Responsável',t:'resp'},{k:'prazo',l:'Prazo',t:'date'},{k:'solucao',l:'Solução / retorno ao hóspede',t:'textarea'}],
+ novoValores:()=>({gravidade:'Média',categoria:CAT_RECL[0]}),
  antesSalvar:o=>{if(!o.avaliacao_id)o.avaliacao_id=null;return o},
  colunas:[{l:'Hóspede',f:r=>`<b>${esc(r.hospede)}</b><div class="sub">UH ${esc(r.uh||'—')} · ${fdata(r.criado_em)}</div>`},{l:'Reclamação',f:r=>`<span class="b dk">${esc(r.categoria)}</span>${esc((r.descricao||'').slice(0,130))}${r.avaliacao_id?'<div class="sub">Vinculada a uma avaliação</div>':''}`},{l:'Gravidade',f:r=>prioB(r.gravidade)},{l:'Responsável / prazo',f:r=>`${esc(r.responsavel||'—')}<div class="sub" style="${r.prazo&&r.prazo<hojeISO()&&['Aberta','Em tratamento'].includes(r.status)?'color:var(--erro)':''}">${r.prazo?fdata(r.prazo):''}</div>`},{l:'Status',f:r=>badge(r.status)}],
  aoStatus:(r,v)=>({resolvida_em:v==='Resolvida'?new Date().toISOString():null}),
@@ -556,9 +580,9 @@ ACT.recPlano=id=>safe(async()=>{const r=MODS.rec_reclamacoes._rows.find(x=>x.id=
 // ============================================================
 regMod({tabela:'rec_acompanhamentos',titulo:'Acompanhamento de Hóspedes',desc:'Ficha de acompanhamento por hóspede. Registre cada contato como comentário na ficha (Abrir).',escrita:2,ordem:['criado_em',false],
  statusField:'status',statusOpts:['Ativo','Concluído'],statusAbertos:['Ativo'],busca:['hospede','uh','motivo','observacoes'],tituloCampo:'hospede',
- filtros:[{k:'motivo',l:'Motivo',opts:['Acompanhamento','Aniversário','Lua de mel','VIP','Recuperação de experiência','Necessidade especial','Grupo / evento','Outro']}],
- campos:[{k:'hospede',l:'Hóspede',req:1},{k:'uh',l:'UH'},{k:'checkin',l:'Check-in',t:'date'},{k:'checkout',l:'Check-out',t:'date'},{k:'motivo',l:'Motivo',t:'select',opts:['Acompanhamento','Aniversário','Lua de mel','VIP','Recuperação de experiência','Necessidade especial','Grupo / evento','Outro']},{k:'observacoes',l:'Observações (preferências, restrições, cuidados)',t:'textarea'}],
- novoValores:()=>({motivo:'Acompanhamento'}),
+ filtros:[{k:'motivo',l:'Motivo',opts:MOTIVOS_ACOMP}],
+ campos:[{k:'hospede',l:'Hóspede',req:1},{k:'uh',l:'UH'},{k:'checkin',l:'Check-in',t:'date'},{k:'checkout',l:'Check-out',t:'date'},{k:'motivo',l:'Motivo',t:'select',opts:MOTIVOS_ACOMP},{k:'observacoes',l:'Observações (preferências, restrições, cuidados)',t:'textarea'}],
+ novoValores:()=>({motivo:MOTIVOS_ACOMP[0]}),
  topo:rows=>{const h=hojeISO();const casa=rows.filter(r=>r.status==='Ativo'&&r.checkin&&r.checkin<=h&&(!r.checkout||r.checkout>=h)).length;return `<div class="grid g3" style="margin-bottom:14px"><div class="kpi"><div class="n">${rows.filter(r=>r.status==='Ativo').length}</div><div class="l">Acompanhamentos ativos</div></div><div class="kpi"><div class="n">${casa}</div><div class="l">Hóspedes em casa hoje</div></div><div class="kpi"><div class="n">${rows.filter(r=>r.status==='Ativo'&&r.checkout&&r.checkout<h).length}</div><div class="l">Checkout passado sem concluir</div></div></div>`},
  colunas:[{l:'Hóspede',f:r=>`<b>${esc(r.hospede)}</b><div class="sub">UH ${esc(r.uh||'—')}</div>`},{l:'Estadia',f:r=>`${fdata(r.checkin)} → ${fdata(r.checkout)}`},{l:'Motivo',f:r=>`<span class="b dk">${esc(r.motivo)}</span>${r.observacoes?`<div class="sub">${esc(r.observacoes.slice(0,110))}</div>`:''}`},{l:'Status',f:r=>badge(r.status)}]});
 
@@ -578,13 +602,14 @@ regMod({tabela:'rec_recuperacoes',titulo:'Plano de Recuperação do Hóspede',de
 // SUPERVISOR · Registro de Ocorrências (+ ações corretivas)
 // ============================================================
 S.abaOc=S.abaOc||'oc';
+const TIPOS_OCOR=['Operacional','Hóspede','Colaborador','Segurança','Financeira','Outra'];
 const abasOc=()=>`<div class="pill"><button class="${S.abaOc==='oc'?'on':''}" onclick="ACT.abaOc('oc')">Ocorrências</button><button class="${S.abaOc==='ac'?'on':''}" onclick="ACT.abaOc('ac')">Ações corretivas</button></div>`;
 ACT.abaOc=a=>{S.abaOc=a;viewOcorrencias()};
 regMod({tabela:'rec_ocorrencias',titulo:'Registro de Ocorrências',desc:'Acesso exclusivo do Supervisor. Pode ser convertida em ação corretiva; ocorrências confidenciais ficam sinalizadas.',escrita:3,ordem:['criado_em',false],abas:abasOc,
  statusField:'status',statusOpts:['Aberta','Em análise','Ação corretiva','Encerrada'],statusAbertos:['Aberta','Em análise','Ação corretiva'],busca:['titulo','descricao','envolvidos','local','tipo'],
- filtros:[{k:'gravidade',l:'Gravidade',opts:['Baixa','Média','Alta','Crítica']},{k:'tipo',l:'Tipo',opts:['Operacional','Hóspede','Colaborador','Segurança','Financeira','Outra']}],
- campos:[{k:'titulo',l:'Título',req:1,full:1},{k:'tipo',l:'Tipo',t:'select',opts:['Operacional','Hóspede','Colaborador','Segurança','Financeira','Outra']},{k:'gravidade',l:'Gravidade',t:'select',opts:['Baixa','Média','Alta','Crítica']},{k:'data_ocorrencia',l:'Data',t:'date'},{k:'local',l:'Local'},{k:'envolvidos',l:'Envolvidos',full:1},{k:'descricao',l:'Descrição detalhada',t:'textarea'},{k:'confidencial',l:'Confidencial (visível apenas ao Supervisor)',t:'check',full:1}],
- novoValores:()=>({tipo:'Operacional',gravidade:'Média',data_ocorrencia:hojeISO(),confidencial:false}),
+ filtros:[{k:'gravidade',l:'Gravidade',opts:['Baixa','Média','Alta','Crítica']},{k:'tipo',l:'Tipo',opts:TIPOS_OCOR}],
+ campos:[{k:'titulo',l:'Título',req:1,full:1},{k:'tipo',l:'Tipo',t:'select',opts:TIPOS_OCOR},{k:'gravidade',l:'Gravidade',t:'select',opts:['Baixa','Média','Alta','Crítica']},{k:'data_ocorrencia',l:'Data',t:'date'},{k:'local',l:'Local'},{k:'envolvidos',l:'Envolvidos',full:1},{k:'descricao',l:'Descrição detalhada',t:'textarea'},{k:'confidencial',l:'Confidencial (visível apenas ao Supervisor)',t:'check',full:1}],
+ novoValores:()=>({tipo:TIPOS_OCOR[0],gravidade:'Média',data_ocorrencia:hojeISO(),confidencial:false}),
  colunas:[{l:'Ocorrência',f:r=>`<b>${esc(r.titulo)}</b>${r.confidencial?' <span class="b dk">Confidencial</span>':''}<div class="sub">${esc((r.descricao||'').slice(0,120))}</div>`},{l:'Tipo / data',f:r=>`${esc(r.tipo||'—')}<div class="sub">${fdata(r.data_ocorrencia)} · ${esc(r.local||'')}</div>`},{l:'Gravidade',f:r=>prioB(r.gravidade)},{l:'Status',f:r=>badge(r.status)}],
  acoes:r=>r.status!=='Encerrada'?`<button class="btn sm" onclick="ACT.ocAcao('${r.id}')">Converter em ação corretiva</button> `:''});
 regMod({tabela:'rec_acoes_corretivas',titulo:'Ações Corretivas',desc:'Ações geradas a partir de ocorrências ou criadas diretamente.',escrita:3,ordem:['criado_em',false],abas:abasOc,
@@ -674,8 +699,8 @@ async function viewIndicadores(){
   const dec=rcv.filter(r=>['Recuperado','Parcial','Não recuperado'].includes(r.resultado));const sc=sol.filter(s=>s.status==='Concluída');
   const I=(l,v,m,warn)=>`<div class="kpi ${warn?'warn':''}"><div class="n">${v}</div><div class="l">${l}</div><div class="m">${m||''}</div></div>`;
   main.innerHTML=`<div class="vh"><div><h2>Indicadores de Desempenho</h2><div class="d">Calculados automaticamente a partir dos registros do período.</div></div><select id="indD" style="width:auto">${[[7,'Últimos 7 dias'],[30,'Últimos 30 dias'],[90,'Últimos 90 dias'],[365,'Últimos 12 meses']].map(([v,l])=>`<option value="${v}" ${S.indDias===v?'selected':''}>${l}</option>`).join('')}</select></div>
-  <div class="grid g3">${I('Pendências concluídas no prazo',pc.length?pct(noPrazo.length,pc.length)+'%':'—',`${noPrazo.length} de ${pc.length} concluídas`,pc.length&&pct(noPrazo.length,pc.length)<80)}${I('Plantões com recebimento confirmado',plF.length?pct(plF.filter(p=>p.status==='confirmado').length,plF.length)+'%':'—',`${plF.filter(p=>p.status==='confirmado').length} de ${plF.length} fechados`,plF.length&&pct(plF.filter(p=>p.status==='confirmado').length,plF.length)<90)}${I('Solicitações internas concluídas',sol.length?pct(sc.length,sol.length)+'%':'—',`${sc.length} de ${sol.length}`)}
-  ${I('Nota média das avaliações',notas.length?f1(med(notas))+' / 5':'—',notas.length+' avaliações com nota',notas.length&&med(notas)<4)}${I('Tempo médio de resposta a avaliações',resp.length?f1(med(resp))+' dias':'—',resp.length+' respondidas',resp.length&&med(resp)>2)}${I('Avaliações respondidas',ava.length?pct(ava.filter(a=>a.status==='Respondida').length,ava.length)+'%':'—',`${ava.filter(a=>a.status==='Respondida').length} de ${ava.length}`)}
+  <div class="grid g3">${I('Pendências concluídas no prazo',pc.length?pct(noPrazo.length,pc.length)+'%':'—',`${noPrazo.length} de ${pc.length} concluídas`,pc.length&&pct(noPrazo.length,pc.length)<S.cfg.metas.pend_prazo)}${I('Plantões com recebimento confirmado',plF.length?pct(plF.filter(p=>p.status==='confirmado').length,plF.length)+'%':'—',`${plF.filter(p=>p.status==='confirmado').length} de ${plF.length} fechados`,plF.length&&pct(plF.filter(p=>p.status==='confirmado').length,plF.length)<S.cfg.metas.plantao_conf)}${I('Solicitações internas concluídas',sol.length?pct(sc.length,sol.length)+'%':'—',`${sc.length} de ${sol.length}`)}
+  ${I('Nota média das avaliações',notas.length?f1(med(notas))+' / 5':'—',notas.length+' avaliações com nota',notas.length&&med(notas)<S.cfg.metas.nota_min)}${I('Tempo médio de resposta a avaliações',resp.length?f1(med(resp))+' dias':'—',resp.length+' respondidas',resp.length&&med(resp)>S.cfg.metas.resp_dias)}${I('Avaliações respondidas',ava.length?pct(ava.filter(a=>a.status==='Respondida').length,ava.length)+'%':'—',`${ava.filter(a=>a.status==='Respondida').length} de ${ava.length}`)}
   ${I('Reclamações resolvidas',rec.length?pct(rs.length,rec.length)+'%':'—',`${rs.length} de ${rec.length}`)}${I('Tempo médio de resolução',tr.length?f1(med(tr))+' dias':'—',tr.length+' resolvidas')}${I('Índice de recuperação',dec.length?pct(dec.filter(r=>r.resultado==='Recuperado').length,dec.length)+'%':'—',`${dec.length} planos com resultado`)}
   ${I('Cortesias entregues',cort.length?pct(cort.filter(c=>c.status==='Entregue').length,cort.length)+'%':'—',`${cort.filter(c=>c.status==='Entregue').length} de ${cort.length} solicitadas`)}${I('Custo de recuperação','R$ '+rcv.filter(r=>r.status!=='Cancelada').reduce((a,r)=>a+Number(r.custo||0),0).toLocaleString('pt-BR',{minimumFractionDigits:2}),'planos do período')}${I('Nota média das auditorias',aud.length?f1(med(aud.filter(a=>a.nota!=null).map(a=>Number(a.nota))))+'%':'—',aud.length+' auditorias')}</div>`;
   $('#indD').onchange=e=>{S.indDias=Number(e.target.value);viewIndicadores()};
@@ -706,7 +731,7 @@ ACT.relGerar=()=>safe(async()=>{
   H('Análise automática');const al=[];
   if(venc.length)al.push(`${venc.length} pendência(s) vencida(s): priorizar com os responsáveis (${venc.slice(0,3).map(v=>v.titulo).join('; ')}).`);
   if(pl.some(p=>p.status==='fechado'))al.push('Há plantão(ões) fechado(s) sem confirmação de recebimento.');
-  if(mn!=null&&mn<4.2)al.push(`Nota média das avaliações (${mn.toFixed(2)}) abaixo da meta de 4,2 — revisar os temas recorrentes.`);
+  if(mn!=null&&mn<S.cfg.metas.nota_min)al.push(`Nota média das avaliações (${mn.toFixed(2)}) abaixo da meta de ${String(S.cfg.metas.nota_min).replace('.',',')} — revisar os temas recorrentes.`);
   if(av.filter(a=>a.status==='Nova').length)al.push(`${av.filter(a=>a.status==='Nova').length} avaliação(ões) aguardando resposta.`);
   if(re.filter(r=>['Aberta','Em tratamento'].includes(r.status)).length)al.push(`${re.filter(r=>['Aberta','Em tratamento'].includes(r.status)).length} reclamação(ões) ainda em aberto.`);
   const cats={};re.forEach(r=>cats[r.categoria]=(cats[r.categoria]||0)+1);const top=Object.entries(cats).sort((a,b)=>b[1]-a[1])[0];if(top&&top[1]>=2)al.push(`Categoria de reclamação mais frequente: ${top[0]} (${top[1]} casos).`);
@@ -715,7 +740,7 @@ ACT.relGerar=()=>safe(async()=>{
   if(!al.length)al.push('Nenhum ponto crítico identificado pelas regras no período.');al.forEach(B);
   S.relL=L;const txt=`RELATÓRIO DA RECEPÇÃO — ${fdata(S.rel.de)} a ${fdata(S.rel.ate)}\n\n`+L.map(l=>l.t==='h'?`\n${l.x.toUpperCase()}`:l.t==='li'?`- ${l.x}`:l.x).join('\n');S.relTxt=txt;
   $('#relOut').innerHTML=`<div class="card"><div class="row sb noprint" style="margin-bottom:10px"><b>Relatório pronto</b><div class="row"><button class="btn" onclick="window.print()">Imprimir / salvar PDF</button><button class="btn" onclick="navigator.clipboard.writeText(S.relTxt).then(()=>toast('Texto copiado.'))">Copiar texto</button></div></div>
-  <h2 style="margin:0 0 4px;color:var(--verde-escuro)">Relatório da Recepção</h2><div class="sub" style="margin-bottom:12px">Hotel Laghetto Pedras Altas · ${fdata(S.rel.de)} a ${fdata(S.rel.ate)} · gerado por ${esc(S.user.nome)}</div>
+  <h2 style="margin:0 0 4px;color:var(--verde-escuro)">Relatório da Recepção</h2><div class="sub" style="margin-bottom:12px">${esc(S.cfg.hotel.nome)} · ${fdata(S.rel.de)} a ${fdata(S.rel.ate)} · gerado por ${esc(S.user.nome)}</div>
   ${L.map(l=>l.t==='h'?`<h3 style="margin-top:16px">${esc(l.x)}</h3>`:l.t==='li'?`<div style="padding:2px 0 2px 14px">&bull; ${esc(l.x)}</div>`:`<div style="margin:4px 0">${esc(l.x)}</div>`).join('')}</div>`;
 });
 
@@ -736,6 +761,95 @@ ACT.usuSenha=id=>{const u=S.usuarios.find(x=>x.id===id);abrirForm({titulo:'Redef
 ACT.usuDel=id=>safe(async()=>{const u=S.usuarios.find(x=>x.id===id);if(!confirm(`Excluir o usuário ${u.nome}? Os registros feitos por ele permanecem.`))return;if(await rpcOk(sb.rpc('rec_usuario_excluir',{p_id:id}),'Usuário excluído.')){await carregarEquipe();viewUsuarios()}});
 
 // ============================================================
+// CONFIGURAÇÃO (Supervisor) — salva em rec_config, vale para todos os usuários
+// ============================================================
+const VERSAO='Recepção v1.1';
+const CFG_DEF={
+  hotel:{nome:'Hotel Laghetto Pedras Altas',assinatura:'Equipe de Guest Relations'},
+  sala:{nome:'Sala de Reuniões',abre:'07:00',fecha:'22:00',duracao:60},
+  metas:{nota_min:4.2,resp_dias:2,pend_prazo:80,plantao_conf:90},
+  listas:{mural:[...CAT_MURAL],kb:[...CAT_KB],recl:[...CAT_RECL],cort:[...TIPOS_CORT],motivos:[...MOTIVOS_ACOMP],ocor:[...TIPOS_OCOR]}};
+S.cfg=JSON.parse(JSON.stringify(CFG_DEF));
+const LISTAS_DEF=[['mural','Categorias do Mural',CAT_MURAL],['kb','Categorias da Base de Conhecimento',CAT_KB],['recl','Categorias de reclamação',CAT_RECL],['cort','Tipos de cortesia',TIPOS_CORT],['motivos','Motivos de acompanhamento de hóspede',MOTIVOS_ACOMP],['ocor','Tipos de ocorrência',TIPOS_OCOR]];
+function aplicarListas(){for(const [k,,arr] of LISTAS_DEF){const l=(S.cfg.listas[k]||[]).filter(Boolean);if(l.length)arr.splice(0,arr.length,...l)}}
+async function carregarCfg(){
+  S.cfg=JSON.parse(JSON.stringify(CFG_DEF));
+  try{const rows=await q(sb.from('rec_config').select('chave,valor'));for(const r of rows)if(CFG_DEF[r.chave]&&r.valor&&typeof r.valor==='object')S.cfg[r.chave]={...CFG_DEF[r.chave],...r.valor}}catch(e){console.warn('config',e)}
+  aplicarListas();
+}
+const salvarCfg=async(chave,valor)=>{await q(sb.from('rec_config').upsert({chave,valor,autor:S.user.nome},{onConflict:'chave'}));S.cfg[chave]=valor;aplicarListas()};
+const TABELAS_BKP=['rec_mural','rec_mural_leituras','rec_plantoes','rec_pendencias','rec_conhecimento','rec_conhecimento_versoes','rec_conhecimento_leituras','rec_achados','rec_solicitacoes','rec_cortesias','rec_agenda','rec_avaliacoes','rec_respostas','rec_reclamacoes','rec_acompanhamentos','rec_recuperacoes','rec_ocorrencias','rec_acoes_corretivas','rec_checklists','rec_auditorias','rec_comentarios','rec_historico','rec_config'];
+
+async function viewConfig(){
+  const main=$('#main');S.cfgTab=S.cfgTab||'geral';const t=S.cfgTab,c=S.cfg;
+  main.innerHTML=`<div class="vh"><div><h2>Configuração</h2><div class="d">Ajustes da Recepção. Valem para todos os usuários e ficam gravados no banco.</div></div><button class="btn" onclick="irPara('usuarios')">Gerenciar usuários</button></div>
+  <div class="pill">${[['geral','Hotel e sala'],['metas','Metas dos indicadores'],['listas','Listas e categorias'],['dados','Dados e backup']].map(([k,l])=>`<button class="${t===k?'on':''}" onclick="ACT.cfgTab('${k}')">${l}</button>`).join('')}</div><div id="cfgBody"></div>`;
+  const b=$('#cfgBody');
+  if(t==='geral'){
+    b.innerHTML=`<div class="grid g2"><div class="card"><h3>Hotel e respostas às avaliações</h3><label>Nome do hotel (relatórios e respostas)</label><input id="cg_hotel" value="${esc(c.hotel.nome)}"><label style="margin-top:12px">Assinatura das respostas</label><input id="cg_assin" value="${esc(c.hotel.assinatura)}"><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn p" onclick="ACT.cfgSalvarGeral()">Salvar</button></div></div>
+    <div class="card"><h3>Sala de reuniões</h3><label>Nome da sala</label><input id="cg_sala" value="${esc(c.sala.nome)}"><div class="grid g3" style="margin-top:12px"><div><label>Abre às</label><input type="time" id="cg_abre" value="${esc(c.sala.abre)}"></div><div><label>Fecha às</label><input type="time" id="cg_fecha" value="${esc(c.sala.fecha)}"></div><div><label>Duração padrão (min)</label><input type="number" id="cg_dur" min="15" step="15" value="${esc(c.sala.duracao)}"></div></div><div class="sub" style="margin-top:8px">Agendamentos fora desse horário são recusados na tela da Agenda.</div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn p" onclick="ACT.cfgSalvarGeral()">Salvar</button></div></div></div>`;
+  }else if(t==='metas'){
+    b.innerHTML=`<div class="card" style="max-width:640px"><h3>Metas usadas nos Indicadores, Dashboard e Relatório</h3><div class="ff">
+    <div><label>Nota média mínima das avaliações (0 a 5)</label><input type="number" id="cm_nota" step="0.1" min="0" max="5" value="${c.metas.nota_min}"></div>
+    <div><label>Prazo máximo para responder avaliações (dias)</label><input type="number" id="cm_resp" step="0.5" min="0" value="${c.metas.resp_dias}"></div>
+    <div><label>Pendências concluídas no prazo (meta %)</label><input type="number" id="cm_pend" min="0" max="100" value="${c.metas.pend_prazo}"></div>
+    <div><label>Plantões com recebimento confirmado (meta %)</label><input type="number" id="cm_plan" min="0" max="100" value="${c.metas.plantao_conf}"></div></div>
+    <div class="sub" style="margin-top:10px">Indicadores abaixo da meta aparecem em vermelho; o Relatório gera alerta automático.</div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn p" onclick="ACT.cfgSalvarMetas()">Salvar metas</button></div></div>`;
+  }else if(t==='listas'){
+    b.innerHTML=`<div class="note">Uma opção por linha. As mudanças aparecem nos formulários e filtros na próxima tela aberta. Registros antigos mantêm a categoria que já tinham.</div><div class="grid g2">${LISTAS_DEF.map(([k,l,arr])=>`<div class="card"><h3>${l}</h3><textarea id="cl_${k}" style="min-height:150px">${esc(arr.join('\n'))}</textarea><div class="row" style="justify-content:space-between;margin-top:8px"><button class="lnk" onclick="ACT.cfgListaPadrao('${k}')">Restaurar padrão</button></div></div>`).join('')}</div><div class="row" style="justify-content:flex-end"><button class="btn p" onclick="ACT.cfgSalvarListas()">Salvar listas</button></div>`;
+  }else{
+    b.innerHTML=`<div class="card" style="max-width:720px"><h3>Backup dos dados</h3><div class="sub" style="margin-bottom:12px">Baixa um arquivo JSON com todos os registros da Recepção (mural, plantões, pendências, avaliações, ocorrências, agenda, histórico e demais módulos). Não inclui usuários nem senhas.</div><button class="btn p" id="btnBkp" onclick="ACT.cfgBackup()">Baixar backup (JSON)</button><div id="bkpOut" class="sub" style="margin-top:10px"></div></div>
+    <div class="card" style="max-width:720px"><h3>Sistema</h3><div class="sub">Versão: <b>${VERSAO}</b><br>Sessão de login: 12 horas, renovada a cada uso<br>Bloqueio de login: 5 tentativas erradas, 10 minutos<br>Perfis: Equipe (1), Guest (2), Supervisor (3)<br>Últimas alterações de configuração: ${esc(S.cfgInfo||'—')}</div></div>`;
+  }
+}
+ACT.cfgTab=k=>{S.cfgTab=k;viewConfig()};
+ACT.cfgSalvarGeral=()=>safe(async()=>{const abre=$('#cg_abre').value,fecha=$('#cg_fecha').value,dur=Number($('#cg_dur').value);
+  if(!$('#cg_hotel').value.trim()||!$('#cg_sala').value.trim()){toast('Informe o nome do hotel e da sala.','erro');return}
+  if(!abre||!fecha||fecha<=abre){toast('O horário de fechamento deve ser depois da abertura.','erro');return}
+  if(!(dur>=15)){toast('Duração padrão mínima: 15 minutos.','erro');return}
+  await salvarCfg('hotel',{nome:$('#cg_hotel').value.trim(),assinatura:$('#cg_assin').value.trim()||CFG_DEF.hotel.assinatura});
+  await salvarCfg('sala',{nome:$('#cg_sala').value.trim(),abre,fecha,duracao:dur});toast('Configuração salva.')});
+ACT.cfgSalvarMetas=()=>safe(async()=>{const m={nota_min:Number($('#cm_nota').value),resp_dias:Number($('#cm_resp').value),pend_prazo:Number($('#cm_pend').value),plantao_conf:Number($('#cm_plan').value)};
+  if(Object.values(m).some(v=>isNaN(v)||v<0)||m.nota_min>5||m.pend_prazo>100||m.plantao_conf>100){toast('Confira os valores informados.','erro');return}
+  await salvarCfg('metas',m);toast('Metas salvas.')});
+ACT.cfgListaPadrao=k=>{$('#cl_'+k).value=CFG_DEF.listas[k].join('\n')};
+ACT.cfgSalvarListas=()=>safe(async()=>{const l={};for(const [k,nome] of LISTAS_DEF){const v=[...new Set($('#cl_'+k).value.split('\n').map(x=>x.trim()).filter(Boolean))];if(!v.length){toast('A lista "'+nome+'" não pode ficar vazia.','erro');return}l[k]=v}
+  await salvarCfg('listas',l);toast('Listas salvas.')});
+ACT.cfgBackup=()=>safe(async()=>{$('#btnBkp').disabled=true;const out={sistema:VERSAO,gerado_em:new Date().toISOString(),gerado_por:S.user.nome,tabelas:{}};let tot=0;
+  for(const t of TABELAS_BKP){$('#bkpOut').textContent='Lendo '+t+'...';const rows=[];for(let p=0;;p+=1000){const r=await q(sb.from(t).select('*').range(p,p+999));rows.push(...r);if(r.length<1000)break}out.tabelas[t]=rows;tot+=rows.length}
+  const blob=new Blob([JSON.stringify(out,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`backup-recepcao-${hojeISO()}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+  $('#bkpOut').textContent=`Backup gerado: ${tot} registros em ${TABELAS_BKP.length} tabelas.`;$('#btnBkp').disabled=false});
+const IC={
+ users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+ star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+ shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+ lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+ sliders:'<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
+ home:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+ msg:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+ clip:'<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>',
+ clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+ search:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+ inbox:'<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+ gift:'<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+ book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+ cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+ warn:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+ eye:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+ heart:'<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+ grid:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+ flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
+ check:'<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+ bars:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+ file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+ ucheck:'<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>'};
+const ico=(n,c)=>`<svg class="ico ${c||''}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]||''}</svg>`;
+const VICO={home:'home',mural:'msg',plantao:'clip',pendencias:'clock',achados:'search',solicitacoes:'inbox',cortesias:'gift',conhecimento:'book',agenda:'cal',avaliacoes:'star',reclamacoes:'warn',acompanhamento:'eye',recuperacao:'heart',dashboard:'grid',ocorrencias:'flag',auditoria:'check',indicadores:'bars',relatorio:'file',usuarios:'ucheck',config:'sliders'};
+const NV={1:{g:'E',ic:'users',nome:'Equipe',desc:'Rotina da recepção: mural, plantão, pendências, achados, solicitações, cortesias, conhecimento e agenda (consulta).'},2:{g:'G',ic:'star',nome:'Guest',desc:'Tudo da Equipe, mais avaliações, reclamações, acompanhamento e plano de recuperação de hóspedes.'},3:{g:'S',ic:'shield',nome:'Supervisor',desc:'Acesso total: gestão, indicadores, usuários, agenda da sala e Configuração (restrita).'}};
+const nvBadge=n=>`<span class="nvl n${NV[n].g}">${ico(NV[n].ic)}${NV[n].nome}</span>`;
+const nvLegenda=()=>`<div class="lvls">${[1,2,3].map(n=>`<div class="lv n${NV[n].g}${S.user.nivel===n?' me':''}${S.user.nivel<n?' off':''}">${nvBadge(n)}<p>${NV[n].desc}</p>${S.user.nivel===n?'<h4>Seu perfil</h4>':(S.user.nivel<n?'<h4>Sem acesso</h4>':'')}</div>`).join('')}</div>`;
+
+// ============================================================
 // INÍCIO
 // ============================================================
 async function viewHome(){
@@ -743,6 +857,7 @@ async function viewHome(){
   const [pend,ag,pl,cort]=await Promise.all([q(sb.from('rec_pendencias').select('*').in('status',ABERTO_PEND).order('prazo',{ascending:true,nullsFirst:false}).limit(8)),q(sb.from('rec_agenda').select('*').eq('cancelado',false).gte('inicio',ini.toISOString()).lt('inicio',fim.toISOString()).order('inicio')),q(sb.from('rec_plantoes').select('*').order('criado_em',{ascending:false}).limit(3)),q(sb.from('rec_cortesias').select('id,status'))]);
   const b=S.badges||{};const ultAt=pl.find(p=>p.atencao_proximo);
   main.innerHTML=`<div class="vh"><div><h2>Olá, ${esc(S.user.nome.split(' ')[0])}</h2><div class="d">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · perfil ${nivelNome(S.user.nivel)}</div></div></div>
+  ${nvLegenda()}
   ${b.mural||b.conhecimento?`<div class="item alert"><b>Leitura obrigatória pendente:</b> ${b.mural?`<button class="lnk" onclick="irPara('mural')">${b.mural} aviso(s) no Mural</button>`:''} ${b.conhecimento?`<button class="lnk" onclick="irPara('conhecimento')">${b.conhecimento} documento(s) na Base de Conhecimento</button>`:''}</div>`:''}
   ${ultAt?`<div class="item fix"><h4>Atenção para o turno — passagem de ${fdata(ultAt.data)} (${esc(ultAt.turno)})</h4><div class="tx">${nl2(ultAt.atencao_proximo)}</div><div class="sub">${esc(ultAt.entrega_por||'')}${ultAt.status==='fechado'?' · aguardando confirmação de recebimento':''}</div>${ultAt.status==='fechado'?`<button class="btn sm p" onclick="irPara('plantao')">Ir para Passagem de Plantão</button>`:''}</div>`:''}
   <div class="grid g4" style="margin-bottom:16px"><button class="kpi" onclick="irPara('pendencias',{st:'__abertos'})"><div class="n">${b.pendencias??pend.length}</div><div class="l">Pendências em aberto</div></button><button class="kpi" onclick="irPara('solicitacoes',{st:'__abertos'})"><div class="n">${b.solicitacoes??0}</div><div class="l">Solicitações abertas</div></button><button class="kpi" onclick="irPara('cortesias',{st:'Aprovada'})"><div class="n">${cort.filter(c=>c.status==='Aprovada').length}</div><div class="l">Cortesias a executar</div></button><button class="kpi" onclick="irPara('agenda')"><div class="n">${ag.length}</div><div class="l">Reuniões hoje (sala)</div></button></div>
@@ -772,11 +887,12 @@ const VIEWS={
  auditoria:{nome:'Auditoria e Procedimentos',nivel:3,g:'S',render:viewAuditoria},
  indicadores:{nome:'Indicadores de Desempenho',nivel:3,g:'S',render:viewIndicadores},
  relatorio:{nome:'Relatório de Turno e Gestão',nivel:3,g:'S',render:viewRelatorio},
- usuarios:{nome:'Usuários',nivel:3,g:'S',render:viewUsuarios}};
-const GRUPOS={E:['EQUIPE','Equipe, Guest e Supervisor'],G:['GUEST','Guest e Supervisor'],S:['SUPERVISOR','Somente Supervisor']};
-function menuHTML(){let h=`<button data-v="home" onclick="irPara('home')">Início</button>`;
+ usuarios:{nome:'Usuários',nivel:3,g:'S',render:viewUsuarios},
+ config:{nome:'Configuração',nivel:3,g:'S',render:viewConfig}};
+const GRUPOS={E:['EQUIPE','Equipe, Guest e Supervisor','users'],G:['GUEST','Guest e Supervisor','star'],S:['SUPERVISOR','Somente Supervisor','shield']};
+function menuHTML(){let h=`<button data-v="home" onclick="irPara('home')"><span class="lb">${ico('home')}<span>Início</span></span></button>`;
   for(const g of ['E','G','S']){const vs=Object.entries(VIEWS).filter(([k,v])=>v.g===g&&S.user.nivel>=v.nivel);if(!vs.length)continue;
-    h+=`<h4>${GRUPOS[g][0]}</h4>`+vs.map(([k,v])=>`<button data-v="${k}" onclick="irPara('${k}')"><span>${v.nome}</span>${v.bd?`<span class="bd" data-bd="${v.bd}" style="display:none"></span>`:''}</button>`).join('')}
+    h+=`<div class="gh g${g}"><i>${ico(GRUPOS[g][2])}</i><div><b>${GRUPOS[g][0]}</b><small>${GRUPOS[g][1]}</small></div></div>`+vs.map(([k,v])=>`${k==='config'?'<div class="sep"></div>':''}<button data-v="${k}" onclick="irPara('${k}')"><span class="lb">${ico(VICO[k])}<span>${v.nome}</span></span>${v.bd?`<span class="bd" data-bd="${v.bd}" style="display:none"></span>`:''}${k==='config'?`<span class="rst">${ico('lock')}Restrito</span>`:''}</button>`).join('')}
   return h}
 async function irPara(id,opts){
   const v=VIEWS[id];if(!v||S.user.nivel<v.nivel){toast('Você não tem acesso a esta área.','erro');return}
@@ -784,14 +900,15 @@ async function irPara(id,opts){
   document.querySelectorAll('.side button').forEach(b=>b.classList.toggle('on',b.dataset.v===id));$('.side')?.classList.remove('open');
   $('#main').innerHTML='<div class="empty">Carregando...</div>';
   try{await v.render()}catch(e){console.error(e);$('#main').innerHTML=`<div class="card empty">Erro ao carregar: ${esc(msgErro(e))}</div>`;if(/JWT|expir/i.test(String(e.message)))sair()}
+  {const m=$('#main');if(m)m.className='m'+(v.g||'');const h2=$('#main .vh h2');if(h2&&v.g)h2.insertAdjacentHTML('beforebegin',nvBadge({E:1,G:2,S:3}[v.g])+(id==='config'?`<span class="nvl nS" style="margin-left:6px">${ico('lock')}Acesso restrito</span>`:''));}
   window.scrollTo(0,0);
 }
 function montarShell(){
-  $('#app').innerHTML=`<div class="topbar"><button class="hamb" onclick="document.querySelector('.side').classList.toggle('open')">&#9776;</button><div class="brand">Recepção<small>ERPPA · Hotel Laghetto Pedras Altas</small></div><div class="sp"></div><a class="tb-link" href="../">&larr; Portal</a><button class="tb-btn" onclick="ACT.notifs()">Notificações<span class="dot" id="bellDot" style="display:none"></span></button><button class="tb-btn" onclick="ACT.minhaSenha()">Senha</button><div class="chip">${esc(S.user.nome)}<small>${nivelNome(S.user.nivel)}</small></div><button class="tb-btn" onclick="sair()">Sair</button></div>
+  $('#app').innerHTML=`<div class="topbar"><button class="hamb" onclick="document.querySelector('.side').classList.toggle('open')">&#9776;</button><div class="brand">Recepção<small>ERPPA · Hotel Laghetto Pedras Altas</small></div><div class="sp"></div><a class="tb-link" href="../">&larr; Portal</a><button class="tb-btn" onclick="ACT.notifs()">Notificações<span class="dot" id="bellDot" style="display:none"></span></button><button class="tb-btn" onclick="ACT.minhaSenha()">Senha</button><div class="chip">${esc(S.user.nome)}${nvBadge(S.user.nivel)}</div><button class="tb-btn" onclick="sair()">Sair</button></div>
   <div class="layout"><div class="side">${menuHTML()}</div><main id="main"></main></div>`;
 }
 async function iniciarApp(){
-  montarShell();await carregarEquipe();await Promise.all([carregarNotifs(),refreshBadges()]);
+  montarShell();await carregarCfg();await carregarEquipe();await Promise.all([carregarNotifs(),refreshBadges()]);
   const h=(location.hash||'').replace('#','');irPara(VIEWS[h]&&S.user.nivel>=VIEWS[h].nivel?h:'home');
   clearInterval(S.timer);S.timer=setInterval(async()=>{try{const r=await q(sb.rpc('rec_sessao'));if(!r||!r.ok){sair('Sessão expirada. Entre novamente.');return}carregarNotifs();refreshBadges()}catch(e){}},60000);
 }
