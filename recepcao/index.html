@@ -515,47 +515,272 @@ ACT.agCancel=id=>safe(async()=>{if(!confirm('Cancelar esta reunião?'))return;aw
 // GUEST · Central de Avaliações + Motor de Respostas
 // ============================================================
 const ORIGENS=['Booking','Google','TripAdvisor','Amplifique.me','Outra'];
+const PORTAIS=['Booking','Google','TripAdvisor','Amplifique.me'];
+const PORTAL_PAD={'Booking':{escala:10,limite:1000},'Google':{escala:5,limite:4000},'TripAdvisor':{escala:5,limite:2000},'Amplifique.me':{escala:5,limite:1000}};
+const DRIVE_PASTA_PAD='https://drive.google.com/drive/folders/1f-77Ydhwvz0jrgEhwdZrU-5m1EpWzRfO';
+const REPUT_DEF={pos_min:4,neu_min:3,prazos:{'Crítica':0,'Alta':1,'Média':2,'Baixa':3},contato:'',pos_extra:'',neg_extra:'',proibidas:'',regras:''};
+const portalCfg=n=>({ativo:true,escala:(PORTAL_PAD[n]||{}).escala||5,limite:(PORTAL_PAD[n]||{}).limite||1000,id_externo:'',url_perfil:'',coleta:'manual',print:false,...((S.cfg.portais||{})[n]||{})});
+const reputCfg=()=>{const r=S.cfg.reputacao||{};return {...REPUT_DEF,...r,prazos:{...REPUT_DEF.prazos,...(r.prazos||{})}}};
+const driveCfg=()=>({url:'',pasta:DRIVE_PASTA_PAD,...(S.cfg.drive||{})});
+const pastaId=u=>{const m=String(u||'').match(/folders\/([\w-]+)/);return m?m[1]:''};
 const cfgResp=()=>({hotel:S.cfg.hotel.nome,assin:S.cfg.hotel.assinatura});
 const CAT_RECL=['Atendimento','Limpeza','Manutenção / quarto','Ruído','Alimentação','Check-in / check-out','Cobrança','Estrutura / lazer','Outros'];
 const MOTIVOS_ACOMP=['Acompanhamento','Aniversário','Lua de mel','VIP','Recuperação de experiência','Necessidade especial','Grupo / evento','Outro'];
 const pct=(a,b)=>b?Math.round(a/b*100):0;
-regMod({tabela:'rec_avaliacoes',titulo:'Central de Avaliações',desc:'Avaliações de Booking, Google, TripAdvisor e Amplifique.me num só lugar, com resposta assistida e aprovação antes de publicar.',escrita:2,ordem:['data_avaliacao',false],
- statusField:'status',statusOpts:['Nova','Em resposta','Respondida','Ignorada'],statusAbertos:['Nova','Em resposta'],busca:['hospede','titulo','texto','origem'],tituloCampo:'titulo',novoLabel:'Registrar avaliação',
- filtros:[{k:'origem',l:'Origem',opts:ORIGENS}],
- extraBtns:()=>S.user.nivel>=3?`<button class="btn" onclick="irPara('config')">Configurar respostas</button>`:'',
- campos:[{k:'origem',l:'Plataforma',t:'select',opts:ORIGENS},{k:'data_avaliacao',l:'Data da avaliação',t:'date'},{k:'hospede',l:'Nome do hóspede'},{k:'nota',l:'Nota',t:'number',step:'0.1'},{k:'nota_max',l:'Escala (nota máxima)',t:'number',step:'0.1'},{k:'url',l:'Link da avaliação'},{k:'titulo',l:'Título',full:1},{k:'texto',l:'Texto da avaliação',t:'textarea',req:1}],
- novoValores:()=>({origem:'Google',data_avaliacao:hojeISO(),nota_max:5}),
- topo:rows=>{const por={};rows.forEach(r=>{if(r.nota!=null){const k=r.origem;(por[k]=por[k]||[]).push(r.nota/r.nota_max*5)}});
-  const med=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(2):'—';const novas=rows.filter(r=>r.status==='Nova').length;
-  return `<div class="note">Entrada manual: a leitura automática por API (Booking, Google, TripAdvisor, Amplifique.me) depende de credenciais de cada plataforma. Os campos "Plataforma" e "Link" já deixam o cadastro pronto para essa integração. Notas normalizadas para escala 0–5.</div><div class="grid g4" style="margin-bottom:14px"><div class="kpi ${novas?'warn':''}"><div class="n">${novas}</div><div class="l">Aguardando resposta</div></div>${ORIGENS.slice(0,3).map(o=>`<div class="kpi"><div class="n">${med(por[o]||[])}</div><div class="l">Média ${o} (${(por[o]||[]).length})</div></div>`).join('')}</div>`},
- colunas:[{l:'Origem',f:r=>`<span class="b dk">${esc(r.origem)}</span><div class="sub">${fdata(r.data_avaliacao)}</div>`},{l:'Nota',f:r=>r.nota!=null?`<b>${r.nota}</b>/${r.nota_max}`:'—'},{l:'Avaliação',f:r=>`${r.titulo?`<b>${esc(r.titulo)}</b><br>`:''}${esc((r.texto||'').slice(0,170))}${(r.texto||'').length>170?'...':''}<div class="sub">${esc(r.hospede||'Hóspede não identificado')}</div>`},{l:'Status',f:r=>badge(r.status)}],
+
+// ============================================================
+// MOTOR DE REGRAS · classificação, temas, prioridade e prazo
+// ============================================================
+const TEMAS=[
+ ['cafe',/\b(cafe|desjejum|breakfast|desayuno)/,{pt:'café da manhã',es:'desayuno',en:'breakfast'},'Alimentação'],
+ ['limpeza',/\b(percevej|barata|ratazana|roedor|pulga|piolho|escorpiao|limp|higien|suj[oa]|sujeir|poeira|clean|dirt|limpie|sucio|cheiro|mofo|mofad|mold|smell|olor)/,{pt:'limpeza',es:'limpieza',en:'cleanliness'},'Limpeza'],
+ ['atendimento',/\b(atendiment|funcionari|equipe|recepcion|colaborador|camareira|garcom|educad|simpatic|gentil|staff|service|servicio|atencion|personal|reception|grosseir|ignor)/,{pt:'atendimento da nossa equipe',es:'atención de nuestro equipo',en:"our team's service"},'Atendimento'],
+ ['quarto',/\b(quarto|apartament|suite|cama|colchao|travesseiro|roupa de cama|room|bed|habitacion)/,{pt:'acomodação',es:'alojamiento',en:'accommodation'},'Manutenção / quarto'],
+ ['ruido',/\b(barulh|ruido|silenc|noise|noisy|quiet|ruidos)/,{pt:'nível de ruído',es:'nivel de ruido',en:'noise level'},'Ruído'],
+ ['wifi',/\b(wifi|wi-fi|internet|sinal)/,{pt:'wi-fi',es:'wi-fi',en:'wi-fi'},'Manutenção / quarto'],
+ ['estacionamento',/\b(estacion|garagem|vaga|parking|valet|aparcamiento)/,{pt:'estacionamento',es:'estacionamiento',en:'parking'},'Estrutura / lazer'],
+ ['aquecimento',/\b(aquec|frio|fria|calefa|heater|heating|cold|ar condicionado|ar-condicionado|climatiz|lareira|aire acondicionado)/,{pt:'aquecimento e climatização',es:'calefacción y climatización',en:'heating and climate control'},'Manutenção / quarto'],
+ ['agua',/\b(agua quente|chuveiro|ducha|banho|pressao|hot water|shower|agua caliente)/,{pt:'chuveiro e água quente',es:'ducha y agua caliente',en:'shower and hot water'},'Manutenção / quarto'],
+ ['lazer',/\b(piscina|spa|sauna|academia|jacuzzi|hidromassagem|lazer|pool|gym)/,{pt:'área de lazer',es:'zona de ocio',en:'leisure area'},'Estrutura / lazer'],
+ ['preco',/\b(preco|valor|custo|caro|barato|cobran|tarifa|price|expensive|value|precio|costo)/,{pt:'custo-benefício',es:'relación calidad-precio',en:'value for money'},'Cobrança'],
+ ['checkin',/\b(check.?in|check.?out|recepcao|fila|espera|demor|wait|queue|llegada|salida)/,{pt:'check-in e check-out',es:'check-in y check-out',en:'check-in and check-out'},'Check-in / check-out'],
+ ['localizacao',/\b(localiza|centro|perto|proximo|location|ubicacion|caminh|walk)/,{pt:'localização',es:'ubicación',en:'location'},'Outros'],
+ ['vista',/\b(vista|paisagem|view|vistas|panor)/,{pt:'vista',es:'vistas',en:'view'},'Outros'],
+ ['manutencao',/\b(quebrad|defeito|vazament|infiltr|torneira|fechadura|lampada|nao funcion|nao liga|broken|leak|roto|no funciona|desgast|velho|antigo|ultrapassad|obsole)/,{pt:'manutenção da acomodação',es:'mantenimiento del alojamiento',en:'room maintenance'},'Manutenção / quarto'],
+ ['alimentacao',/\b(restaurante|jantar|almoco|comida|prato|cardapio|food|dinner|restaurant|cena)/,{pt:'alimentação',es:'gastronomía',en:'food and dining'},'Alimentação'],
+ ['seguranca',/\b(seguranc|furto|roub|assalt|theft|safe|seguridad|robo)/,{pt:'segurança',es:'seguridad',en:'safety'},'Outros']];
+const CRIT_RE=/\b(percevejo|barata|ratazana|roedor|camundongo|piolho|pulga|escorpiao|furto|furtaram|roubo|roubaram|assedio|assediad|discrimin|racis|homofob|intoxica|passou mal|hospital|ambulancia|acidente|machuc|vazamento de gas|cheiro de gas|incendio|choque eletrico|procon|advogad|justica|processo|processar|denunci|vigilancia sanitaria|policia|boletim de ocorrencia|bed ?bugs?|cockroach|theft|stole|harass|lawyer|lawsuit|food poisoning|chinche|cucaracha|robaron|abogado|demanda)/;
+const POS_BASE=['otim','excelent','maravilh','perfeit','adorei','adoramos','amei','amamos','recomend','incrivel','impecavel','encantad','fantastic','espetacular','sensacional','show\\b','nota 10','nota mil','gostei','gostamos','agradavel','aconchegante','cheiros','limp[oa]s?\\b','atencios','simpatic','cordial','prestativ','acolhedor','delicios','saboros','confortavel','tranquil','lind[oa]','bonit[oa]','muito bom','bem localizad','vale a pena','voltarei','voltaremos','voltaria','parabens','sem duvida','eficient','pontual','charmos','genial','hermos','encant','maravillos','estupend','great','excellent','amazing','wonderful','perfect','loved','lovely','friendly','comfortable','helpful','beautiful','awesome','outstanding','superb','delicious','clean\\b','spotless','cozy','enjoyed','pleasant','good\\b','nice\\b','best\\b'];
+const NEG_BASE=['percevej','barata','ratazana','roedor','furt','roub','assedi','discrimin','racis','intoxica','pessim','horriv','terriv','decepc','ruim\\b','suj[oa]s?\\b','sujeira','mofo','mofad','barulh','ruido','gelad','quebrad','estragad','defeito','vazament','demor','descaso','mal atendid','grosseir','rud[oa]\\b','mal educad','nunca mais','nao recomend','nao gostei','nao gostamos','arrepend','caro\\b','cara\\b','abusiv','cobranca indevid','faltou','falta de','sem agua quente','nao funcion','nao esquent','nao liga','mau cheiro','cheiro forte','cheiro de','infiltr','despreparad','lament','insatisf','desrespeit','constrang','humilh','desorganiz','caos','absurd','vergonh','lixo','precari','velh[oa]\\b','antiquad','ultrapassad','desconfort','insuport','queixa','reclam','problema','incomod','lent[oa]\\b','frio\\b','fria\\b','bad\\b','terrible','awful','dirty','noisy','worst','disappoint','never again','not clean','broken','smell','slow','overpriced','horrible','uncomfortable','outdated','poor\\b','unfriendly','unhelpful','filthy','mold','leak','disgust','sucio','ruidoso','decepcion','no funciona','olor','mal servicio','desagrad'];
+const _reCache={};
+function lexRe(base,extra){const k=(base===POS_BASE?'p':'n')+'|'+extra;if(_reCache[k])return _reCache[k];const ex=String(extra||'').split(/[,\n;]/).map(x=>norm(x).trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).filter(Boolean);return _reCache[k]=new RegExp('\\b(?:'+base.concat(ex).join('|')+')','g')}
+const NEGADOR=/(?:^|[\s,])(nao|nunca|nada|sem|nem|jamais|not|never|no|ni|tampoco|didnt|wasnt|isnt|dont)\s+(?:[^\s,;:]+\s+)?$/;
+function detectarIdioma(t){const x=' '+norm(t)+' ';const c=re=>(x.match(re)||[]).length;
+  const pt=c(/ (nao|muito|uma|foi|quarto|cafe|equipe|voce|voces|com|para|nosso|ficamos|estadia|hotel) /g),es=c(/ (el|los|las|muy|una|fue|habitacion|desayuno|pero|estuvo|nos|hemos|hotel) /g),en=c(/ (the|and|was|very|with|our|room|breakfast|staff|were|is|we|stay) /g);
+  if(en>pt&&en>=es&&en>=2)return 'en';if(es>pt&&es>en&&es>=2)return 'es';return 'pt'}
+function analisarTexto(txt){
+  const R=reputCfg();const t=norm(txt);const NEG=lexRe(NEG_BASE,R.neg_extra),POS=lexRe(POS_BASE,R.pos_extra);
+  const clauses=t.split(/[.!?\n;]+|\b(?:mas|porem|entretanto|contudo|but|however|pero|aunque)\b/).map(s=>s.trim()).filter(Boolean);
+  let pos=0,neg=0;const tm={};
+  for(const c of clauses){let p=0,n=0;
+    let s=c.replace(NEG,(m,off)=>{if(NEGADOR.test(c.slice(Math.max(0,off-32),off)))p++;else n++;return ' '.repeat(m.length)});
+    s.replace(POS,(m,off)=>{if(NEGADOR.test(c.slice(Math.max(0,off-32),off)))n++;else p++;return m});
+    pos+=p;neg+=n;const net=p-n;
+    if(net!==0)for(const [id,re] of TEMAS)if(re.test(c))tm[id]=(tm[id]||0)+Math.sign(net)}
+  const temas=Object.entries(tm).filter(([,v])=>v!==0).map(([id,v])=>id+(v>0?'+':'-'));
+  return {pos,neg,temas,crit:CRIT_RE.test(t),lang:detectarIdioma(txt)}
+}
+const somaDias=(iso,d)=>{const x=new Date((iso||hojeISO())+'T12:00:00');x.setDate(x.getDate()+d);return `${x.getFullYear()}-${pad(x.getMonth()+1)}-${pad(x.getDate())}`};
+function classificarAv(av){
+  const R=reputCfg();const nota=av.nota!==''&&av.nota!=null?Number(av.nota):null;const max=Number(av.nota_max)||5;
+  const n5=nota!=null&&!isNaN(nota)?nota/max*5:null;
+  const tx=analisarTexto((av.titulo?av.titulo+'. ':'')+(av.texto||''));const flags=[];let s;
+  if(n5!=null){
+    s=n5>=R.pos_min?'Positiva':n5>=R.neu_min?'Neutra':'Negativa';
+    if(s==='Positiva'&&tx.neg>=2&&tx.neg>=tx.pos){s='Neutra';flags.push('Nota alta, mas o texto traz críticas')}
+    else if(s==='Positiva'&&tx.neg>=1)flags.push('Elogio com ressalva');
+    if(s==='Negativa'&&tx.pos>=2&&tx.neg===0)flags.push('Nota baixa com texto elogioso: conferir');
+  }else{
+    const d=tx.pos-tx.neg;
+    s=(tx.pos===0&&tx.neg===0)?'Neutra':(tx.neg===0&&tx.pos>=1)?'Positiva':(tx.pos===0&&tx.neg>=1)?'Negativa':d>=2?'Positiva':d<=-2?'Negativa':'Neutra';
+    if(tx.pos===0&&tx.neg===0)flags.push('Sem nota e sem palavras reconhecidas: conferir');
+  }
+  let pr=s==='Positiva'?(flags.some(f=>/ressalva/.test(f))?'Média':'Baixa'):s==='Neutra'?'Média':'Alta';
+  if(tx.crit||(n5!=null&&n5<=1.5))pr='Crítica';
+  if(tx.crit)flags.push('Menciona tema sensível (segurança, saúde, pragas, jurídico ou discriminação)');
+  return {sentimento:s,prioridade:pr,temas:tx.temas,idioma:tx.lang,flags,n5,
+    prazo_resposta:somaDias(av.data_avaliacao||hojeISO(),R.prazos[pr]??2),classificada_em:new Date().toISOString()};
+}
+const sentB=s=>s?`<span class="b ${s==='Positiva'?'ok':s==='Negativa'?'erro':'pend'}">${esc(s)}</span>`:'<span class="b info">Sem classificação</span>';
+const temaLabel=(id,lang)=>{const t=TEMAS.find(x=>x[0]===id);return t?t[2][lang||'pt']:id};
+const temasLista=(av,sinal)=>(av.temas||[]).filter(x=>x.endsWith(sinal)).map(x=>x.slice(0,-1));
+const temaChips=av=>(av.temas||[]).map(x=>{const id=x.slice(0,-1),ok=x.endsWith('+');return `<span class="b ${ok?'ok':'erro'}" title="${ok?'ponto positivo':'ponto de atenção'}">${esc(temaLabel(id))}</span>`}).join('');
+const abertaAv=r=>r.status==='Nova'||r.status==='Em resposta';
+const atrasada=r=>abertaAv(r)&&r.prazo_resposta&&String(r.prazo_resposta).slice(0,10)<hojeISO();
+
+// ============================================================
+// RESPOSTAS · gerador (pt/es/en) + guia do caso + verificação
+// ============================================================
+const PACK={
+ pt:{lst:' e ',ab:{Cordial:{pos:'Olá{n}! Que alegria ler a sua avaliação!',neu:'Olá{n}! Agradecemos por compartilhar a sua experiência conosco.',neg:'Olá{n}! Agradecemos o seu retorno e lamentamos que a sua estadia não tenha sido como esperávamos.'},
+   Formal:{pos:'Prezado(a){N}, agradecemos sinceramente pela sua avaliação.',neu:'Prezado(a){N}, agradecemos a avaliação e o tempo dedicado a registrá-la.',neg:'Prezado(a){N}, agradecemos o seu contato e lamentamos que a experiência tenha ficado aquém do esperado.'},
+   Acolhedor:{pos:'Olá{n}! Seu carinho aquece o nosso coração aqui na serra!',neu:'Olá{n}! Muito obrigado por nos contar como foi a sua estadia, cada palavra nos ajuda a crescer.',neg:'Olá{n}! Sentimos muito pelo desconforto. A sua opinião é importante para nós e queremos ouvir você.'},
+   Objetivo:{pos:'Olá{n}! Obrigado pela avaliação positiva.',neu:'Olá{n}! Obrigado pelo feedback.',neg:'Olá{n}! Obrigado pelo feedback e pedimos desculpas pelos problemas.'}},
+  pos:(tp)=>tp?`Ficamos felizes em saber que a sua experiência com ${tp} foi positiva.`:'Ficamos felizes em saber que a sua estadia foi especial.',
+  neu:(tp,tn)=>(tn?`Registramos os seus comentários sobre ${tn} e vamos compartilhá-los com as equipes responsáveis para evoluirmos.`:'Registramos os seus comentários e vamos compartilhá-los com as equipes responsáveis.')+(tp?` Ficamos contentes que a sua experiência com ${tp} tenha sido positiva.`:''),
+  neg:(tn)=>tn?`Levamos a sério o que você relatou sobre ${tn} e compartilhamos o caso com as equipes responsáveis.`:'Levamos a sério o que você relatou e compartilhamos o caso com as equipes responsáveis.',
+  ext:{pos:'Nosso time trabalha todos os dias para oferecer o melhor da hospitalidade da Serra Gaúcha.',neu:'Cada comentário ajuda a melhorar a experiência dos próximos hóspedes.',neg:'Nosso compromisso é transformar essa experiência em aprendizado.'},
+  conv:{pos:'Será um prazer receber você novamente.',neu:'Esperamos ter a oportunidade de superar suas expectativas em uma próxima visita.',neg:c=>`Gostaríamos de entender melhor o ocorrido e ajudar. Por favor, fale diretamente com a nossa equipe de Guest Relations${c?': '+c:''}.`},
+  crit:c=>`Lamentamos muito o relato. Esse não é o padrão de atendimento que buscamos. Para apurar o caso com a atenção que ele merece, pedimos que fale diretamente conosco${c?': '+c:''}.`,
+  fe:{Cordial:'Um abraço!',Formal:'Atenciosamente,',Acolhedor:'Com carinho,',Objetivo:'Atenciosamente,'}},
+ es:{lst:' y ',ab:{Cordial:{pos:'¡Hola{n}! ¡Qué alegría leer su opinión!',neu:'¡Hola{n}! Gracias por compartir su experiencia con nosotros.',neg:'¡Hola{n}! Gracias por su comentario; lamentamos que su estadía no haya sido como esperábamos.'},
+   Formal:{pos:'Estimado(a){N}, agradecemos sinceramente su valoración.',neu:'Estimado(a){N}, agradecemos su valoración y el tiempo dedicado.',neg:'Estimado(a){N}, agradecemos su contacto y lamentamos que la experiencia haya quedado por debajo de lo esperado.'},
+   Acolhedor:{pos:'¡Hola{n}! Su cariño nos llena el corazón aquí en la sierra.',neu:'¡Hola{n}! Muchas gracias por contarnos cómo fue su estadía.',neg:'¡Hola{n}! Sentimos mucho la incomodidad. Su opinión es importante y queremos escucharlo.'},
+   Objetivo:{pos:'¡Hola{n}! Gracias por su valoración positiva.',neu:'¡Hola{n}! Gracias por su comentario.',neg:'¡Hola{n}! Gracias por su comentario y pedimos disculpas por los inconvenientes.'}},
+  pos:tp=>tp?`Nos alegra saber que su experiencia con ${tp} fue positiva.`:'Nos alegra saber que su estadía fue especial.',
+  neu:(tp,tn)=>(tn?`Registramos sus comentarios sobre ${tn} y los compartiremos con los equipos responsables para mejorar.`:'Registramos sus comentarios y los compartiremos con los equipos responsables.')+(tp?` Nos alegra que su experiencia con ${tp} haya sido positiva.`:''),
+  neg:tn=>tn?`Tomamos con seriedad lo que nos relató sobre ${tn} y compartimos el caso con los equipos responsables.`:'Tomamos con seriedad lo que nos relató y compartimos el caso con los equipos responsables.',
+  ext:{pos:'Nuestro equipo trabaja todos los días para ofrecer lo mejor de la hospitalidad de la sierra gaúcha.',neu:'Cada comentario ayuda a mejorar la experiencia de los próximos huéspedes.',neg:'Nuestro compromiso es convertir esta experiencia en aprendizaje.'},
+  conv:{pos:'Será un placer recibirlo nuevamente.',neu:'Esperamos tener la oportunidad de superar sus expectativas en una próxima visita.',neg:c=>`Nos gustaría entender mejor lo ocurrido y ayudar. Por favor, hable directamente con nuestro equipo de Guest Relations${c?': '+c:''}.`},
+  crit:c=>`Lamentamos mucho lo ocurrido. Ese no es el estándar de atención que buscamos. Para investigar el caso con la atención que merece, le pedimos que nos contacte directamente${c?': '+c:''}.`,
+  fe:{Cordial:'¡Un abrazo!',Formal:'Atentamente,',Acolhedor:'Con cariño,',Objetivo:'Atentamente,'}},
+ en:{lst:' and ',ab:{Cordial:{pos:'Hello{n}! We loved reading your review!',neu:'Hello{n}! Thank you for sharing your experience with us.',neg:'Hello{n}! Thank you for your feedback, and we are sorry your stay was not what we hoped for.'},
+   Formal:{pos:'Dear{N}, thank you sincerely for your review.',neu:'Dear{N}, thank you for your review and for the time you took to write it.',neg:'Dear{N}, thank you for contacting us; we are sorry the experience fell short of expectations.'},
+   Acolhedor:{pos:'Hello{n}! Your kind words warm our hearts here in the mountains!',neu:'Hello{n}! Thank you for telling us about your stay; every word helps us grow.',neg:'Hello{n}! We are truly sorry for the discomfort. Your opinion matters and we want to hear from you.'},
+   Objetivo:{pos:'Hello{n}! Thank you for the positive review.',neu:'Hello{n}! Thank you for the feedback.',neg:'Hello{n}! Thank you for the feedback, and we apologize for the issues.'}},
+  pos:tp=>tp?`We are glad your experience with ${tp} was a positive one.`:'We are glad your stay was special.',
+  neu:(tp,tn)=>(tn?`We have noted your comments about ${tn} and will share them with the responsible teams so we can improve.`:'We have noted your comments and will share them with the responsible teams.')+(tp?` We are glad your experience with ${tp} was positive.`:''),
+  neg:tn=>tn?`We take what you shared about ${tn} seriously and have passed it on to the responsible teams.`:'We take what you shared seriously and have passed it on to the responsible teams.',
+  ext:{pos:'Our team works every day to offer the best of Serra Gaúcha hospitality.',neu:'Every comment helps us improve the experience of future guests.',neg:'We are committed to turning this experience into learning.'},
+  conv:{pos:'We would be delighted to welcome you back.',neu:'We hope to have the chance to exceed your expectations on a future visit.',neg:c=>`We would like to understand what happened and help. Please contact our Guest Relations team directly${c?': '+c:''}.`},
+  crit:c=>`We are very sorry to read this. It is not the standard we strive for. So that we can look into it with the attention it deserves, please contact us directly${c?': '+c:''}.`,
+  fe:{Cordial:'Warm regards,',Formal:'Sincerely,',Acolhedor:'With warmth,',Objetivo:'Best regards,'}}};
+const IDIOMAS={pt:'Português',es:'Español',en:'English'};
+function listar(a,lang){return a.length<2?a.join(''):a.slice(0,-1).join(', ')+PACK[lang].lst+a[a.length-1]}
+function gerarRespostas(av,tom,lang){
+  const c=cfgResp(),R=reputCfg();const cl=(av.sentimento&&av.prioridade)?av:{...av,...classificarAv(av)};
+  lang=lang||cl.idioma||'pt';const P=PACK[lang];const cat={Positiva:'pos',Neutra:'neu',Negativa:'neg'}[cl.sentimento]||'neu';
+  const nome=(av.hospede||'').trim().split(/\s+/)[0];const n=nome?', '+nome:'',N=nome?' '+nome:'';
+  const tp=listar(temasLista(cl,'+').slice(0,3).map(t=>temaLabel(t,lang)),lang),tn=listar(temasLista(cl,'-').slice(0,3).map(t=>temaLabel(t,lang)),lang);
+  const ab=P.ab[tom][cat].replace('{n}',n).replace('{N}',N);const as=`${P.fe[tom]}\n${c.assin} · ${c.hotel}`;
+  if(cl.prioridade==='Crítica'){const k=P.crit(R.contato);return [`${ab}\n\n${k}\n\n${as}`,`${ab}\n\n${k}\n\n${as}`,`${ab}\n\n${k} ${P.ext.neg}\n\n${as}`]}
+  const corpo=cat==='pos'?P.pos(tp):cat==='neu'?P.neu(tp,tn):P.neg(tn);const conv=cat==='neg'?P.conv.neg(R.contato):P.conv[cat];
+  return [`${ab}${cat==='neg'?'\n\n'+conv:''}\n\n${as}`,`${ab} ${corpo}\n\n${conv}\n\n${as}`,`${ab}\n\n${corpo} ${P.ext[cat]}\n\n${conv}\n\n${as}`]}
+function guiaCaso(av){
+  const p=portalCfg(av.origem),R=reputCfg();const g=[];
+  g.push(`Prazo para responder: <b>${av.prazo_resposta?fdata(av.prazo_resposta):'—'}</b>${atrasada(av)?' <span class="b erro">Atrasada</span>':''}`);
+  if(av.prioridade==='Crítica')g.push('<b>Caso crítico:</b> avise a gerência antes de responder. Não detalhe o ocorrido em público, leve a conversa para o canal privado e guarde o print como evidência. Se houver menção a Procon, advogado ou processo, alinhe o texto com a diretoria.');
+  else if(av.sentimento==='Negativa')g.push('Responda sem discutir nem contestar o hóspede, com empatia e sem justificativas. Convide para o contato direto e <b>abra uma reclamação</b> para tratar a causa. Não prometa compensação em público.');
+  else if(av.sentimento==='Neutra')g.push('Mostre que o comentário foi ouvido. Cite o ponto de atenção sem justificar e agradeça o que foi bem avaliado.');
+  else g.push('Agradeça citando algo específico da avaliação, sem copiar um texto genérico. Convide a voltar, sem oferecer desconto em público.');
+  const pr={Booking:'No Booking a resposta é pública e aparece na página do hotel. Siga as políticas de resposta da plataforma.',Google:'No Google a resposta é pública e sai em nome do proprietário. Não inclua dados pessoais nem número de reserva.',TripAdvisor:'No TripAdvisor não ofereça incentivos nem peça ao hóspede para alterar ou retirar a avaliação.','Amplifique.me':'O Amplifique.me é a pesquisa interna: o hóspede espera retorno direto, não precisa ser público.'}[av.origem];
+  if(pr)g.push(pr);
+  g.push(`Limite de caracteres configurado para ${esc(av.origem)}: ${p.limite}.`);
+  (R.regras||'').split('\n').map(x=>x.trim()).filter(Boolean).forEach(x=>g.push(esc(x)));
+  return `<div class="note"><b>Guia do caso</b><ul style="margin:6px 0 0 18px;padding:0">${g.map(x=>`<li>${x}</li>`).join('')}</ul></div>`}
+function verificarResposta(tx,origem){
+  const R=reputCfg(),p=portalCfg(origem),out=[];const t=norm(tx);
+  if(/\[[^\]]*\]/.test(tx))out.push({n:'erro',m:'Há trecho entre colchetes para preencher.'});
+  if(tx.length>p.limite)out.push({n:'erro',m:`Passa do limite de ${p.limite} caracteres de ${origem} (${tx.length}).`});
+  if(/\b(reembols|desconto|gratis|gratuit|ressarc|indeniz|compens|devolv|refund|discount|free of charge|descuento|reembolso)/.test(t))out.push({n:'aviso',m:'Fala em reembolso, desconto ou compensação. Evite prometer isso em público.'});
+  if(/\b(reserva|apto|apartamento|uh|quarto|habitacion|room)\s*(n[oº°.]*\s*)?\d{2,}/.test(t))out.push({n:'aviso',m:'Cita número de reserva ou de quarto. Evite dados que identifiquem o hóspede.'});
+  if(/\b(voce errou|culpa d[oa]|mentira|falso|nao e verdade|inverdade|nao procede|you are wrong|untrue|lie)\b/.test(t))out.push({n:'aviso',m:'Tom de contestação. Prefira reconhecer o relato sem discutir.'});
+  (R.proibidas||'').split(/[,\n;]/).map(x=>norm(x).trim()).filter(Boolean).forEach(w=>{if(t.includes(w))out.push({n:'aviso',m:`Contém "${w}", que consta nas expressões a evitar.`})});
+  return out}
+const avisosHTML=a=>a.length?a.map(x=>`<div class="sub" style="color:var(${x.n==='erro'?'--erro':'--alerta'})">${x.n==='erro'?'Corrigir':'Atenção'}: ${esc(x.m)}</div>`).join(''):'<div class="sub" style="color:var(--verde-mid)">Nenhum alerta.</div>';
+
+// ============================================================
+// IMPORTAÇÃO EM LOTE (colar de planilha / CSV)
+// ============================================================
+function parseCSV(txt){
+  const L=String(txt||'').replace(/\r/g,'').split('\n').filter(l=>l.trim());if(!L.length)return [];
+  const d=L[0].includes('\t')?'\t':(L[0].split(';').length>=L[0].split(',').length?';':',');
+  const lin=s=>{const o=[];let c='',q2=false;for(let i=0;i<s.length;i++){const ch=s[i];if(q2){if(ch==='"'&&s[i+1]==='"'){c+='"';i++}else if(ch==='"')q2=false;else c+=ch}else if(ch==='"')q2=true;else if(ch===d){o.push(c);c=''}else c+=ch}o.push(c);return o.map(x=>x.trim())};
+  return L.map(lin)}
+const isoData=s=>{s=String(s||'').trim();let m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);if(m)return `${m[3]}-${pad(+m[2])}-${pad(+m[1])}`;m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[0]:null};
+function hashAv(o,d,h,t){let x=norm([o,d,h,String(t).slice(0,200)].join('|')),v=2166136261;for(let i=0;i<x.length;i++){v^=x.charCodeAt(i);v=Math.imul(v,16777619)}return (v>>>0).toString(36)+x.length}
+ACT.importar=()=>{modal(`<h3>Importar avaliações em lote</h3><div class="note">Cole linhas de uma planilha (Excel, Google Sheets) ou CSV. Ordem das colunas: <b>data, nota, hóspede, título, texto</b>. Pode ter uma linha de cabeçalho. Avaliações já importadas antes (mesmo portal, data, hóspede e texto) são ignoradas.</div>
+ <div class="ff"><div><label>Portal</label><select id="imp_o">${PORTAIS.map(o=>`<option>${o}</option>`).join('')}</select></div><div><label>Escala da nota (máxima)</label><input type="number" id="imp_m" step="0.1" value="${portalCfg('Booking').escala}"></div>
+ <div class="full"><label><input type="checkbox" id="imp_h" style="width:auto"> Histórico já respondido (entra como "Respondida", sem prazo)</label></div>
+ <div class="full"><label>Dados</label><textarea id="imp_t" style="min-height:180px" placeholder="24/11/2026;9,2;Maria Silva;Ótima estadia;Café maravilhoso e equipe atenciosa."></textarea></div></div><div id="imp_r" class="sub" style="margin-top:8px"></div>
+ <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" onclick="ACT.fechar()">Cancelar</button><button class="btn p" id="imp_go" onclick="ACT.importarGo()">Importar</button></div>`,true);
+ $('#imp_o').onchange=e=>{$('#imp_m').value=portalCfg(e.target.value).escala}};
+ACT.importarGo=()=>safe(async()=>{const o=$('#imp_o').value,max=Number($('#imp_m').value)||5,hist=$('#imp_h').checked;let rows=parseCSV($('#imp_t').value);
+  if(rows.length&&/data|nota|texto|hosp|titul/i.test(norm(rows[0].join(' '))))rows=rows.slice(1);
+  const novos=[];let inv=0;for(const r of rows){const d=isoData(r[0]),tx=(r[4]||r[3]||'').trim();if(!d||!tx){inv++;continue}
+    const nota=r[1]===''||r[1]==null?null:Number(String(r[1]).replace(',','.'));const av={origem:o,data_avaliacao:d,nota:isNaN(nota)?null:nota,nota_max:max,hospede:r[2]||null,titulo:r[4]?(r[3]||null):null,texto:tx};
+    const c=classificarAv(av);novos.push({...av,sentimento:c.sentimento,temas:c.temas,prioridade:c.prioridade,prazo_resposta:hist?null:c.prazo_resposta,idioma:c.idioma,classificada_em:c.classificada_em,
+      status:hist?'Respondida':'Nova',fonte:'importacao',externo_id:hashAv(o,d,r[2]||'',tx)})}
+  if(!novos.length){$('#imp_r').textContent='Nenhuma linha válida (cada linha precisa de data e texto).';return}
+  $('#imp_go').disabled=true;const ex=new Set((await q(sb.from('rec_avaliacoes').select('externo_id').eq('origem',o).not('externo_id','is',null).limit(5000))).map(x=>x.externo_id));
+  const ins=novos.filter(x=>!ex.has(x.externo_id));for(let i=0;i<ins.length;i+=100)await q(sb.from('rec_avaliacoes').insert(ins.slice(i,i+100)));
+  closeModal();toast(`${ins.length} importada(s), ${novos.length-ins.length} repetida(s) ignorada(s)${inv?`, ${inv} linha(s) inválida(s)`:''}.`);carregarMod(MODS.rec_avaliacoes);refreshBadges()});
+ACT.reclassificar=()=>safe(async()=>{if(!confirm('Reclassificar todas as avaliações que ainda não foram respondidas, com as regras atuais da Configuração?'))return;
+  const M=MODS.rec_avaliacoes;let n=0;for(const r of M._rows.filter(abertaAv)){const c=classificarAv(r);await q(sb.from('rec_avaliacoes').update({sentimento:c.sentimento,temas:c.temas,prioridade:c.prioridade,prazo_resposta:c.prazo_resposta,idioma:c.idioma,classificada_em:c.classificada_em}).eq('id',r.id));n++}
+  toast(n+' avaliação(ões) reclassificada(s).');carregarMod(M)});
+
+// ============================================================
+// PRINTS · captura da aba do portal e envio à pasta do Drive
+// ============================================================
+const driveOK=()=>/^https:\/\/script\.google\.com\//.test(driveCfg().url||'');
+let PR={blob:null,origem:'',avId:null,tipo:'avaliacao'};
+ACT.print=(avId,origem,tipo)=>safe(async()=>{
+  if(!driveOK()){toast('Configure o envio ao Drive em Configuração > Portais e avaliações.','erro');return}
+  const av=avId?MODS.rec_avaliacoes._rows.find(x=>x.id===avId):null;origem=origem||av?.origem||PORTAIS[0];
+  if(!portalCfg(origem).print){toast(`O print está desativado para ${origem}. Ative em Configuração > Portais e avaliações.`,'erro');return}
+  PR={blob:null,origem,avId:avId||null,tipo:tipo||'avaliacao'};
+  modal(`<h3>${PR.tipo==='painel'?'Print do painel':'Print da avaliação'} — ${esc(origem)}</h3>${av?`<div class="item"><div class="sub">${esc(av.hospede||'—')} · ${fdata(av.data_avaliacao)} · nota ${av.nota??'—'}/${av.nota_max}</div></div>`:''}
+  <div class="note">1) Abra o portal em outra aba e deixe a avaliação visível. 2) Clique em "Capturar" e escolha essa <b>aba do Chrome</b> na janela do navegador. 3) Confira a imagem e envie. O arquivo vai para a pasta <b>${esc(origem)} / ${hojeISO().slice(0,7)}</b> no Drive.</div>
+  <div class="row"><button class="btn p" onclick="ACT.printCap()">Capturar</button></div><div id="prv" style="margin-top:12px"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" onclick="ACT.fechar()">Fechar</button><button class="btn p" id="prSend" disabled onclick="ACT.printEnviar()">Enviar ao Drive</button></div>`,true)});
+ACT.printCap=()=>safe(async()=>{if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){toast('Este navegador não permite capturar a tela. Use o Chrome no computador.','erro');return}
+  let st;try{st=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'browser'},audio:false,preferCurrentTab:false})}catch(e){toast('Captura cancelada.');return}
+  const v=document.createElement('video');v.srcObject=st;v.muted=true;await v.play();await new Promise(r=>setTimeout(r,500));
+  let w=v.videoWidth,h=v.videoHeight;const k=Math.min(1,2000/w);const cv=document.createElement('canvas');cv.width=Math.round(w*k);cv.height=Math.round(h*k);cv.getContext('2d').drawImage(v,0,0,cv.width,cv.height);st.getTracks().forEach(t=>t.stop());
+  PR.blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.88));$('#prv').innerHTML=`<img src="${URL.createObjectURL(PR.blob)}" style="max-width:100%;border:1px solid var(--borda);border-radius:8px"><div class="sub">${Math.round(PR.blob.size/1024)} KB</div>`;$('#prSend').disabled=false});
+ACT.printEnviar=()=>safe(async()=>{if(!PR.blob)return;$('#prSend').disabled=true;$('#prSend').textContent='Enviando...';
+  const b64=await new Promise(r=>{const f=new FileReader();f.onload=()=>r(String(f.result).split(',')[1]);f.readAsDataURL(PR.blob)});
+  const av=PR.avId?MODS.rec_avaliacoes._rows.find(x=>x.id===PR.avId):null;
+  const nome=`${PR.tipo==='painel'?'painel':'avaliacao'}_${(av?.data_avaliacao||hojeISO())}_${norm(av?.hospede||'').replace(/[^a-z0-9]+/g,'-').slice(0,24)||'sem-nome'}_${Date.now().toString(36)}.jpg`;
+  const comp=(av?.data_avaliacao||hojeISO()).slice(0,7);
+  const res=await fetch(driveCfg().url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({sessao:TOKEN,origem:PR.origem,competencia:comp,nome,mime:'image/jpeg',dados:b64})});
+  const j=await res.json();if(!j.ok)throw new Error(j.erro||'Falha ao enviar ao Drive');
+  await q(sb.from('rec_prints').insert({origem:PR.origem,avaliacao_id:PR.avId,tipo:PR.tipo,competencia:comp,nome,drive_id:j.id,drive_url:j.url}));
+  closeModal();toast('Print salvo no Drive.');if(MODS.rec_avaliacoes._rows)carregarMod(MODS.rec_avaliacoes)});
+
+// ============================================================
+// CENTRAL DE AVALIAÇÕES (módulo)
+// ============================================================
+const SENT_OPTS=()=>[{v:'',l:'Automático'},{v:'Positiva',l:'Positiva'},{v:'Neutra',l:'Neutra'},{v:'Negativa',l:'Negativa'}];
+const PRIO_OPTS=()=>[{v:'',l:'Automática'},{v:'Baixa',l:'Baixa'},{v:'Média',l:'Média'},{v:'Alta',l:'Alta'},{v:'Crítica',l:'Crítica'}];
+regMod({tabela:'rec_avaliacoes',titulo:'Central de Avaliações',desc:'Avaliações de Booking, Google, TripAdvisor e Amplifique.me num só lugar, classificadas por regras, com resposta assistida e aprovação antes de publicar.',escrita:2,ordem:['data_avaliacao',false],
+ statusField:'status',statusOpts:['Nova','Em resposta','Respondida','Ignorada'],statusAbertos:['Nova','Em resposta'],busca:['hospede','titulo','texto','origem','sentimento'],tituloCampo:'titulo',novoLabel:'Registrar avaliação',
+ filtros:[{k:'origem',l:'Origem',opts:ORIGENS},{k:'sentimento',l:'Sentimento',opts:['Positiva','Neutra','Negativa']},{k:'prioridade',l:'Prioridade',opts:['Crítica','Alta','Média','Baixa']}],
+ extraBtns:()=>`<button class="btn" onclick="ACT.importar()">Importar em lote</button>${driveOK()&&PORTAIS.some(p=>portalCfg(p).print)?`<button class="btn" onclick="ACT.print(null,null,'painel')">Print do painel</button>`:''}<a class="btn" href="${esc(driveCfg().pasta)}" target="_blank" rel="noopener">Pasta no Drive</a>${S.user.nivel>=3?`<button class="btn" onclick="ACT.cfgPortais()">Configurar portais</button>`:''}`,
+ formExtra:()=>`<div class="note">Escala padrão da nota: ${PORTAIS.map(p=>`${p} ${portalCfg(p).escala}`).join(' · ')}. A classificação é automática; use os campos de sentimento e prioridade só para corrigir.</div>`,
+ campos:[{k:'origem',l:'Plataforma',t:'select',opts:ORIGENS},{k:'data_avaliacao',l:'Data da avaliação',t:'date'},{k:'hospede',l:'Nome do hóspede'},{k:'nota',l:'Nota',t:'number',step:'0.1'},{k:'nota_max',l:'Escala (nota máxima)',t:'number',step:'0.1'},{k:'url',l:'Link da avaliação'},{k:'sentimento',l:'Sentimento',t:'select',opts:SENT_OPTS},{k:'prioridade',l:'Prioridade',t:'select',opts:PRIO_OPTS},{k:'titulo',l:'Título',full:1},{k:'texto',l:'Texto da avaliação',t:'textarea',req:1}],
+ novoValores:()=>({origem:'Google',data_avaliacao:hojeISO(),nota_max:portalCfg('Google').escala,sentimento:'',prioridade:''}),
+ antesSalvar:(o,r)=>{o.nota=(o.nota===''||o.nota==null)?null:Number(o.nota);o.nota_max=Number(o.nota_max)||5;
+  if(o.nota!=null&&(isNaN(o.nota)||o.nota<0||o.nota>o.nota_max))throw new Error('A nota deve estar entre 0 e '+o.nota_max+'.');
+  const c=classificarAv(o);const mudou=!r||r.texto!==o.texto||(r.titulo||'')!==(o.titulo||'')||Number(r.nota)!==o.nota||Number(r.nota_max)!==o.nota_max;
+  const userS=o.sentimento&&(!r||o.sentimento!==r.sentimento),userP=o.prioridade&&(!r||o.prioridade!==r.prioridade);
+  const s=userS?o.sentimento:(mudou?c.sentimento:(r.sentimento||c.sentimento)),p=userP?o.prioridade:(mudou?c.prioridade:(r.prioridade||c.prioridade));
+  o.sentimento=s;o.prioridade=p;o.temas=c.temas;o.idioma=c.idioma;o.prazo_resposta=somaDias(o.data_avaliacao||hojeISO(),reputCfg().prazos[p]??2);o.classificada_em=c.classificada_em;if(!r)o.fonte='manual';return o},
+ topo:rows=>{const abertas=rows.filter(abertaAv);const atr=abertas.filter(atrasada).length;const negAb=abertas.filter(r=>r.sentimento==='Negativa'||r.prioridade==='Crítica').length;
+  const med=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(2):'—';
+  const lin=PORTAIS.map(p=>{const rs=rows.filter(r=>r.origem===p);const ns=rs.filter(r=>r.nota!=null).map(r=>r.nota/r.nota_max*5);const c=s=>rs.filter(r=>r.sentimento===s).length;
+    return `<tr><td><b>${p}</b></td><td>${rs.length}</td><td>${med(ns)}</td><td>${pct(c('Positiva'),rs.length)}%</td><td>${pct(c('Neutra'),rs.length)}%</td><td>${pct(c('Negativa'),rs.length)}%</td><td>${rs.filter(abertaAv).length}</td></tr>`}).join('');
+  return `<div class="grid g4" style="margin-bottom:14px"><div class="kpi ${abertas.length?'warn':''}"><div class="n">${abertas.length}</div><div class="l">Aguardando resposta</div></div><div class="kpi ${atr?'warn':''}"><div class="n">${atr}</div><div class="l">Fora do prazo</div></div><div class="kpi ${negAb?'warn':''}"><div class="n">${negAb}</div><div class="l">Negativas ou críticas em aberto</div></div><div class="kpi"><div class="n">${med(rows.filter(r=>r.nota!=null).map(r=>r.nota/r.nota_max*5))}</div><div class="l">Nota média geral (0 a 5)</div></div></div>
+  <div class="card" style="padding:6px 10px;margin-bottom:14px"><div class="tw"><table><thead><tr><th>Portal</th><th>Avaliações</th><th>Nota média (0–5)</th><th>Positivas</th><th>Neutras</th><th>Negativas</th><th>Em aberto</th></tr></thead><tbody>${lin}</tbody></table></div></div>`},
+ colunas:[{l:'Origem',f:r=>`<span class="b dk">${esc(r.origem)}</span><div class="sub">${fdata(r.data_avaliacao)}</div>`},{l:'Nota',f:r=>r.nota!=null?`<b>${r.nota}</b>/${r.nota_max}`:'—'},
+  {l:'Avaliação',f:r=>`${r.titulo?`<b>${esc(r.titulo)}</b><br>`:''}${esc((r.texto||'').slice(0,170))}${(r.texto||'').length>170?'...':''}<div class="sub">${esc(r.hospede||'Hóspede não identificado')}</div><div>${temaChips(r)}</div>`},
+  {l:'Classificação',f:r=>`${sentB(r.sentimento)}${r.prioridade?prioB(r.prioridade):''}${abertaAv(r)&&r.prazo_resposta?`<div class="sub">${atrasada(r)?'<span class="b erro">Atrasada</span> ':''}prazo ${fdata(r.prazo_resposta)}</div>`:''}`},{l:'Status',f:r=>badge(r.status)}],
  aoStatus:(r,v)=>({respondida_em:v==='Respondida'?new Date().toISOString():r.respondida_em}),
- acoes:r=>`<button class="btn sm p" onclick="ACT.resp('${r.id}')">Responder</button> `});
-function temasAv(t){const n=norm(t);const m=[[/cafe|desjejum/,'o café da manhã'],[/limpez|limpo|higien/,'a limpeza'],[/localiza|centro|perto/,'a localização'],[/atendiment|funcionari|equipe|recepcion|educad/,'o atendimento da nossa equipe'],[/quarto|apartament|cama|colchao/,'a acomodação'],[/vista|paisagem/,'a vista'],[/barulho|ruido/,'o ruído'],[/wifi|wi-fi|internet/,'a internet'],[/estacionament/,'o estacionamento'],[/piscina|spa|sauna/,'a área de lazer'],[/demora|esper|fila/,'o tempo de espera'],[/jantar|restaurante|comida|refeic/,'a gastronomia']];
-  return m.filter(([re])=>re.test(n)).map(x=>x[1]).slice(0,3)}
-function lista(a){return a.length<2?a.join(''):a.slice(0,-1).join(', ')+' e '+a[a.length-1]}
-function gerarRespostas(av,tom){const c=cfgResp();const nome=(av.hospede||'').trim().split(/\s+/)[0];const ola=nome?`Olá, ${nome}!`:'Olá!';
-  const r=av.nota!=null?av.nota/av.nota_max:0.8;const cat=r>=0.8?'pos':r>=0.6?'neu':'neg';const t=temasAv(av.texto);const tm=t.length?lista(t):'';
-  const ab={Cordial:{pos:`${ola} Que alegria ler a sua avaliação!`,neu:`${ola} Agradecemos por compartilhar a sua experiência conosco.`,neg:`${ola} Agradecemos o seu retorno e lamentamos que a sua estadia não tenha sido como esperávamos.`},
-    Formal:{pos:`Prezado(a) ${nome||'hóspede'}, agradecemos sinceramente pela avaliação.`,neu:`Prezado(a) ${nome||'hóspede'}, agradecemos a avaliação e o tempo dedicado a registrá-la.`,neg:`Prezado(a) ${nome||'hóspede'}, agradecemos o seu contato e lamentamos que a experiência tenha ficado aquém do esperado.`},
-    Acolhedor:{pos:`${ola} Seu carinho aquece o nosso coração aqui na serra!`,neu:`${ola} Muito obrigado por nos contar como foi a sua estadia, cada palavra nos ajuda a crescer.`,neg:`${ola} Sentimos muito pelo desconforto. Sua opinião é importante para nós e queremos ouvir você.`},
-    Objetivo:{pos:`${ola} Obrigado pela avaliação positiva.`,neu:`${ola} Obrigado pelo feedback.`,neg:`${ola} Obrigado pelo feedback e pedimos desculpas pelos problemas.`}}[tom][cat];
-  const corpo={pos:tm?`Ficamos felizes em saber que ${tm} ${t.length>1?'fizeram':'fez'} diferença na sua estadia.`:'Ficamos felizes em saber que a sua estadia foi especial.',neu:tm?`Registramos os seus comentários sobre ${tm} e vamos compartilhá-los com as equipes responsáveis.`:'Registramos os seus comentários e vamos compartilhá-los com as equipes responsáveis.',neg:tm?`Levamos a sério o que você relatou sobre ${tm} e já encaminhamos o assunto às equipes responsáveis para as devidas melhorias.`:'Levamos a sério o que você relatou e já encaminhamos o assunto às equipes responsáveis para as devidas melhorias.'}[cat];
-  const conv={pos:'Será um prazer receber você novamente.',neu:'Esperamos ter a oportunidade de superar suas expectativas em uma próxima visita.',neg:'Gostaríamos de entender melhor o ocorrido; fique à vontade para falar diretamente com a nossa equipe.'}[cat];
-  const fe={Cordial:'Um abraço!',Formal:'Atenciosamente,',Acolhedor:'Com carinho,',Objetivo:'Atenciosamente,'}[tom];const as=`${fe}\n${c.assin} · ${c.hotel}`;
-  return [`${ab}\n\n${as}`,`${ab} ${corpo}\n\n${conv}\n\n${as}`,`${ab}\n\n${corpo} ${cat==='neg'?'Nosso compromisso é transformar essa experiência em aprendizado.':'Nosso time trabalha todos os dias para oferecer o melhor da hospitalidade da Serra Gaúcha.'}\n\n${conv}\n\n${as}`]}
-ACT.resp=id=>safe(async()=>{const M=MODS.rec_avaliacoes;const av=M._rows.find(x=>x.id===id);S.respAv=av;
+ acoes:r=>`<button class="btn sm p" onclick="ACT.resp('${r.id}')">Responder</button> ${(r.sentimento==='Negativa'||r.prioridade==='Crítica'||r.prioridade==='Alta')&&S.user.nivel>=2?`<button class="btn sm" onclick="ACT.reclDeAv('${r.id}')">Abrir reclamação</button> `:''}${driveOK()&&portalCfg(r.origem).print?`<button class="btn sm" onclick="ACT.print('${r.id}')">Print</button> `:''}`,
+ async detExtra(r){let ps=[];try{ps=await q(sb.from('rec_prints').select('*').eq('avaliacao_id',r.id).order('criado_em',{ascending:false}))}catch(e){}
+  return `<div class="note" style="margin-top:12px"><b>Classificação automática:</b> ${sentB(r.sentimento)} ${r.prioridade?prioB(r.prioridade):''} · idioma ${esc(IDIOMAS[r.idioma]||'—')}<div style="margin-top:6px">${temaChips(r)||'Nenhum tema identificado.'}</div></div>
+  <h3 style="margin-top:14px">Prints</h3>${ps.length?ps.map(p=>`<div class="item"><a href="${esc(p.drive_url)}" target="_blank" rel="noopener">${esc(p.nome)}</a> <span class="sub">· ${fdh(p.criado_em)} · ${esc(p.autor||'')}</span></div>`).join(''):'<div class="sub">Nenhum print salvo para esta avaliação.</div>'}`}});
+ACT.reclDeAv=id=>safe(async()=>{const av=MODS.rec_avaliacoes._rows.find(x=>x.id===id);const neg=temasLista(av,'-');const tm=TEMAS.find(t=>t[0]===neg[0]);
+  S.prefill={hospede:av.hospede||'Hóspede da avaliação',categoria:tm?tm[3]:'Outros',gravidade:av.prioridade==='Crítica'?'Crítica':av.prioridade==='Alta'?'Alta':'Média',descricao:`Avaliação ${av.origem} de ${fdata(av.data_avaliacao)}${av.nota!=null?` (nota ${av.nota}/${av.nota_max})`:''}:\n${av.texto}`,avaliacao_id:av.id};
+  if(MODS.rec_reclamacoes.preparar)await MODS.rec_reclamacoes.preparar();ACT.novo('rec_reclamacoes')});
+ACT.resp=id=>safe(async()=>{const M=MODS.rec_avaliacoes;let av=M._rows.find(x=>x.id===id);if(!av.sentimento)av={...av,...classificarAv(av)};S.respAv=av;S.respLang=av.idioma||'pt';
   const rs=await q(sb.from('rec_respostas').select('*').eq('avaliacao_id',id).order('criado_em',{ascending:false}));S.respRs=rs;
-  modal(`<h3>Responder avaliação — ${esc(av.origem)}</h3><div class="item"><div class="sub">${esc(av.hospede||'—')} · ${fdata(av.data_avaliacao)} · nota ${av.nota??'—'}/${av.nota_max}</div><div class="tx">${nl2(av.texto)}</div></div>
-  <div class="note">As respostas são geradas por modelos de texto com o tom escolhido (sem IA generativa), editadas por você e só ficam como "Publicada" depois de aprovadas.</div>
-  <div class="row"><select id="rtom" style="width:auto">${['Cordial','Formal','Acolhedor','Objetivo'].map(t=>`<option>${t}</option>`).join('')}</select><button class="btn p" onclick="ACT.respGerar()">Gerar 3 versões</button></div><div id="respGer"></div>
+  modal(`<h3>Responder avaliação — ${esc(av.origem)} ${sentB(av.sentimento)} ${prioB(av.prioridade)}</h3><div class="item"><div class="sub">${esc(av.hospede||'—')} · ${fdata(av.data_avaliacao)} · nota ${av.nota??'—'}/${av.nota_max}</div><div class="tx">${nl2(av.texto)}</div><div>${temaChips(av)}</div></div>
+  ${guiaCaso(av)}
+  <div class="row"><select id="rtom" style="width:auto">${['Cordial','Formal','Acolhedor','Objetivo'].map(t=>`<option>${t}</option>`).join('')}</select><select id="rlang" style="width:auto">${Object.entries(IDIOMAS).map(([k,v])=>`<option value="${k}" ${k===S.respLang?'selected':''}>${v}</option>`).join('')}</select><button class="btn p" onclick="ACT.respGerar()">Gerar 3 versões</button></div><div id="respGer"></div>
   <h3 style="margin-top:18px">Respostas salvas</h3><div id="respSalvas">${respSalvasHTML(rs)}</div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" onclick="ACT.fechar()">Fechar</button></div>`,true)});
 function respSalvasHTML(rs){return rs.length?rs.map(r=>`<div class="item"><div class="row sb"><div>${badge(r.status)} <span class="sub">${esc(r.tom||'')} · v${r.versao} · ${esc(r.autor||'')} · ${fdh(r.criado_em)}${r.aprovado_por?' · aprovada por '+esc(r.aprovado_por):''}</span></div><div class="row">${r.status==='Rascunho'?`<button class="btn sm p" onclick="ACT.respSt('${r.id}','Aprovada')">Aprovar</button>`:''}${r.status==='Aprovada'?`<button class="btn sm p" onclick="ACT.respSt('${r.id}','Publicada')">Marcar como publicada</button>`:''}<button class="btn sm" onclick="ACT.respCopiar('${r.id}')">Copiar texto</button></div></div><div class="tx">${nl2(r.texto)}</div></div>`).join(''):'<div class="sub">Nenhuma resposta salva.</div>'}
-ACT.respGerar=()=>{const v=gerarRespostas(S.respAv,$('#rtom').value);S.respGer=v;$('#respGer').innerHTML=v.map((t,i)=>`<div class="item" style="margin-top:10px"><div class="row sb"><b>Versão ${i+1} — ${['curta','média','completa'][i]}</b><button class="btn sm p" onclick="ACT.respSalvar(${i})">Salvar como rascunho</button></div><textarea id="rv${i}" style="margin-top:8px;min-height:130px">${esc(t)}</textarea></div>`).join('')};
+ACT.respConta=i=>{const t=$('#rv'+i).value;const a=verificarResposta(t,S.respAv.origem);$('#rvc'+i).textContent=`${t.length} / ${portalCfg(S.respAv.origem).limite} caracteres`;$('#rva'+i).innerHTML=avisosHTML(a)};
+ACT.respGerar=()=>{const v=gerarRespostas(S.respAv,$('#rtom').value,$('#rlang').value);S.respGer=v;
+  $('#respGer').innerHTML=v.map((t,i)=>`<div class="item" style="margin-top:10px"><div class="row sb"><b>Versão ${i+1} — ${['curta','média','completa'][i]}</b><button class="btn sm p" onclick="ACT.respSalvar(${i})">Salvar como rascunho</button></div><textarea id="rv${i}" oninput="ACT.respConta(${i})" style="margin-top:8px;min-height:130px">${esc(t)}</textarea><div class="sub" id="rvc${i}"></div><div id="rva${i}"></div></div>`).join('');v.forEach((_,i)=>ACT.respConta(i))};
 ACT.respSalvar=i=>safe(async()=>{const tx=$('#rv'+i).value.trim();if(!tx)return;await q(sb.from('rec_respostas').insert({avaliacao_id:S.respAv.id,tom:$('#rtom').value,versao:i+1,texto:tx}));
   if(S.respAv.status==='Nova')await q(sb.from('rec_avaliacoes').update({status:'Em resposta'}).eq('id',S.respAv.id));
   S.respRs=await q(sb.from('rec_respostas').select('*').eq('avaliacao_id',S.respAv.id).order('criado_em',{ascending:false}));$('#respSalvas').innerHTML=respSalvasHTML(S.respRs);toast('Rascunho salvo.');carregarMod(MODS.rec_avaliacoes)});
-ACT.respSt=(id,st)=>safe(async()=>{const up={status:st};if(st==='Aprovada'){up.aprovado_por=S.user.nome;up.aprovado_em=new Date().toISOString()}
+ACT.respSt=(id,st)=>safe(async()=>{const up={status:st};
+  if(st==='Aprovada'){const r=S.respRs.find(x=>x.id===id);const a=verificarResposta(r.texto,S.respAv.origem);
+    if(a.some(x=>x.n==='erro')){toast('Corrija antes de aprovar: '+a.find(x=>x.n==='erro').m,'erro');return}
+    if(a.length&&!confirm('A resposta tem alertas:\n\n'+a.map(x=>'- '+x.m).join('\n')+'\n\nAprovar mesmo assim?'))return;
+    up.aprovado_por=S.user.nome;up.aprovado_em=new Date().toISOString()}
   await q(sb.from('rec_respostas').update(up).eq('id',id));if(st==='Publicada')await q(sb.from('rec_avaliacoes').update({status:'Respondida',respondida_em:new Date().toISOString()}).eq('id',S.respAv.id));
   S.respRs=await q(sb.from('rec_respostas').select('*').eq('avaliacao_id',S.respAv.id).order('criado_em',{ascending:false}));$('#respSalvas').innerHTML=respSalvasHTML(S.respRs);toast(st==='Publicada'?'Marcada como publicada. Cole o texto na plataforma.':'Resposta aprovada.');carregarMod(MODS.rec_avaliacoes);refreshBadges()});
 ACT.respCopiar=id=>{const r=S.respRs.find(x=>x.id===id);navigator.clipboard.writeText(r.texto).then(()=>toast('Texto copiado.'),()=>toast('Não foi possível copiar.','erro'))};
@@ -763,11 +988,12 @@ ACT.usuDel=id=>safe(async()=>{const u=S.usuarios.find(x=>x.id===id);if(!confirm(
 // ============================================================
 // CONFIGURAÇÃO (Supervisor) — salva em rec_config, vale para todos os usuários
 // ============================================================
-const VERSAO='Recepção v1.1';
+const VERSAO='Recepção v1.2';
 const CFG_DEF={
   hotel:{nome:'Hotel Laghetto Pedras Altas',assinatura:'Equipe de Guest Relations'},
   sala:{nome:'Sala de Reuniões',abre:'07:00',fecha:'22:00',duracao:60},
   metas:{nota_min:4.2,resp_dias:2,pend_prazo:80,plantao_conf:90},
+  portais:{},reputacao:{},drive:{url:'',pasta:DRIVE_PASTA_PAD},
   listas:{mural:[...CAT_MURAL],kb:[...CAT_KB],recl:[...CAT_RECL],cort:[...TIPOS_CORT],motivos:[...MOTIVOS_ACOMP],ocor:[...TIPOS_OCOR]}};
 S.cfg=JSON.parse(JSON.stringify(CFG_DEF));
 const LISTAS_DEF=[['mural','Categorias do Mural',CAT_MURAL],['kb','Categorias da Base de Conhecimento',CAT_KB],['recl','Categorias de reclamação',CAT_RECL],['cort','Tipos de cortesia',TIPOS_CORT],['motivos','Motivos de acompanhamento de hóspede',MOTIVOS_ACOMP],['ocor','Tipos de ocorrência',TIPOS_OCOR]];
@@ -778,12 +1004,12 @@ async function carregarCfg(){
   aplicarListas();
 }
 const salvarCfg=async(chave,valor)=>{await q(sb.from('rec_config').upsert({chave,valor,autor:S.user.nome},{onConflict:'chave'}));S.cfg[chave]=valor;aplicarListas()};
-const TABELAS_BKP=['rec_mural','rec_mural_leituras','rec_plantoes','rec_pendencias','rec_conhecimento','rec_conhecimento_versoes','rec_conhecimento_leituras','rec_achados','rec_solicitacoes','rec_cortesias','rec_agenda','rec_avaliacoes','rec_respostas','rec_reclamacoes','rec_acompanhamentos','rec_recuperacoes','rec_ocorrencias','rec_acoes_corretivas','rec_checklists','rec_auditorias','rec_comentarios','rec_historico','rec_config'];
+const TABELAS_BKP=['rec_mural','rec_mural_leituras','rec_plantoes','rec_pendencias','rec_conhecimento','rec_conhecimento_versoes','rec_conhecimento_leituras','rec_achados','rec_solicitacoes','rec_cortesias','rec_agenda','rec_avaliacoes','rec_respostas','rec_prints','rec_reclamacoes','rec_acompanhamentos','rec_recuperacoes','rec_ocorrencias','rec_acoes_corretivas','rec_checklists','rec_auditorias','rec_comentarios','rec_historico','rec_config'];
 
 async function viewConfig(){
   const main=$('#main');S.cfgTab=S.cfgTab||'geral';const t=S.cfgTab,c=S.cfg;
   main.innerHTML=`<div class="vh"><div><h2>Configuração</h2><div class="d">Ajustes da Recepção. Valem para todos os usuários e ficam gravados no banco.</div></div><button class="btn" onclick="irPara('usuarios')">Gerenciar usuários</button></div>
-  <div class="pill">${[['geral','Hotel e sala'],['metas','Metas dos indicadores'],['listas','Listas e categorias'],['dados','Dados e backup']].map(([k,l])=>`<button class="${t===k?'on':''}" onclick="ACT.cfgTab('${k}')">${l}</button>`).join('')}</div><div id="cfgBody"></div>`;
+  <div class="pill">${[['geral','Hotel e sala'],['metas','Metas dos indicadores'],['portais','Portais e avaliações'],['listas','Listas e categorias'],['dados','Dados e backup']].map(([k,l])=>`<button class="${t===k?'on':''}" onclick="ACT.cfgTab('${k}')">${l}</button>`).join('')}</div><div id="cfgBody"></div>`;
   const b=$('#cfgBody');
   if(t==='geral'){
     b.innerHTML=`<div class="grid g2"><div class="card"><h3>Hotel e respostas às avaliações</h3><label>Nome do hotel (relatórios e respostas)</label><input id="cg_hotel" value="${esc(c.hotel.nome)}"><label style="margin-top:12px">Assinatura das respostas</label><input id="cg_assin" value="${esc(c.hotel.assinatura)}"><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn p" onclick="ACT.cfgSalvarGeral()">Salvar</button></div></div>
@@ -795,6 +1021,8 @@ async function viewConfig(){
     <div><label>Pendências concluídas no prazo (meta %)</label><input type="number" id="cm_pend" min="0" max="100" value="${c.metas.pend_prazo}"></div>
     <div><label>Plantões com recebimento confirmado (meta %)</label><input type="number" id="cm_plan" min="0" max="100" value="${c.metas.plantao_conf}"></div></div>
     <div class="sub" style="margin-top:10px">Indicadores abaixo da meta aparecem em vermelho; o Relatório gera alerta automático.</div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn p" onclick="ACT.cfgSalvarMetas()">Salvar metas</button></div></div>`;
+  }else if(t==='portais'){
+    await cfgPortaisHTML(b);
   }else if(t==='listas'){
     b.innerHTML=`<div class="note">Uma opção por linha. As mudanças aparecem nos formulários e filtros na próxima tela aberta. Registros antigos mantêm a categoria que já tinham.</div><div class="grid g2">${LISTAS_DEF.map(([k,l,arr])=>`<div class="card"><h3>${l}</h3><textarea id="cl_${k}" style="min-height:150px">${esc(arr.join('\n'))}</textarea><div class="row" style="justify-content:space-between;margin-top:8px"><button class="lnk" onclick="ACT.cfgListaPadrao('${k}')">Restaurar padrão</button></div></div>`).join('')}</div><div class="row" style="justify-content:flex-end"><button class="btn p" onclick="ACT.cfgSalvarListas()">Salvar listas</button></div>`;
   }else{
@@ -819,6 +1047,56 @@ ACT.cfgBackup=()=>safe(async()=>{$('#btnBkp').disabled=true;const out={sistema:V
   for(const t of TABELAS_BKP){$('#bkpOut').textContent='Lendo '+t+'...';const rows=[];for(let p=0;;p+=1000){const r=await q(sb.from(t).select('*').range(p,p+999));rows.push(...r);if(r.length<1000)break}out.tabelas[t]=rows;tot+=rows.length}
   const blob=new Blob([JSON.stringify(out,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`backup-recepcao-${hojeISO()}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
   $('#bkpOut').textContent=`Backup gerado: ${tot} registros em ${TABELAS_BKP.length} tabelas.`;$('#btnBkp').disabled=false});
+
+// ---------- Portais e avaliações ----------
+const SEGREDOS={Booking:[['booking_client_id','Client ID'],['booking_client_secret','Client secret']],Google:[['google_client_id','Client ID (OAuth)'],['google_client_secret','Client secret'],['google_refresh_token','Refresh token']],TripAdvisor:[['tripadvisor_key','Chave da API']],'Amplifique.me':[['amplifique_token','Token da API']]};
+const ROT_SEG={'booking_client_id':'Client ID','booking_client_secret':'Client secret'};
+async function cfgPortaisHTML(b){
+  let st={};try{st=await q(sb.rpc('rec_segredos_status'))||{}}catch(e){console.warn(e)}
+  const R=reputCfg(),D=driveCfg();
+  const segCampo=([k,l])=>`<div><label>${l} <span class="sub">${st[k]?'· configurado em '+fdata(st[k].em)+' por '+esc(st[k].por||''):'· não configurado'}</span></label><div class="row"><input type="password" autocomplete="new-password" data-seg="${k}" placeholder="${st[k]?'Digite para substituir':'Cole aqui'}">${st[k]?`<button class="lnk" onclick="ACT.segLimpar('${k}')">Remover</button>`:''}</div></div>`;
+  b.innerHTML=`<div class="note">Cada portal tem seu cartão. <b>Ativo</b> liga o portal na Central e nos relatórios. <b>Print</b> liga ou desliga os prints deste portal. As credenciais ficam num cofre no servidor e <b>nunca são mostradas de volta</b>; aqui você só grava ou remove. A leitura automática por API depende de cada portal liberar o acesso (Google, Booking via parceiro de conectividade, Amplifique.me) e entra na etapa seguinte; até lá use o registro manual ou a importação em lote.</div>
+  <div class="grid g2">${PORTAIS.map(p=>{const c=portalCfg(p);return `<div class="card" data-portal="${p}"><h3>${p}</h3><div class="row" style="gap:18px;margin-bottom:8px"><label style="margin:0"><input type="checkbox" style="width:auto" data-f="ativo" ${c.ativo?'checked':''}> Ativo</label><label style="margin:0"><input type="checkbox" style="width:auto" data-f="print" ${c.print?'checked':''}> Print das avaliações</label></div>
+    <div class="ff"><div><label>Identificação do hotel no portal</label><input data-f="id_externo" value="${esc(c.id_externo)}" placeholder="ID do hotel / local"></div><div><label>Link do perfil</label><input data-f="url_perfil" value="${esc(c.url_perfil)}" placeholder="https://"></div>
+    <div><label>Escala da nota</label><input type="number" step="0.1" min="1" data-f="escala" value="${c.escala}"></div><div><label>Limite de caracteres da resposta</label><input type="number" min="100" step="50" data-f="limite" value="${c.limite}"></div>
+    <div class="full"><label>Entrada das avaliações</label><select data-f="coleta"><option value="manual" ${c.coleta==='manual'?'selected':''}>Manual e importação em lote</option><option value="api" ${c.coleta==='api'?'selected':''}>Automática por API (quando as credenciais estiverem configuradas)</option></select></div></div>
+    ${S.user.nivel>=3?`<h3 style="margin-top:14px;font-size:13px">Credenciais de API</h3><div class="ff">${SEGREDOS[p].map(segCampo).join('')}</div>`:''}</div>`}).join('')}</div>
+  <div class="row" style="justify-content:flex-end;margin:10px 0 18px"><button class="btn p" onclick="ACT.cfgSalvarPortais()">Salvar portais e credenciais</button></div>
+  <div class="grid g2"><div class="card"><h3>Prints no Drive</h3><div class="sub" style="margin-bottom:10px">O Guest captura a aba do portal e o sistema envia a imagem para a pasta abaixo, organizada por portal e mês. O envio usa um script do Google (Apps Script) que confere o login da Recepção antes de gravar.</div>
+    <label>Endereço do script de envio (termina em /exec)</label><input id="dr_url" value="${esc(D.url)}" placeholder="https://script.google.com/macros/s/.../exec"><label style="margin-top:10px">Pasta de destino no Drive</label><input id="dr_pasta" value="${esc(D.pasta)}">
+    <div class="row" style="justify-content:space-between;margin-top:12px"><button class="btn" onclick="ACT.driveTestar()">Testar conexão</button><button class="btn p" onclick="ACT.driveSalvar()">Salvar</button></div><div id="dr_res" class="sub" style="margin-top:8px"></div></div>
+  <div class="card"><h3>Regras de classificação e respostas</h3><div class="ff"><div><label>Positiva a partir da nota (0 a 5)</label><input type="number" id="rp_pos" step="0.1" min="0" max="5" value="${R.pos_min}"></div><div><label>Neutra a partir da nota (0 a 5)</label><input type="number" id="rp_neu" step="0.1" min="0" max="5" value="${R.neu_min}"></div>
+    ${['Crítica','Alta','Média','Baixa'].map(k=>`<div><label>Prazo para responder: ${k} (dias)</label><input type="number" min="0" step="1" id="rp_pz_${k}" value="${R.prazos[k]}"></div>`).join('')}
+    <div class="full"><label>Contato direto para casos negativos (e-mail ou telefone, aparece na resposta)</label><input id="rp_contato" value="${esc(R.contato)}"></div>
+    <div class="full"><label>Palavras positivas extras (separadas por vírgula)</label><input id="rp_pe" value="${esc(R.pos_extra)}"></div><div class="full"><label>Palavras negativas extras (separadas por vírgula)</label><input id="rp_ne" value="${esc(R.neg_extra)}"></div>
+    <div class="full"><label>Expressões a evitar nas respostas (uma por linha)</label><textarea id="rp_pro" style="min-height:70px">${esc(R.proibidas)}</textarea></div><div class="full"><label>Regras da casa mostradas no guia de cada resposta (uma por linha)</label><textarea id="rp_reg" style="min-height:90px" placeholder="Ex.: Todo caso negativo é levado ao supervisor antes de responder.">${esc(R.regras)}</textarea></div></div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn p" onclick="ACT.cfgSalvarRep()">Salvar regras</button></div></div></div>
+  <div class="card" style="margin-top:14px"><h3>Testar a classificação</h3><div class="ff"><div><label>Nota</label><input type="number" id="tt_n" step="0.1" placeholder="vazio = só texto"></div><div><label>Escala</label><input type="number" id="tt_m" step="0.1" value="5"></div><div class="full"><label>Texto da avaliação</label><textarea id="tt_t" style="min-height:70px" placeholder="Cole um texto de avaliação para ver como o sistema classifica"></textarea></div></div><div class="row" style="margin-top:10px"><button class="btn" onclick="ACT.cfgTestar()">Classificar</button></div><div id="tt_r" style="margin-top:10px"></div></div>`;
+}
+ACT.cfgPortais=()=>{S.cfgTab='portais';irPara('config')};
+ACT.cfgSalvarPortais=()=>safe(async()=>{const o={};
+  document.querySelectorAll('[data-portal]').forEach(c=>{const p=c.dataset.portal,v={};c.querySelectorAll('[data-f]').forEach(i=>{v[i.dataset.f]=i.type==='checkbox'?i.checked:(i.type==='number'?Number(i.value):i.value.trim())});
+    if(!(v.escala>0)||!(v.limite>=100))throw new Error('Confira escala e limite de caracteres em '+p+'.');o[p]=v});
+  await salvarCfg('portais',o);
+  const novos=[...document.querySelectorAll('[data-seg]')].filter(i=>i.value.trim());
+  for(const i of novos)await q(sb.rpc('rec_segredo_definir',{p_chave:i.dataset.seg,p_valor:i.value.trim()}));
+  toast(novos.length?`Portais salvos e ${novos.length} credencial(is) gravada(s) no cofre.`:'Portais salvos.');viewConfig()});
+ACT.segLimpar=k=>safe(async()=>{if(!confirm('Remover esta credencial do cofre?'))return;await q(sb.rpc('rec_segredo_definir',{p_chave:k,p_valor:''}));toast('Credencial removida.');viewConfig()});
+ACT.driveSalvar=()=>safe(async()=>{const u=$('#dr_url').value.trim(),p=$('#dr_pasta').value.trim();
+  if(u&&!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)){toast('O endereço do script deve terminar em /exec.','erro');return}
+  if(!pastaId(p)){toast('Informe o link da pasta do Drive.','erro');return}
+  await salvarCfg('drive',{url:u,pasta:p});toast('Configuração do Drive salva.')});
+ACT.driveTestar=()=>safe(async()=>{const u=$('#dr_url').value.trim();if(!u){toast('Informe o endereço do script.','erro');return}
+  $('#dr_res').textContent='Testando...';const r=await fetch(u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({sessao:TOKEN,acao:'teste'})});const j=await r.json();
+  $('#dr_res').innerHTML=j.ok?`<span style="color:var(--verde-mid)">Conectado. Pasta: <b>${esc(j.pasta||'—')}</b>. Login da Recepção reconhecido (nível ${j.nivel}).</span>`:`<span style="color:var(--erro)">${esc(j.erro||'Falha na conexão')}</span>`});
+ACT.cfgSalvarRep=()=>safe(async()=>{const v=id=>Number($('#'+id).value);const pz={};for(const k of ['Crítica','Alta','Média','Baixa'])pz[k]=v('rp_pz_'+k);
+  const o={pos_min:v('rp_pos'),neu_min:v('rp_neu'),prazos:pz,contato:$('#rp_contato').value.trim(),pos_extra:$('#rp_pe').value.trim(),neg_extra:$('#rp_ne').value.trim(),proibidas:$('#rp_pro').value.trim(),regras:$('#rp_reg').value.trim()};
+  if(isNaN(o.pos_min)||isNaN(o.neu_min)||o.neu_min>o.pos_min||o.pos_min>5||o.neu_min<0){toast('A nota de neutra deve ser menor ou igual à de positiva, entre 0 e 5.','erro');return}
+  if(Object.values(pz).some(x=>isNaN(x)||x<0)){toast('Confira os prazos.','erro');return}
+  await salvarCfg('reputacao',o);toast('Regras salvas. Use "Reclassificar" na Central para aplicar às avaliações em aberto.')});
+ACT.cfgTestar=()=>{const n=$('#tt_n').value,tx=$('#tt_t').value;if(!tx.trim()&&n===''){toast('Informe uma nota ou um texto.','erro');return}
+  const c=classificarAv({nota:n===''?null:Number(n),nota_max:Number($('#tt_m').value)||5,texto:tx,data_avaliacao:hojeISO()});
+  $('#tt_r').innerHTML=`${sentB(c.sentimento)} ${prioB(c.prioridade)} <span class="sub">idioma ${IDIOMAS[c.idioma]} · prazo ${fdata(c.prazo_resposta)}${c.n5!=null?' · nota '+c.n5.toFixed(1)+'/5':''}</span><div style="margin-top:6px">${c.temas.map(x=>`<span class="b ${x.endsWith('+')?'ok':'erro'}">${esc(temaLabel(x.slice(0,-1)))}</span>`).join('')||'<span class="sub">Nenhum tema identificado.</span>'}</div>${c.flags.map(f=>`<div class="sub">${esc(f)}</div>`).join('')}`};
 const IC={
  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
  star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
