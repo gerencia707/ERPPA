@@ -229,6 +229,35 @@ details.col>.body{padding:0 15px 15px}
   .cp-item{flex-direction:column;align-items:flex-start}
   .bar-row{grid-template-columns:100px 1fr 32px}
 }
+.prev-seg{display:inline-flex;background:#F2F5F2;border-radius:10px;padding:3px;margin-bottom:12px}
+.prev-seg button{border:none;background:none;padding:7px 14px;border-radius:8px;font-weight:600;color:#1B4332;cursor:pointer}
+.prev-seg button.on{background:#1B4332;color:#fff}
+.prev-item{display:flex;gap:12px;align-items:flex-start;border:1px solid #E3EAE5;border-radius:12px;padding:12px 14px;margin-bottom:8px;background:#fff}
+.prev-item.inativa{opacity:.6;background:#FAFBFA}
+.prev-info{flex:1;min-width:0}
+.prev-tit{font-weight:700;font-size:15px;color:#0A2A22;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.prev-meta{font-size:13px;color:#5d6b64;margin-top:3px}
+.prev-freq{background:#E3F0E6;color:#1B4332;font-weight:700;font-size:11px;padding:2px 8px;border-radius:8px}
+.prev-obs{font-size:13px;color:#2b3a33;background:#F5F7F5;border-radius:8px;padding:6px 8px;margin-top:6px;white-space:pre-wrap}
+.prev-ac{display:flex;gap:6px;flex-shrink:0}
+.prev-form label{display:block;font-size:12px;font-weight:700;color:#1B4332;margin:10px 0 4px}
+.prev-form input,.prev-form select,.prev-form textarea{width:100%}
+.prev-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:560px){.prev-2{grid-template-columns:1fr}.prev-item{flex-direction:column}}
+.gal-filtros{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.gal-filtros label{display:flex;flex-direction:column;font-size:11px;font-weight:700;color:#1B4332;gap:3px}
+.gal-filtros select{min-width:150px}
+.gal-grupo{margin-bottom:18px}
+.gal-tit{font-weight:700;color:#0A2A22;margin-bottom:8px;font-size:14px}
+.gal-tit span{background:#E3F0E6;color:#1B4332;border-radius:10px;padding:1px 8px;font-size:12px;margin-left:4px}
+.gal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.gal-item{border:1px solid #E3EAE5;background:#F5F7F5;border-radius:12px;padding:0;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;text-align:left}
+.gal-item img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:#E8EEE9}
+.gal-item span{font-size:11px;color:#5d6b64;padding:5px 8px}
+.gal-item:hover{border-color:#2D6A4F;box-shadow:0 2px 8px rgba(10,42,34,.12)}
+.gal-item.sem img{opacity:.2}
+.gal-big{background:#0A2A22;border-radius:10px;display:flex;align-items:center;justify-content:center;min-height:200px}
+.gal-big img{max-width:100%;max-height:70vh;display:block;border-radius:10px}
 </style>
 </head>
 <body>
@@ -386,6 +415,7 @@ var PAGES = [
   ['atividades','Atividades Recorrentes','ti ti-repeat'],
   {g:'Planejamento'},
   ['checklists','Checklists','ti ti-checkup-list'],
+  ['preventivas','Preventivas','ti ti-calendar-repeat'],
   ['calendario','Calendario','ti ti-calendar'],
   ['compras','Compras','ti ti-shopping-cart'],
   {g:'Equipe'},
@@ -395,6 +425,7 @@ var PAGES = [
   ['relatorio','Relatorio','ti ti-report'],
   ['gastos','Controle de Gastos','ti ti-cash'],
   ['historico','Historico','ti ti-history'],
+  ['drive','Fotos no Drive','ti ti-brand-google-drive'],
   ['ranking','Ranking','ti ti-trophy'],
   ['treinamentos','Treinamentos','ti ti-school'],
   ['config','Configuracoes','ti ti-settings']
@@ -1021,6 +1052,8 @@ function pgName(id){for(var i=0;i<PAGES.length;i++){if(Array.isArray(PAGES[i])&&
 function goto(p){
   var anterior=ST.page;
   ST.page=p;
+  if(p==='preventivas') PREV.lista=null;
+  if(p==='drive'){ GAL.dados=null; GAL.erro=''; }
   buildNav();
   document.getElementById('ptitle').textContent=pgName(p);
   if(window.innerWidth<=820){
@@ -1049,6 +1082,7 @@ function render() {
     ST.page==='apartamentos' ?renderApts()    :
     ST.page==='atividades'   ?renderAtiv()    :
     ST.page==='checklists'   ?renderCk()      :
+    ST.page==='preventivas'  ?renderPrev()    :
     ST.page==='calendario'   ?renderCal()     :
     ST.page==='compras'      ?renderComp()    :
     ST.page==='escala'       ?renderEsc()     :
@@ -1056,6 +1090,7 @@ function render() {
     ST.page==='ranking'      ?renderRanking() :
     ST.page==='gastos'       ?renderGastos()  :
     ST.page==='historico'    ?renderHistorico():
+    ST.page==='drive'        ?renderGaleria() :
     ST.page==='treinamentos' ?renderTrein()   :
     ST.page==='config'       ?renderConf()    : ''
   );
@@ -3888,6 +3923,197 @@ function abrirUsrForm(id){
     }}]);
 }
 function delUsr(id){if(!confirm('Excluir?'))return;call('saveUsuarios',{lista:ST.data.usuarios.filter(function(x){return x.id!==id;})},reload);}
+
+/* ===== Preventivas (Planejamento) e Fotos no Drive (Gestao) ===== */
+var PREV = {lista:null, carregando:false, filtro:'ativas'};
+var PREV_FREQ = [['diaria','Diária'],['semanal','Semanal'],['quinzenal','Quinzenal'],['mensal','Mensal'],['trimestral','Trimestral'],['semestral','Semestral'],['anual','Anual']];
+var PREV_PRIO = [['Baixa','Baixa'],['Media','Média'],['Alta','Alta'],['Urgente','Urgente']];
+function prevFreqNome(f){ for(var i=0;i<PREV_FREQ.length;i++){ if(PREV_FREQ[i][0]===f) return PREV_FREQ[i][1]; } return f||'-'; }
+function prevHoje(){ return todayISO(); }
+function prevFmtData(s){ if(!s) return '-'; var p=String(s).slice(0,10).split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+
+async function prevCarregar(){
+  PREV.carregando=true;
+  try{ PREV.lista=await sbGet('preventivas?select=*&order=proxima_data.asc,titulo.asc')||[]; }
+  catch(e){ console.error('preventivas',e); PREV.lista=PREV.lista||[]; }
+  PREV.carregando=false;
+  if(ST.page==='preventivas') render();
+}
+async function prevGerar(silencioso){
+  try{
+    var r=await fetch(SUPA_URL+'/rest/v1/rpc/prev_gerar_chamados',{method:'POST',
+      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json'},body:'{}'});
+    var n=r.ok?Number(await r.json())||0:0;
+    if(n>0){ reload(); if(!silencioso) alert(n+' chamado(s) de preventiva criado(s).'); }
+    else if(!silencioso) alert('Nenhuma preventiva vencida para hoje.');
+    if(ST.page==='preventivas') prevCarregar();
+    return n;
+  }catch(e){ if(!silencioso) alert('Erro ao gerar preventivas: '+e.message); return 0; }
+}
+function prevAberto(p){
+  var cab='[Preventiva] '+p.titulo, ab=null;
+  (ST.data.chamados||[]).forEach(function(c){
+    if(isConcluido(c.status)) return;
+    if(c.preventiva_id===p.id||String(c.descricao||'').split('\n')[0]===cab) ab=c;
+  });
+  return ab;
+}
+
+function renderPrev(){
+  if(PREV.lista===null){ if(!PREV.carregando) prevCarregar(); return '<div class="card"><div style="padding:30px;text-align:center;color:#6b7770">Carregando preventivas...</div></div>'; }
+  var hoje=prevHoje(), pode=isSupervisor();
+  var lista=PREV.lista.filter(function(p){ return PREV.filtro==='todas'||(PREV.filtro==='ativas'?p.ativo:!p.ativo); });
+  var nAtivas=PREV.lista.filter(function(p){return p.ativo;}).length;
+  var nHoje=PREV.lista.filter(function(p){return p.ativo&&String(p.proxima_data)<=hoje;}).length;
+  var badgeP=function(p){ var c={Urgente:'#c0392b',Alta:'#B8741A',Media:'#4F7A43',Baixa:'#6F7C75'}[p]||'#6F7C75'; return '<span style="background:'+c+';color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">'+esc(p==='Media'?'Média':p||'-')+'</span>'; };
+  var linhas=lista.map(function(p){
+    var ab=prevAberto(p), venc=p.ativo&&String(p.proxima_data)<=hoje;
+    return '<div class="prev-item'+(p.ativo?'':' inativa')+'">'+
+      '<div class="prev-info">'+
+        '<div class="prev-tit">'+esc(p.titulo)+' '+badgeP(p.prioridade)+'</div>'+
+        '<div class="prev-meta"><span class="prev-freq">'+prevFreqNome(p.frequencia)+'</span> '+
+          esc((p.tipo_local==='apartamento'&&p.local?'Apto ':'')+(p.local||'Geral'))+(p.area_tecnica?' · '+esc(p.area_tecnica):'')+'</div>'+
+        (p.obs?'<div class="prev-obs">OBS: '+esc(p.obs)+'</div>':'')+
+        '<div class="prev-meta">'+(p.ativo?'Próximo chamado: <b style="color:'+(venc?'#c0392b':'#1B4332')+'">'+prevFmtData(p.proxima_data)+'</b>':'Pausada')+
+          (ab?' · <span style="color:#B8741A">chamado em aberto desde '+fmtDT(ab.criadoEm)+'</span>':'')+'</div>'+
+      '</div>'+
+      (pode?'<div class="prev-ac">'+
+        '<button class="btn sm sec" data-pid="'+esc(p.id)+'" onclick="prevForm(this.getAttribute(\'data-pid\'))" title="Editar"><i class="ti ti-pencil"></i></button>'+
+        '<button class="btn sm sec" data-pid="'+esc(p.id)+'" onclick="prevAtivar(this.getAttribute(\'data-pid\'))" title="'+(p.ativo?'Pausar':'Reativar')+'"><i class="ti ti-player-'+(p.ativo?'pause':'play')+'"></i></button>'+
+        '<button class="btn sm danger" data-pid="'+esc(p.id)+'" onclick="prevExcluir(this.getAttribute(\'data-pid\'))" title="Excluir"><i class="ti ti-trash"></i></button>'+
+      '</div>':'')+
+    '</div>';
+  }).join('');
+  return '<div class="card">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">'+
+      '<div><div style="font-size:16px;font-weight:700;color:#0A2A22">Manutenção preventiva</div>'+
+      '<div style="font-size:13px;color:#6b7770">'+nAtivas+' ativa(s). Os chamados abrem sozinhos todo dia às 6h, na data de cada preventiva.</div></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+        (pode&&nHoje?'<button class="btn sec" onclick="prevGerar(false)"><i class="ti ti-refresh"></i> Gerar vencidas agora ('+nHoje+')</button>':'')+
+        (pode?'<button class="btn" onclick="prevForm(null)"><i class="ti ti-plus"></i> Nova preventiva</button>':'')+
+      '</div></div>'+
+    '<div class="prev-seg">'+[['ativas','Ativas'],['pausadas','Pausadas'],['todas','Todas']].map(function(f){return '<button class="'+(PREV.filtro===f[0]?'on':'')+'" onclick="PREV.filtro=\''+f[0]+'\';render()">'+f[1]+'</button>';}).join('')+'</div>'+
+    (linhas||'<div style="padding:30px;text-align:center;color:#6b7770">Nenhuma preventiva '+(PREV.filtro==='pausadas'?'pausada':'cadastrada')+'.'+(pode&&PREV.filtro!=='pausadas'?' Clique em "Nova preventiva" para começar.':'')+'</div>')+
+  '</div>';
+}
+
+function prevForm(id){
+  var p=id?(PREV.lista||[]).find(function(x){return x.id===id;}):null;
+  p=p||{titulo:'',tipo_local:'comum',local:'',area_tecnica:'',prioridade:'Media',obs:'',frequencia:'mensal',proxima_data:prevHoje(),ativo:true};
+  var cfg=ST.data.config||{}, aptos=ST.data.apartamentos||[], areas=cfg.areasComuns||[], tec=cfg.areasTecnicas||[];
+  var opt=function(l,v){ return l.map(function(x){ var val=Array.isArray(x)?x[0]:x, lab=Array.isArray(x)?x[1]:x; return '<option value="'+esc(val)+'"'+(String(v)===String(val)?' selected':'')+'>'+esc(lab)+'</option>'; }).join(''); };
+  window._prevAptos=aptos; window._prevAreas=areas;
+  var tipoAtual=!p.local?'geral':(p.tipo_local==='apartamento'?'apartamento':'comum');
+  openModal(id?'Editar preventiva':'Nova preventiva',
+    '<div class="prev-form">'+
+    '<label>Atividade *</label><input id="pv-tit" maxlength="120" placeholder="Ex: Limpeza dos filtros do ar-condicionado" value="'+esc(p.titulo)+'">'+
+    '<div class="prev-2"><div><label>Repetição *</label><select id="pv-freq">'+opt(PREV_FREQ,p.frequencia)+'</select></div>'+
+      '<div><label>'+(id?'Próximo chamado':'Primeiro chamado')+'</label><input id="pv-data" type="date" value="'+esc(String(p.proxima_data).slice(0,10))+'"></div></div>'+
+    '<div class="prev-2"><div><label>Urgência</label><select id="pv-prio">'+opt(PREV_PRIO,p.prioridade)+'</select></div>'+
+      '<div><label>Área técnica</label><select id="pv-area"><option value="">-</option>'+opt(tec,p.area_tecnica)+'</select></div></div>'+
+    '<div class="prev-2"><div><label>Onde</label><select id="pv-tipo" onchange="prevTrocaTipo()">'+opt([['comum','Área comum'],['apartamento','Apartamento'],['geral','Geral (hotel todo)']],tipoAtual)+'</select></div>'+
+      '<div><label>Local</label><select id="pv-local"></select></div></div>'+
+    '<label>OBS</label><textarea id="pv-obs" rows="3" maxlength="1000" placeholder="Instruções, materiais, cuidados...">'+esc(p.obs||'')+'</textarea>'+
+    '</div>',
+    [{l:'Cancelar',c:'sec',f:closeModal},{l:'Salvar',c:'',f:function(){ prevSalvar(id); }}]);
+  prevTrocaTipo(p.local);
+}
+function prevTrocaTipo(atual){
+  var t=document.getElementById('pv-tipo').value, sel=document.getElementById('pv-local');
+  var l=(t==='apartamento'?window._prevAptos:t==='comum'?window._prevAreas:[]).slice();
+  if(atual&&t!=='geral'&&l.indexOf(String(atual))<0) l.unshift(String(atual));
+  sel.disabled=!l.length;
+  sel.innerHTML=l.length?l.map(function(x){return '<option value="'+esc(x)+'"'+(String(atual)===String(x)?' selected':'')+'>'+esc(x)+'</option>';}).join(''):'<option value="">'+(t==='geral'?'Hotel todo':'Nenhum cadastrado')+'</option>';
+}
+async function prevSalvar(id){
+  var g=function(i){ return (document.getElementById(i).value||'').trim(); };
+  var tit=g('pv-tit'), data=g('pv-data')||prevHoje(), tipo=g('pv-tipo');
+  if(!tit){ alert('Informe a atividade.'); return; }
+  var reg={titulo:tit,frequencia:g('pv-freq'),proxima_data:data,prioridade:g('pv-prio'),area_tecnica:g('pv-area'),
+    tipo_local:tipo==='apartamento'?'apartamento':'comum',local:tipo==='geral'?'':g('pv-local'),obs:g('pv-obs')};
+  try{
+    if(id) await sbPatch('preventivas?id=eq.'+encodeURIComponent(id),reg);
+    else await sbPost('preventivas',Object.assign({id:uid(),ativo:true,criado_por:ST.user||''},reg));
+    closeModal();
+    if(data<=prevHoje()) await prevGerar(true);
+    await prevCarregar();
+  }catch(e){ alert('Erro ao salvar: '+e.message); }
+}
+async function prevAtivar(id){
+  var p=(PREV.lista||[]).find(function(x){return x.id===id;}); if(!p) return;
+  var upd={ativo:!p.ativo};
+  if(!p.ativo&&String(p.proxima_data)<prevHoje()) upd.proxima_data=prevHoje();
+  try{ await sbPatch('preventivas?id=eq.'+encodeURIComponent(id),upd); if(upd.ativo) await prevGerar(true); await prevCarregar(); }
+  catch(e){ alert('Erro: '+e.message); }
+}
+async function prevExcluir(id){
+  var p=(PREV.lista||[]).find(function(x){return x.id===id;}); if(!p) return;
+  openModal('Excluir preventiva','<div style="font-size:14px">Excluir <b>'+esc(p.titulo)+'</b>? Os chamados já criados continuam no histórico.</div>',
+    [{l:'Cancelar',c:'sec',f:closeModal},{l:'Excluir',c:'danger',f:async function(){
+      try{ await sbDelete('preventivas?id=eq.'+encodeURIComponent(id)); closeModal(); await prevCarregar(); }catch(e){ alert('Erro: '+e.message); }
+    }}]);
+}
+
+/* ---------- Fotos no Drive (galeria) ---------- */
+var PA_DRIVE_URL = '';
+var PA_DRIVE_PASTA = 'https://drive.google.com/drive/folders/1az6v5QG_A6j7gHp7K3MCqu6WOztUXIz0';
+var GAL = {dados:null, mes:'', local:'', carregando:false, erro:''};
+function galConfigurada(){ return PA_DRIVE_URL.indexOf('https://')===0; }
+function abrirDriveHotel(){ window.open(PA_DRIVE_PASTA,'_blank','noopener'); }
+function galCarregar(mes){
+  if(!galConfigurada()){ GAL.erro='Galeria ainda não ligada ao Drive.'; render(); return; }
+  GAL.carregando=true; GAL.erro=''; if(ST.page==='drive') render();
+  fetch(PA_DRIVE_URL+'?galeria=1'+(mes?'&mes='+encodeURIComponent(mes):''))
+    .then(function(r){return r.json();})
+    .then(function(j){ if(!j||!j.ok) throw new Error((j&&j.erro)||'resposta inválida'); GAL.dados=j; GAL.mes=j.mes||''; if(GAL.local&&!(j.locais||[]).some(function(l){return l.nome===GAL.local;})) GAL.local=''; })
+    .catch(function(e){ GAL.erro='Não foi possível carregar as fotos ('+e.message+').'; })
+    .then(function(){ GAL.carregando=false; if(ST.page==='drive') render(); });
+}
+function galThumb(id,w){ return 'https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w'+(w||400); }
+function galNomeMes(m){ return String(m||'').replace(/^(\d{4})-(\d{2})[ -]+(.*)$/,'$3 de $1'); }
+function galTipo(n){ var m=/-(abertura|conclusao)-/i.exec(String(n||'')); return m?(m[1].toLowerCase()==='abertura'?'Abertura':'Conclusão'):''; }
+function renderGaleria(){
+  if(!GAL.dados&&!GAL.carregando&&!GAL.erro&&galConfigurada()) galCarregar('');
+  var d=GAL.dados||{meses:[],locais:[]};
+  var locais=(d.locais||[]).filter(function(l){return !GAL.local||l.nome===GAL.local;});
+  var total=(d.locais||[]).reduce(function(s,l){return s+l.fotos.length;},0);
+  var topo='<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px">'+
+    '<div><div style="font-size:16px;font-weight:700;color:#0A2A22">Fotos da manutenção</div>'+
+      '<div style="font-size:13px;color:#6b7770">'+(GAL.carregando?'Carregando do Drive...':(galConfigurada()?total+' foto(s) em '+esc(galNomeMes(GAL.mes)||'-'):'Abra a pasta de fotos no Drive.'))+'</div></div>'+
+    '<div class="gal-filtros">'+(galConfigurada()?
+      '<label>Mês<select onchange="GAL.local=\'\';galCarregar(this.value)"'+(d.meses.length?'':' disabled')+'>'+(d.meses.length?d.meses.map(function(m){return '<option value="'+esc(m)+'"'+(m===GAL.mes?' selected':'')+'>'+esc(galNomeMes(m))+'</option>';}).join(''):'<option>-</option>')+'</select></label>'+
+      '<label>Apto ou área<select onchange="GAL.local=this.value;render()"><option value="">Todos</option>'+(d.locais||[]).map(function(l){return '<option value="'+esc(l.nome)+'"'+(l.nome===GAL.local?' selected':'')+'>'+esc(l.nome)+' ('+l.fotos.length+')</option>';}).join('')+'</select></label>'+
+      '<button class="btn sec" onclick="galCarregar(GAL.mes)"'+(GAL.carregando?' disabled':'')+'><i class="ti ti-refresh"></i> Atualizar</button>':'')+
+      '<button class="btn sec" onclick="abrirDriveHotel()"><i class="ti ti-brand-google-drive"></i> Abrir no Drive</button>'+
+    '</div></div>';
+  var corpo;
+  if(!galConfigurada()) corpo='<div style="padding:30px;text-align:center;color:#6b7770">A galeria dentro do sistema será ligada em breve. Por enquanto, use "Abrir no Drive".</div>';
+  else if(GAL.erro) corpo='<div style="padding:30px;text-align:center;color:#c0392b">'+esc(GAL.erro)+'</div>';
+  else if(GAL.carregando&&!GAL.dados) corpo='<div style="padding:40px;text-align:center;color:#6b7770">Carregando fotos do Drive...</div>';
+  else if(!total) corpo='<div style="padding:40px;text-align:center;color:#6b7770">Nenhuma foto'+(GAL.mes?' em '+esc(galNomeMes(GAL.mes)):'')+'.</div>';
+  else corpo=locais.map(function(l){
+    return '<div class="gal-grupo"><div class="gal-tit">'+esc(l.nome)+' <span>'+l.fotos.length+'</span></div><div class="gal-grid">'+
+      l.fotos.map(function(f){
+        return '<button class="gal-item" data-id="'+esc(f.id)+'" data-loc="'+esc(l.nome)+'" onclick="galVer(this.getAttribute(\'data-loc\'),this.getAttribute(\'data-id\'))">'+
+          '<img src="'+galThumb(f.id,400)+'" loading="lazy" alt="Foto '+esc(l.nome)+'" onerror="this.parentNode.classList.add(\'sem\')">'+
+          '<span>'+(galTipo(f.nome)?esc(galTipo(f.nome))+' · ':'')+esc(fmtDT(f.data))+'</span></button>';
+      }).join('')+'</div></div>';
+  }).join('');
+  return '<div class="card">'+topo+corpo+'</div>';
+}
+function galVer(loc,id){
+  var l=((GAL.dados&&GAL.dados.locais)||[]).find(function(x){return x.nome===loc;}); if(!l) return;
+  var i=l.fotos.findIndex(function(f){return f.id===id;}); if(i<0) return;
+  var f=l.fotos[i], ant=l.fotos[i-1], prox=l.fotos[i+1];
+  var nav=function(x,ic,t){ return x?'<button class="btn sec" data-id="'+esc(x.id)+'" data-loc="'+esc(loc)+'" onclick="closeModal();galVer(this.getAttribute(\'data-loc\'),this.getAttribute(\'data-id\'))"><i class="ti '+ic+'"></i> '+t+'</button>':''; };
+  openModal(loc+' · '+(galTipo(f.nome)?galTipo(f.nome)+' · ':'')+fmtDT(f.data),
+    '<div class="gal-big"><img src="'+galThumb(f.id,1600)+'" alt="Foto '+esc(loc)+'"></div>'+
+    '<div style="display:flex;gap:8px;justify-content:space-between;margin-top:10px;flex-wrap:wrap">'+
+      '<div style="display:flex;gap:8px">'+nav(ant,'ti-chevron-left','Anterior')+nav(prox,'ti-chevron-right','Próxima')+'</div>'+
+      '<a class="btn sec" href="https://drive.google.com/file/d/'+encodeURIComponent(f.id)+'/view" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Abrir no Drive</a>'+
+    '</div>',
+    [{l:'Fechar',c:'sec',f:closeModal}]);
+}
 
 function openModal(tt,body,bts){
   var r=document.getElementById('mroot');
